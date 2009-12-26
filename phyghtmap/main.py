@@ -1,0 +1,141 @@
+#!/usr/bin/env python
+
+#import psyco
+#psyco.full()
+
+__author__ = "Markus Demleitner (msdemlei@ari.uni-heidelberg.de), " +\
+	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
+__version__ = "0.99pre1"
+__copyright__ = "Copyright (c) 2009 Markus Demleitner, Adrian Dempwolff"
+__license__ = "GPL"
+
+import sys
+import os
+from optparse import OptionParser
+
+from phyghtmap import hgt
+from phyghtmap import osmUtil
+from phyghtmap import NASASRTMUtil
+
+profile = False
+
+def parseCommandLine():
+	"""parses the command line.
+	"""
+	parser = OptionParser(usage="%prog [options] [<hgt file>] [<hgt files>]"
+    "\ngenerates contour lines from NASA SRTM data.")
+	parser.add_option("-a", "--area", help="choses the area to generate osm SRTM"
+		"\ndata for by bounding box. If necessary, files are downloaded from"
+		"\nthe NASA server (%s)."
+		"\nSpecify as <left>:<bottom>:<right>:<top> in degrees of latitude"
+		"\nand longitude, respectively. Latitudes south of the equator and"
+		"\nlongitudes west of Greenwich may be given as negative decimal numbers."
+		"\nIf this option is given, specified hgt"
+		"\nfiles will be omitted."%NASASRTMUtil.hgtFileServer,
+	  dest="area", metavar="LEFT:BOTTOM:RIGHT:TOP", action="store", default=None)
+	parser.add_option("-s", "--step", help="specify contour line step size in"
+		"\nmeters. The default value is 20.", dest="contourStepSize",
+		metavar="STEP", action="store", default='20')
+	parser.add_option("-o", "--output-prefix", help="specify a prefix for the"
+		"\nfilenames of the output osm file(s).", dest="outputPrefix",
+		metavar="PREFIX", action="store", default=None)
+	parser.add_option("-p", "--plot", help="specify a plot filename prefix"
+		"\nand generate a plot file instead of contour osm.", dest="plotName",
+		action="store", default=None)
+	parser.add_option("-c", "--line-cat", help="specify a string of two comma"
+		"\nseperated integers for major and medium elevation categories, e. g."
+		"\n'200,100' which is the default. This is needed for fancy rendering.",
+		dest="lineCats", metavar="ELEVATION_MAJOR,ELEVATION_MEDIUM", action="store",
+		default='200,100')
+	parser.add_option("-j", "--jobs", help="number of jobs to be run"
+		" in parallel (POSIX only)", dest="nJobs", action="store",
+		type="int", default=1)
+	parser.add_option("--version-tag", help="pass an integer as VERSIONTAG for"
+		"\nosm elements to output osm.  This is needed to display the generated"
+		"\ncontour data with newer JOSM versions.  The default value is None.",
+		metavar="VERSIONTAG", dest="versionTag", action="store", default=None,
+		type="int")
+	opts, args = parser.parse_args()
+	if len(args) == 0 and not opts.area:
+		parser.print_help()
+		sys.exit(1)
+	return opts, args
+
+def makeOsmFilename(borders, opts):
+	"""generate a filename for the output osm file. This is done using the bbox
+	of the current hgt file.
+	"""
+	minLon, minLat, maxLon, maxLat = borders
+	if opts.outputPrefix:
+		prefix = "%s_"%opts.outputPrefix
+	else:
+		prefix = ""
+	return "%slon%.2f_%.2flat%.2f_%.2f.osm"%(prefix, minLon, maxLon, minLat, maxLat)
+
+
+def processHgtFile(srcName, opts):
+	hgtFile = hgt.hgtFile(srcName)
+	hgtTiles = hgtFile.makeTiles(opts)
+	for tile in hgtTiles:
+		if opts.plotName:
+			tile.plotData("%s_heightPlot.xyz"%opts.plotName)
+		else:
+			contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
+			output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts),
+				versionTag=opts.versionTag)
+			try:
+				osmUtil.writeXML(output, osmUtil.makeElevClassifier(
+						*[int(h) for h in opts.lineCats.split(",")]), contourData)
+			finally:
+				output.done()
+
+class ProcessQueue(object):
+	def __init__(self, nJobs, fileList, **kwargs):
+		self.nJobs, self.fileList = nJobs, fileList
+		self.kwargs = kwargs
+		self.children = {}
+
+	def _forkOne(self):
+		pid = os.fork()
+		srcName = self.fileList.pop()
+		if pid==0:
+			print "Computing %s"%srcName
+			processHgtFile(srcName, **self.kwargs)
+			os._exit(0)
+		else:
+			self.children[pid] = srcName
+
+	def process(self):
+		while self.fileList or self.children:
+			while len(self.children)<self.nJobs and self.fileList:
+				self._forkOne()
+			if self.children:
+				pid, res = os.wait()
+				if res:
+					print "Panic: Didn't work:", self.children[pid]
+				del self.children[pid]
+	
+
+def main():
+	opts, args = parseCommandLine()
+	if opts.area:
+		hgtDataFiles = NASASRTMUtil.getFiles(opts.area)
+	else:
+		hgtDataFiles = [arg for arg in args if arg.endswith(".hgt")]
+
+	if hasattr(os, "fork") and opts.nJobs != 1:
+		queue = ProcessQueue(opts.nJobs, hgtDataFiles, opts=opts)
+		queue.process()
+	else:
+		for hgtDataFileName in hgtDataFiles:
+			processHgtFile(hgtDataFileName, opts)
+
+if __name__=="__main__":
+	if profile:
+		import cProfile
+		cProfile.run("main()", "stats.profile")
+		import pstats
+		stats = pstats.Stats("stats.profile")
+		stats.sort_stats("time").print_stats(20)
+	else:
+		main()

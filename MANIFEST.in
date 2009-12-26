@@ -1,0 +1,5 @@
+include INSTALL
+include README
+include README.HACKING
+include LICENSE
+incluse Changelog

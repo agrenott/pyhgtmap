@@ -1,0 +1,13 @@
+phyghtmap (1.0) stable; urgency=low
+
+  * Cleand up code.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 26 Dec 2009 20:50:00 +0100
+
+
+phyghtmap (0.99pre1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 26 Dec 2009 19:30:00 +0100
+
