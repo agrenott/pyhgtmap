@@ -31,7 +31,7 @@ def parseCommandLine():
 		"\nand longitude, respectively. Latitudes south of the equator and"
 		"\nlongitudes west of Greenwich may be given as negative decimal numbers."
 		"\nIf this option is given, specified hgt"
-		"\nfiles will be omitted."%NASASRTMUtil.hgtFileServer,
+		"\nfiles will be omitted."%NASASRTMUtil.hgtFileServerRe%"[1|3]",
 	  dest="area", metavar="LEFT:BOTTOM:RIGHT:TOP", action="store", default=None)
 	parser.add_option("-s", "--step", help="specify contour line step size in"
 		"\nmeters. The default value is 20.", dest="contourStepSize",
@@ -55,6 +55,11 @@ def parseCommandLine():
 		"\ncontour data with newer JOSM versions.  The default value is None.",
 		metavar="VERSIONTAG", dest="versionTag", action="store", default=None,
 		type="int")
+	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
+		"\narc seconds.  Note that the finer 1 arc second grid is only available"
+		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
+		metavar="SRTM-RESOLUTION", dest="srtmResolution", action="store",
+		type="int", default=3)
 	opts, args = parser.parse_args()
 	if len(args) == 0 and not opts.area:
 		parser.print_help()
@@ -70,7 +75,8 @@ def makeOsmFilename(borders, opts):
 		prefix = "%s_"%opts.outputPrefix
 	else:
 		prefix = ""
-	return "%slon%.2f_%.2flat%.2f_%.2f.osm"%(prefix, minLon, maxLon, minLat, maxLat)
+	return "%slon%.2f_%.2flat%.2f_%.2f_srtm%i.osm"%(
+		prefix, minLon, maxLon, minLat, maxLat, opts.srtmResolution)
 
 
 def processHgtFile(srcName, opts):
@@ -119,7 +125,7 @@ class ProcessQueue(object):
 def main():
 	opts, args = parseCommandLine()
 	if opts.area:
-		hgtDataFiles = NASASRTMUtil.getFiles(opts.area)
+		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmResolution)
 	else:
 		hgtDataFiles = [arg for arg in args if arg.endswith(".hgt")]
 

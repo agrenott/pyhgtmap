@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore", "Unknown distribution option")
 #from phyghtmap import __version__
 
 setup(name="phyghtmap",
-	version="1.0",
+	version="1.1",
 	packages = find_packages(),
 	description="OSM contour lines creator.",
 	include_data_files=True,

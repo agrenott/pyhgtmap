@@ -1,3 +1,10 @@
+phyghtmap (1.1) stable; urgency=low
+
+  * Added SRTM1 compatibility.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 02 Jan 2010 09:40:00 +0100
+
+
 phyghtmap (1.0) stable; urgency=low
 
   * Cleand up code.

@@ -3,12 +3,14 @@ import os
 from BeautifulSoup import BeautifulSoup
 import zipfile
 
-hgtFileServer = "http://dds.cr.usgs.gov/srtm/version2_1/SRTM3"
-hgtFileDirs = ["Africa", "Australia", "Eurasia", "Islands", "North_America",
-               "South_America"]
+hgtFileServerRe = "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"
+hgtFileDirs = {3: ["Africa", "Australia", "Eurasia", "Islands", "North_America",
+               "South_America"],
+               1: ["Region_0%i"%i for i in range(1, 8)]}
 
 hgtSaveDir = "hgt"
-hgtIndexFile = os.path.join(hgtSaveDir, "hgtIndex.txt")
+hgtSaveSubDirRe = "SRTM%i"
+hgtIndexFileRe = os.path.join(hgtSaveDir, "hgtIndex_%i.txt")
 
 def calcBbox(area):
 	"""calculates the appropriate bouding box for the needed files
@@ -68,15 +70,17 @@ def makeFileNames(bbox):
 		lon += 1
 	return filenames
 
-def makeHgtIndex():
+def makeHgtIndex(resolution):
 	"""generates an index file for the NASA SRTM server.
 	"""
+	hgtIndexFile = hgtIndexFileRe%resolution
+	hgtFileServer = hgtFileServerRe%resolution
 	print "generating index in %s ..."%hgtIndexFile
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
 		raise IOError("could not open %s for writing"%hgtIndexFile)
-	for continent in hgtFileDirs:
+	for continent in hgtFileDirs[resolution]:
 		index.write("[%s]\n"%continent)
 		url = "/".join([hgtFileServer, continent])
 		continentHtml = urllib.urlopen(url)
@@ -88,13 +92,15 @@ def makeHgtIndex():
 				index.write("%s\n"%zipFilename)
 	print "DONE"
 
-def getUrl(file):
+def getUrl(file, resolution):
 	"""determines the download url for a given filename.
 	"""
+	hgtIndexFile = hgtIndexFileRe%resolution
+	hgtFileServer = hgtFileServerRe%resolution
 	try:
 		os.stat(hgtIndexFile)
 	except:
-		makeHgtIndex()
+		makeHgtIndex(resolution)
 	index = open(hgtIndexFile, 'r').readlines()
 	fileMap = {}
 	for line in index:
@@ -121,28 +127,35 @@ def unzipFile(saveZipFilename):
 		os.remove(saveZipFilename)
 	print "DONE"
 
-def getFiles(area):
+def getFiles(area, resolution):
+	hgtSaveSubDir = os.path.join(hgtSaveDir, hgtSaveSubDirRe%resolution)
 	try:
 		os.stat(hgtSaveDir)
 	except:
 		os.mkdir(hgtSaveDir)
+	try:
+		os.stat(hgtSaveSubDir)
+	except:
+		os.mkdir(hgtSaveSubDir)
 	bbox = calcBbox(area)
 	filesToDownload = makeFileNames(bbox)	
 	files = []
 	for file in filesToDownload:
-		saveZipFilename = os.path.join(hgtSaveDir, file)
+		saveZipFilename = os.path.join(hgtSaveSubDir, file)
 		saveFilename = saveZipFilename[0:-4]
 		try:
 			os.stat(saveFilename)
-			if os.path.getsize(saveFilename) != 2884802:
-				raise IOError
+			wantedSize = 2 * (3600/resolution + 1)**2
+			foundSize = os.path.getsize(saveFilename)
+			if foundSize != wantedSize:
+				raise IOError("Wrong size: Expected %i, found %i"(wantedSize,foundSize))
 			print "found existing file %s."%saveFilename
 		except:
 			try:
 				os.stat(saveZipFilename)
 				unzipFile(saveZipFilename)
 			except:
-				url = getUrl(file)
+				url = getUrl(file, resolution)
 				if url:
 					print "donwloading file %s to %s ..."%(url, saveZipFilename)
 					urllib.urlretrieve(url, filename=saveZipFilename)
