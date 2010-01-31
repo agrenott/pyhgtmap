@@ -1,0 +1,14 @@
+Source: phyghtmap
+Section: utils
+Priority: optional
+Maintainer: Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>
+Build-Depends: @cdbs@
+Standards-Version: 3.7.3.0
+
+Package: phyghtmap
+Architecture: all
+Depends: python, python-matplotlib, python-numpy, python-beautifulsoup
+#Provides: ${python:Provides}
+Description: utility to generate openstreetmap suitable contour lines from
+	NASA SRTM data.  It supports dynamic tiling and forking on multi processor
+	machines.  An interface to download raw SRTM data is included.
