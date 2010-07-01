@@ -53,13 +53,13 @@ def makeFileNames(bbox):
 	minLon, minLat, maxLon, maxLat = bbox
 	lon = minLon
 	filenames = []
-	while lon < maxLon:
+	while lon <= maxLon:
 		if lon < 0:
 			lonSwitch = "W"
 		else:
 			lonSwitch = "E"
 		lat = minLat
-		while lat < maxLat:
+		while lat <= maxLat:
 			if lat < 0:
 				latSwitch = "S"
 			else:
@@ -67,7 +67,11 @@ def makeFileNames(bbox):
 			filenames.append("%s%s%s%s.hgt.zip"%(latSwitch, str(abs(lat)).rjust(2, '0'),
 				lonSwitch, str(abs(lon)).rjust(3, '0')))
 			lat += 1
+			if minLat == maxLat or lat == maxLat:
+				break
 		lon += 1
+		if minLon == maxLon or lon == maxLon:
+			break
 	return filenames
 
 def makeHgtIndex(resolution):
@@ -138,6 +142,7 @@ def getFiles(area, resolution):
 	except:
 		os.mkdir(hgtSaveSubDir)
 	bbox = calcBbox(area)
+	print bbox
 	filesToDownload = makeFileNames(bbox)	
 	files = []
 	for file in filesToDownload:

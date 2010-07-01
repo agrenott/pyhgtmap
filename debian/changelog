@@ -1,3 +1,11 @@
+phyghtmap (1.12) stable; urgency=low
+
+  * Fixed issue in NASASRTMUtil.makeFileNames: now works with single points
+    input as bbox.
+  * Improved plot filename handling.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Fri, 25 Jun 2010 22:00:00 +0200
+
 phyghtmap (1.11) stable; urgency=low
 
   * Fixed issue of phyghtmap crashing if arrays with the same value at each

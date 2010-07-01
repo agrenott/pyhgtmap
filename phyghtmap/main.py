@@ -5,8 +5,8 @@
 
 __author__ = "Markus Demleitner (msdemlei@ari.uni-heidelberg.de), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "0.99pre1"
-__copyright__ = "Copyright (c) 2009 Markus Demleitner, Adrian Dempwolff"
+__version__ = "1.12"
+__copyright__ = "Copyright (c) 2009-2010 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPL"
 
 import sys
@@ -39,8 +39,9 @@ def parseCommandLine():
 	parser.add_option("-o", "--output-prefix", help="specify a prefix for the"
 		"\nfilenames of the output osm file(s).", dest="outputPrefix",
 		metavar="PREFIX", action="store", default=None)
-	parser.add_option("-p", "--plot", help="specify a plot filename prefix"
-		"\nand generate a plot file instead of contour osm.", dest="plotName",
+	parser.add_option("-p", "--plot", help="specify the path to write"
+		"\nlongitude/latitude/elevation data to instead of generating contour"
+		"\nosm.", dest="plotName",
 		action="store", default=None)
 	parser.add_option("-c", "--line-cat", help="specify a string of two comma"
 		"\nseperated integers for major and medium elevation categories, e. g."
@@ -84,7 +85,7 @@ def processHgtFile(srcName, opts):
 	hgtTiles = hgtFile.makeTiles(opts)
 	for tile in hgtTiles:
 		if opts.plotName:
-			tile.plotData("%s_heightPlot.xyz"%opts.plotName)
+			tile.plotData(opts.plotName)
 		else:
 			try:
 				contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
