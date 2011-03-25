@@ -1,0 +1,56 @@
+[NAME]
+\fBphyghtmap\fR
+- NASA SRTM -> OSM xml translator
+[USAGE EXAMPLES]
+Here are some usage examples
+.TP
+phyghtmap -a 8.59:49.34:8.78:49.45
+generate openstreetmap xml for the area around Heidelberg, Germany
+.TP
+phyghtmap -a 8.59:49.34:8.78:49.45 -o heidelberg
+same as above but save data to heidelberg_*.osm files instead of automatically
+generated filenames
+.TP
+phyghtmap -a -25:62:-12:68 -o iceland
+This will not work since no SRTM data is available north of 60 degrees of
+north.
+.TP
+phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3
+Yes, this works.  There is data available for that area at
+www.viewfinderpanoramas.org.
+.TP
+phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3 -j 16
+Same as above but use 16 parallel processes for the contour line calculation.
+.TP
+phyghtmap -a -25:62:-12:68 -o iceland -s 10 -c 100,50
+Say this, if you want contour lines for Iceland with a step size of ten meters
+and major contour lines every 100 meters and medium contour lines every 50
+meters.
+.TP
+phyghtmap -a 6:44:9:47 -o high_alps --viewfinder-mask=1
+With this, you get wonderful contour line .osm with a resolution of 1 arc
+second where data is available at www.viewfinderpanoramas.org and NASA SRTM 3
+arc second data elsewhere.
+.TP
+phyghtmap -s 5 some_filename.hgt
+Make contour line .osm with steps of 5 meters from file some_filename.hgt.
+Note that no area was specified here.  You can use phyghtmap like this with .hgt
+files from sources other than NASA SRTM or www.viewfinderpanoramas.org.
+.TP
+phyghtmap -p example_plotname.xyz -a 8.9:49.0:9.0:49.1
+Do not generate contour line OSM xml but write a file 'example_plotname.xyz'
+with lines containing space seperated values of longitude, latitude and
+elevation for each point stored in the corresponding .hgt file within the
+specified area.
+[BUGS]
+If you find a bug, please report it to
+<dempwolff@informatik.uni-heidelberg.de>.
+[AUTHOR]
+Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>
+
+Markus Demleitner <msdemlei@users.sf.net>
+[COPYRIGHT]
+Copyright (c) 2009-2011 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
+GPL version 2 <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO  WARRANTY, to the extent permitted by law.

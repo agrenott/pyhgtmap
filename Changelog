@@ -1,1 +1,43 @@
-debian/changelog
+phyghtmap (1.2) stable; urgency=low
+
+  * Added support for viewfinderpanoramas.org height data.  This covers void
+    areas of the NASA SRTM data as well as data north of 60° latitude of
+    north.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Tue, 22 Mar 2011 14:54:00 +0100
+
+phyghtmap (1.12) stable; urgency=low
+
+  * Fixed issue in NASASRTMUtil.makeFileNames: now works with single points
+    input as bbox.
+  * Improved plot filename handling.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Fri, 25 Jun 2010 22:00:00 +0200
+
+phyghtmap (1.11) stable; urgency=low
+
+  * Fixed issue of phyghtmap crashing if arrays with the same value at each
+    position were evaluated.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sun, 31 Jan 2010 14:45:00 +0100
+
+phyghtmap (1.1) stable; urgency=low
+
+  * Added SRTM1 compatibility.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 02 Jan 2010 09:40:00 +0100
+
+
+phyghtmap (1.0) stable; urgency=low
+
+  * Cleand up code.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 26 Dec 2009 20:50:00 +0100
+
+
+phyghtmap (0.99pre1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 26 Dec 2009 19:30:00 +0100
+
