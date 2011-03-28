@@ -3,11 +3,11 @@
 #import psyco
 #psyco.full()
 
-__author__ = "Markus Demleitner (msdemlei@ari.uni-heidelberg.de), " +\
+__author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.12"
+__version__ = "1.21"
 __copyright__ = "Copyright (c) 2009-2010 Markus Demleitner, Adrian Dempwolff"
-__license__ = "GPL"
+__license__ = "GPLv2"
 
 import sys
 import os
@@ -23,7 +23,14 @@ def parseCommandLine():
 	"""parses the command line.
 	"""
 	parser = OptionParser(usage="%prog [options] [<hgt file>] [<hgt files>]"
-    "\ngenerates contour lines from NASA SRTM data.")
+    "\nphyghtmap generates contour lines from NASA SRTM data."
+		"\nIt takes at least an area definition as input.  It then looks for a"
+		"\ncache directory (./hgt/) and the needed SRTM files.  If no cache"
+		"\ndirectory is found, it will be created.  It then downloads all the"
+		"\nneeded NASA SRTM data files automatically if they are not cached yet."
+		"\nThere is also the possibility of masking the NASA SRTM data with data"
+		"\nfrom www.viewfinderpanoramas.org which fills voids and other data"
+		"\nlacking in the NASA data set.")
 	parser.add_option("-a", "--area", help="choses the area to generate osm SRTM"
 		"\ndata for by bounding box. If necessary, files are downloaded from"
 		"\nthe NASA server (%s)."
@@ -31,7 +38,7 @@ def parseCommandLine():
 		"\nand longitude, respectively. Latitudes south of the equator and"
 		"\nlongitudes west of Greenwich may be given as negative decimal numbers."
 		"\nIf this option is given, specified hgt"
-		"\nfiles will be omitted."%NASASRTMUtil.hgtFileServerRe%"[1|3]",
+		"\nfiles will be omitted."%NASASRTMUtil.NASAhgtFileServerRe%"[1|3]",
 	  dest="area", metavar="LEFT:BOTTOM:RIGHT:TOP", action="store", default=None)
 	parser.add_option("-s", "--step", help="specify contour line step size in"
 		"\nmeters. The default value is 20.", dest="contourStepSize",
@@ -56,18 +63,38 @@ def parseCommandLine():
 		"\ncontour data with newer JOSM versions.  The default value is None.",
 		metavar="VERSIONTAG", dest="versionTag", action="store", default=None,
 		type="int")
+	parser.add_option("--start-node-id", help="specify an integer as id of"
+		"\nthe first written node in the output OSM xml.  It defaults to 10000000"
+		"\nbut some OSM xml mergers are running into trouble when encountering non"
+		"\nunique ids.  In this case and for the moment, it is safe to say"
+		"\n10000000000 (ten billion) then.", dest="startId", type="int",
+		default=10000000, action="store")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
 		"\narc seconds.  Note that the finer 1 arc second grid is only available"
 		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
 		metavar="SRTM-RESOLUTION", dest="srtmResolution", action="store",
 		type="int", default=3)
+	parser.add_option("--viewfinder-mask", help="if specified, NASA SRTM data"
+ 		"\nare masked with data from www.viewfinderpanoramas.org.  Possible values"
+		"\nare 1 and 3 (for explanation, see the --srtm option).",
+		metavar="VIEWFINDER-RESOLUTION", type="int", default=0, action="store",
+		dest="viewfinder")
+	parser.add_option("-v", "--version", help="print version and exit.",
+		dest="version", action="store_true", default=False)
 	opts, args = parser.parse_args()
+	if opts.version:
+		print "phyghtmap %s"%__version__
+		sys.exit(0)
+	if opts.srtmResolution not in [1, 3]:
+		sys.stderr.write("The --srtm option can only take '1' or '3' as values.\n")
+	if opts.viewfinder not in [0, 1, 3]:
+		sys.stderr.write("The --viewfinder-mask option can only take '1' or '3' as values.\n")
 	if len(args) == 0 and not opts.area:
 		parser.print_help()
 		sys.exit(1)
 	return opts, args
 
-def makeOsmFilename(borders, opts):
+def makeOsmFilename(borders, opts, srcName):
 	"""generate a filename for the output osm file. This is done using the bbox
 	of the current hgt file.
 	"""
@@ -76,8 +103,9 @@ def makeOsmFilename(borders, opts):
 		prefix = "%s_"%opts.outputPrefix
 	else:
 		prefix = ""
-	return "%slon%.2f_%.2flat%.2f_%.2f_srtm%i.osm"%(
-		prefix, minLon, maxLon, minLat, maxLat, opts.srtmResolution)
+	srcNameMiddle = os.path.split(os.path.split(srcName)[0])[1]
+	return "%slon%.2f_%.2flat%.2f_%.2f_%s.osm"%(
+		prefix, minLon, maxLon, minLat, maxLat, srcNameMiddle.lower())
 
 
 def processHgtFile(srcName, opts):
@@ -89,13 +117,13 @@ def processHgtFile(srcName, opts):
 		else:
 			try:
 				contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
-				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts),
-					versionTag=opts.versionTag)
+				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
+					versionTag=opts.versionTag, startId=opts.startId)
 				try:
 					osmUtil.writeXML(output, osmUtil.makeElevClassifier(
 							*[int(h) for h in opts.lineCats.split(",")]), contourData)
 				finally:
-					output.done()
+					opts.startId = output.done()
 			except ValueError: # if arrays with the same value at each position are
 			                   # tried to be evaluated
 				pass
@@ -130,7 +158,8 @@ class ProcessQueue(object):
 def main():
 	opts, args = parseCommandLine()
 	if opts.area:
-		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmResolution)
+		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmResolution,
+			opts.viewfinder)
 	else:
 		hgtDataFiles = [arg for arg in args if arg.endswith(".hgt")]
 

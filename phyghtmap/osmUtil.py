@@ -36,6 +36,7 @@ class Output(object):
 	def done(self):
 		self.outF.write("</osm>\n")
 		self.outF.close()
+		return self.getID()
 
 	def write(self, output):
 		self.outF.write(output)
