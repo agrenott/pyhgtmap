@@ -136,30 +136,99 @@ def makeNasaHgtIndex(resolution):
 				index.write("%s\n"%zipFilename)
 	print "DONE"
 
-def makeViewHgtIndex(resolution):
-	"""generates an index file for the viewfinder hgt files.
-	"""
+def writeViewIndex(resolution, zipFileDict):
 	hgtIndexFile = VIEWhgtIndexFileRe%resolution
-	hgtFileServer = NASAhgtFileServerRe%resolution
-	print "generating index in %s ..."%hgtIndexFile
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
 		raise IOError("could not open %s for writing"%hgtIndexFile)
-	hgtDictUrl = VIEWfileDictPageRe%resolution
-	areaDict = dict([(a["title"], a["href"]) for a in
-		BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area")])
-	zipFileDict = {}
-	for areaName, zipFileUrl in areaDict.items():
-		if not zipFileDict.has_key(zipFileUrl):
-			zipFileDict[zipFileUrl] = []
-		zipFileDict[zipFileUrl].append(areaName.upper())
 	for zipFileUrl in sorted(zipFileDict):
 		index.write("[%s]\n"%zipFileUrl)
 		for areaName in zipFileDict[zipFileUrl]:
 			index.write(areaName + "\n")
 	index.close()
 	print "DONE"
+
+def inViewIndex(resolution, areaName):
+	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	index = [line.strip() for line in open(hgtIndexFile, 'r').read().split("\n")
+		if line.strip()]
+	areaNames = [a for a in index if not a.startswith("[")]
+	if areaName in areaNames:
+		return True
+	else:
+		return False
+
+def makeViewHgtIndex(resolution):
+	"""generates an index file for the viewfinder hgt files.
+	"""
+	def calcAreaNames(coordTag):
+		viewfinderGraphicsDimension = 2000.0/360.0
+		l, t, r, b = [int(c) for c in coordTag.split(",")]
+		w = int(l / viewfinderGraphicsDimension + 0.5) - 180
+		e = int(r / viewfinderGraphicsDimension + 0.5) - 180
+		s = 90 - int(b / viewfinderGraphicsDimension + 0.5)
+		n = 90 - int(t / viewfinderGraphicsDimension + 0.5)
+		names = []
+		for lon in range(w, e):
+			for lat in range(s, n):
+				if lon < 0:
+					lonName = "W%s"%(str(-lon).rjust(3, "0"))
+				else:
+					lonName = "E%s"%(str(lon).rjust(3, "0"))
+				if s < 0:
+					latName = "S%s"%(str(-lat).rjust(2, "0"))
+				else:
+					latName = "N%s"%(str(lat).rjust(2, "0"))
+				name = "".join([latName, lonName])
+				names.append(name)
+		return names
+
+	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	hgtFileServer = NASAhgtFileServerRe%resolution
+	hgtDictUrl = VIEWfileDictPageRe%resolution
+	areaDict = {}
+	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
+		areaNames = calcAreaNames(a["coords"])
+		href= a["href"]
+		for areaName in areaNames:
+			areaDict[areaName] = a["href"]
+	#areaDict = dict([(a["title"], a["href"]) for a in
+		#BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area")])
+	zipFileDict = {}
+	for areaName, zipFileUrl in sorted(areaDict.items()):
+		if not zipFileDict.has_key(zipFileUrl):
+			zipFileDict[zipFileUrl] = []
+		zipFileDict[zipFileUrl].append(areaName.upper())
+	print "generating index in %s ..."%hgtIndexFile
+	writeViewIndex(resolution, zipFileDict)
+
+def updateViewIndex(resolution, zipFileUrl, areaList):
+	"""cleans up the viewfinder index.
+	"""
+	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	try:
+		os.stat(hgtIndexFile)
+	except:
+		print "Cannot update index file %s because it's not there."%hgtIndexFile
+		return
+	index = [line.strip() for line in open(hgtIndexFile, 'r').read().split("\n")
+		if line.strip()]
+	zipFileDict = {}
+	for line in index:
+		if line.startswith("["):
+			url = line[1:-1]
+			if not zipFileDict.has_key(url):
+				zipFileDict[url] = []
+		else:
+			zipFileDict[url].append(line)
+	if not zipFileDict.has_key(zipFileUrl):
+		print "No such url in zipFileDict: %s"%zipFileUrl
+		return
+	if sorted(zipFileDict[zipFileUrl]) != sorted(areaList):
+		zipFileDict[zipFileUrl] = sorted(areaList)
+		print "updating index in %s ..."%hgtIndexFile
+		writeViewIndex(resolution, zipFileDict)
 
 def getNASAUrl(area, resolution):
 	"""determines the NASA download url for a given area.
@@ -210,10 +279,12 @@ def unzipFile(saveZipFilename):
 	"""
 	print "unzipping file %s ..."%saveZipFilename
 	zipFile = zipfile.ZipFile(saveZipFilename)
+	areaNames = []
 	for name in zipFile.namelist():
 		areaName = os.path.splitext(os.path.split(name)[-1])[0].upper().strip()
 		if not areaName:
 			continue
+		areaNames.append(areaName)
 		saveFilename = os.path.join(os.path.split(saveZipFilename)[0],
 			areaName + ".hgt")
 		saveFile = open(saveFilename, 'wb')
@@ -221,8 +292,9 @@ def unzipFile(saveZipFilename):
 		saveFile.close()
 	os.remove(saveZipFilename)
 	print "DONE"
+	return areaNames
 
-def getFiles(area, resolution, viewfinder=False):
+def getFiles(area, resolution, viewfinder=0):
 	NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
 	VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%viewfinder)
 	try:
@@ -233,10 +305,11 @@ def getFiles(area, resolution, viewfinder=False):
 		os.stat(NASAhgtSaveSubDir)
 	except:
 		os.mkdir(NASAhgtSaveSubDir)
-	try:
-		os.stat(VIEWhgtSaveSubDir)
-	except:
-		os.mkdir(VIEWhgtSaveSubDir)
+	if viewfinder:
+		try:
+			os.stat(VIEWhgtSaveSubDir)
+		except:
+			os.mkdir(VIEWhgtSaveSubDir)
 	bbox = calcBbox(area)
 	#print bbox
 	filesToDownload = makeFileNames(bbox, resolution, viewfinder)	
@@ -246,6 +319,9 @@ def getFiles(area, resolution, viewfinder=False):
 			print "no file for area %s found on server."%area
 			continue
 		if "viewfinderpanoramas" in url:
+			if not inViewIndex(viewfinder, area):
+				# we dynamically update the viewfinder index, so always check this here
+				continue
 			hgtSaveSubDir = VIEWhgtSaveSubDir
 			fileResolution = viewfinder
 		else:
@@ -263,13 +339,18 @@ def getFiles(area, resolution, viewfinder=False):
 		except:
 			try:
 				os.stat(saveZipFilename)
-				unzipFile(saveZipFilename)
+				areaNames = unzipFile(saveZipFilename)
+				if "viewfinderpanoramas" in url:
+					updateViewIndex(viewfinder, url, areaNames)
 			except:
 				print "downloading file %s to %s ..."%(url, saveZipFilename)
 				urllib.urlretrieve(url, filename=saveZipFilename)
 				try:
-					unzipFile(saveZipFilename)
-				except:
+					areaNames = unzipFile(saveZipFilename)
+					if "viewfinderpanoramas" in url:
+						updateViewIndex(viewfinder, url, areaNames)
+				except Exception, msg:
+					print msg
 					print "file %s from %s is not a zip file"%(saveZipFilename, url)
 		try:
 			os.stat(saveFilename)

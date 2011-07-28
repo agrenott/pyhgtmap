@@ -1,3 +1,11 @@
+phyghtmap (1.22) stable; urgency=low
+
+  * The generation of viewfinder indexes was broken and was replaced by another
+    method:  area names are calculated using the "coords" attribute.
+  * Minor fixes concerning the handling of viewfinder download directories.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Wed, 27 Jul 2011 14:32:00 +0200
+
 phyghtmap (1.21) stable; urgency=low
 
   * Added --start-node-id option to specify values high enough to not collide
