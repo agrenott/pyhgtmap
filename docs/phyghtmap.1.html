@@ -1,0 +1,161 @@
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
+</HEAD><BODY>
+<H1>PHYGHTMAP</H1>
+Section: User Commands (1)<BR>Updated: December 2011<BR><A HREF="#index">Index</A>
+<HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+<B>phyghtmap</B>
+- NASA SRTM -&gt; OSM xml translator
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>phyghtmap</B>
+
+[<I>options</I>] [<I>&lt;hgt file&gt;</I>] [<I>&lt;hgt files&gt;</I>]
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+phyghtmap generates contour lines from NASA SRTM data.
+It takes at least an area definition as input.  It then looks for a
+cache directory (./hgt/) and the needed SRTM files.  If no cache
+directory is found, it will be created.  It then downloads all the
+needed NASA SRTM data files automatically if they are not cached yet.
+There is also the possibility of masking the NASA SRTM data with data
+from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
+lacking in the NASA data set.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-h</B>, <B>--help</B><DD>
+show this help message and exit
+<DT><B>-a</B> LEFT:BOTTOM:RIGHT:TOP, <B>--area</B>=<I>LEFT</I>:BOTTOM:RIGHT:TOP<DD>
+choses the area to generate osm SRTM data for by
+bounding box. If necessary, files are downloaded from
+the NASA server
+(<A HREF="http://dds.cr.usgs.gov/srtm/version2_1/SRTM[1|3]).">http://dds.cr.usgs.gov/srtm/version2_1/SRTM[1|3]).</A>
+Specify as &lt;left&gt;:&lt;bottom&gt;:&lt;right&gt;:&lt;top&gt; in degrees of
+latitude and longitude, respectively. Latitudes south
+of the equator and longitudes west of Greenwich may be
+given as negative decimal numbers. If this option is
+given, specified hgt files will be omitted.
+<DT><B>-s</B> STEP, <B>--step</B>=<I>STEP</I><DD>
+specify contour line step size in meters. The default
+value is 20.
+<DT><B>-o</B> PREFIX, <B>--output-prefix</B>=<I>PREFIX</I><DD>
+specify a prefix for the filenames of the output osm
+file(s).
+<DT><B>-p</B> PLOTNAME, <B>--plot</B>=<I>PLOTNAME</I><DD>
+specify the path to write longitude/latitude/elevation
+data to instead of generating contour osm.
+<DT><B>-c</B> ELEVATION_MAJOR,ELEVATION_MEDIUM, <B>--line-cat</B>=<I>ELEVATION_MAJOR</I>,ELEVATION_MEDIUM<DD>
+specify a string of two comma seperated integers for
+major and medium elevation categories, e. g. '200,100'
+which is the default. This is needed for fancy
+rendering.
+<DT><B>-j</B> NJOBS, <B>--jobs</B>=<I>NJOBS</I><DD>
+number of jobs to be run in parallel (POSIX only)
+<DT><B>--osm-version</B>=<I>OSM-VERSION</I><DD>
+pass a number as OSM-VERSION to use for the output.
+The default value is 0.5 since this saves disk space.
+If you need a newer version, try 0.6.
+<DT><B>--start-node-id</B>=<I>STARTID</I><DD>
+specify an integer as id of the first written node in
+the output OSM xml.  It defaults to 10000000 but some
+OSM xml mergers are running into trouble when
+encountering non unique ids.  In this case and for the
+moment, it is safe to say 10000000000 (ten billion)
+then.
+<DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
+use SRTM resolution of SRTM-RESOLUTION arc seconds.
+Note that the finer 1 arc second grid is only
+available in the USA.  Possible values are 1 and 3,
+the default value is 3.
+<DT><B>--viewfinder-mask</B>=<I>VIEWFINDER-RESOLUTION</I><DD>
+if specified, NASA SRTM data are masked with data from
+<A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
+and 3 (for explanation, see the <B>--srtm</B> option).
+<DT><B>-v</B>, <B>--version</B><DD>
+print version and exit.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>USAGE EXAMPLES</H2>
+
+Here are some usage examples
+<DL COMPACT>
+<DT>phyghtmap -a 8.59:49.34:8.78:49.45<DD>
+generate openstreetmap xml for the area around Heidelberg, Germany
+<DT>phyghtmap -a 8.59:49.34:8.78:49.45 -o heidelberg<DD>
+same as above but save data to heidelberg_*.osm files instead of automatically
+generated filenames
+<DT>phyghtmap -a -25:62:-12:68 -o iceland<DD>
+This will not work since no SRTM data is available north of 60 degrees of
+north.
+<DT>phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3<DD>
+Yes, this works.  There is data available for that area at
+<A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.
+<DT>phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3 -j 16<DD>
+Same as above but use 16 parallel processes for the contour line calculation.
+<DT>phyghtmap -a -25:62:-12:68 -o iceland -s 10 -c 100,50<DD>
+Say this, if you want contour lines for Iceland with a step size of ten meters
+and major contour lines every 100 meters and medium contour lines every 50
+meters.
+<DT>phyghtmap -a 6:44:9:47 -o high_alps --viewfinder-mask=1<DD>
+With this, you get wonderful contour line .osm with a resolution of 1 arc
+second where data is available at <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> and NASA SRTM 3
+arc second data elsewhere.
+<DT>phyghtmap -s 5 some_filename.hgt<DD>
+Make contour line .osm with steps of 5 meters from file some_filename.hgt.
+Note that no area was specified here.  You can use phyghtmap like this with .hgt
+files from sources other than NASA SRTM or <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.
+<DT>phyghtmap -p example_plotname.xyz -a 8.9:49.0:9.0:49.1<DD>
+Do not generate contour line OSM xml but write a file 'example_plotname.xyz'
+with lines containing space seperated values of longitude, latitude and
+elevation for each point stored in the corresponding .hgt file within the
+specified area.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+If you find a bug, please report it to
+&lt;<A HREF="mailto:dempwolff@informatik.uni-heidelberg.de">dempwolff@informatik.uni-heidelberg.de</A>&gt;.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Adrian Dempwolff &lt;<A HREF="mailto:dempwolff@informatik.uni-heidelberg.de">dempwolff@informatik.uni-heidelberg.de</A>&gt;
+<P>
+Markus Demleitner &lt;<A HREF="mailto:msdemlei@users.sf.net">msdemlei@users.sf.net</A>&gt;
+<A NAME="lbAI">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+Copyright (c) 2009-2011 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
+GPL version 2 &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
+This is free software: you are free to change and redistribute it.
+There is NO  WARRANTY, to the extent permitted by law.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">USAGE EXAMPLES</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+man2html,
+using the manual pages.<BR>
+Time: 12:15:43 GMT, December 12, 2011
+</BODY>
+</HTML>

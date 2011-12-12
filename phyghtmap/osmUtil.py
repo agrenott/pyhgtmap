@@ -21,17 +21,18 @@ class Output(object):
 	transformations turning native (matplotlib) coordinates to geographic
 	coordinates, optionally, a start id...
 	"""
-	def __init__(self, fName, versionTag=None, startId=10000000):
+	def __init__(self, fName, osmVersion=0.5, startId=10000000):
 		self.outF = open(fName, "w")
 		self.curId = startId
-		self._writePreamble()
 		self.versionString = ""
-		if versionTag:
-			self.versionString = ' version="%i"'%versionTag
+		self.osmVersion = "%.1f"%osmVersion
+		if osmVersion > 0.5:
+			self.versionString = ' version="1"'
+		self._writePreamble()
 
 	def _writePreamble(self):
 		self.outF.write('<?xml version="1.0" encoding="utf-8"?>\n')
-		self.outF.write('<osm version="0.5" generator="phyghtmap">\n')
+		self.outF.write('<osm version="%s" generator="phyghtmap">\n'%self.osmVersion)
 	
 	def done(self):
 		self.outF.write("</osm>\n")

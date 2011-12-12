@@ -5,8 +5,8 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.22"
-__copyright__ = "Copyright (c) 2009-2010 Markus Demleitner, Adrian Dempwolff"
+__version__ = "1.23"
+__copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
 import sys
@@ -58,11 +58,11 @@ def parseCommandLine():
 	parser.add_option("-j", "--jobs", help="number of jobs to be run"
 		" in parallel (POSIX only)", dest="nJobs", action="store",
 		type="int", default=1)
-	parser.add_option("--version-tag", help="pass an integer as VERSIONTAG for"
-		"\nosm elements to output osm.  This is needed to display the generated"
-		"\ncontour data with newer JOSM versions.  The default value is None.",
-		metavar="VERSIONTAG", dest="versionTag", action="store", default=None,
-		type="int")
+	parser.add_option("--osm-version", help="pass a number as OSM-VERSION to"
+		"\nuse for the output.  The default value is 0.5 since this saves disk"
+		"\nspace.  If you need a newer version, try 0.6.",
+		metavar="OSM-VERSION", dest="osmVersion", action="store", default=0.5,
+		type="float")
 	parser.add_option("--start-node-id", help="specify an integer as id of"
 		"\nthe first written node in the output OSM xml.  It defaults to 10000000"
 		"\nbut some OSM xml mergers are running into trouble when encountering non"
@@ -118,7 +118,7 @@ def processHgtFile(srcName, opts):
 			try:
 				contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
 				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
-					versionTag=opts.versionTag, startId=opts.startId)
+					osmVersion=opts.osmVersion, startId=opts.startId)
 				try:
 					osmUtil.writeXML(output, osmUtil.makeElevClassifier(
 							*[int(h) for h in opts.lineCats.split(",")]), contourData)
