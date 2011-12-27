@@ -1,7 +1,5 @@
 import os
-import matplotlib
-matplotlib.use("AGG")  # don't require a display.
-import matplotlib.pyplot as plt
+from matplotlib import _cntr
 import numpy
 
 
@@ -276,11 +274,12 @@ class hgtTile:
 
 		minCont = minCont or getContLimit(self.minEle, stepCont)
 		maxCont = maxCont or getContLimit(self.maxEle, stepCont)
-		#self.printStats()
-		contourSet = plt.contour(self.xData, self.yData, self.zData,
-			range(minCont, maxCont, stepCont))
-		plt.close('all')
-		return contourSet
+		contourSet = []
+		levels = range(minCont, maxCont, stepCont)
+		x, y = numpy.meshgrid(self.xData, self.yData)
+		z = numpy.ma.asarray(self.zData)
+		Contours = _cntr.Cntr(x, y, z.filled(), None)
+		return levels, Contours
 
 	def countNodes(self, stepCont=20, minCont=None, maxCont=None):
 		"""returns the total number of nodes and paths in the current tile.
@@ -291,12 +290,15 @@ class hgtTile:
 		"""
 		numOfNodes = 0
 		numOfPaths = 0
-		contourData = self.contourLines(stepCont, minCont, maxCont)
-		for level in contourData.collections:
-			for path in level.get_paths():
+		elevations, contourData = self.contourLines(stepCont, minCont, maxCont)
+		for elevation in elevations:
+			contourList = contourData.trace(elevation, points=0)
+			if not contourList:
+				continue
+			for path in contourList:
 				numOfPaths += 1
 				numOfNodes += len(path)
-				if numpy.all(path.vertices[0]==path.vertices[-1]):
+				if numpy.all(path[0]==path[-1]):
 					numOfNodes -= 1
 		return numOfNodes, numOfPaths
 

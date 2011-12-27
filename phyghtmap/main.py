@@ -5,7 +5,7 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.23"
+__version__ = "1.24"
 __copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
@@ -116,12 +116,13 @@ def processHgtFile(srcName, opts):
 			tile.plotData(opts.plotName)
 		else:
 			try:
-				contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
+				elevations, contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
 				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
 					osmVersion=opts.osmVersion, startId=opts.startId)
 				try:
 					osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-							*[int(h) for h in opts.lineCats.split(",")]), contourData)
+							*[int(h) for h in opts.lineCats.split(",")]), contourData,
+							elevations)
 				finally:
 					opts.startId = output.done()
 			except ValueError: # if arrays with the same value at each position are

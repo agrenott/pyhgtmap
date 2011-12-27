@@ -55,13 +55,13 @@ def _makePoints(output, path):
 	ready for inclusion into a path.
 	"""
 	ids, content = [], []
-	for lon, lat in path.vertices:
+	for lon, lat in path:
 		id = output.curId
 		output.curId += 1
 		content.append('<node id="%d"%s lat="%.7f" lon="%.7f"/>'%(
 			id, output.versionString, lat, lon))
 		ids.append(id)
-	if numpy.all(path.vertices[0]==path.vertices[-1]):  # close contour
+	if numpy.all(path[0]==path[-1]):  # close contour
 		del content[-1]  # remove last node
 		del ids[-1]
 		ids.append(ids[0])
@@ -70,8 +70,8 @@ def _makePoints(output, path):
 	return ('<nd ref="%d"/>'*len(ids))%tuple(ids)
 
 
-def _writeContour(output, contour, elevation, osmCat):
-	for path in contour.get_paths():
+def _writeContour(output, contourList, elevation, osmCat):
+	for path in contourList:
 		nodeRefs = _makePoints(output, path)
 		output.write('<way id="%d"%s>%s'
 			'<tag k="ele" v="%d"/>'
@@ -85,7 +85,7 @@ def _writeContour(output, contour, elevation, osmCat):
 				osmCat))
 
 
-def writeXML(output, classifier, contours):
+def writeXML(output, classifier, contourData, elevations):
 	"""emits OSM XML to the Output instance output
 
 	classifier is a function returning an osm contour class for a given
@@ -93,7 +93,8 @@ def writeXML(output, classifier, contours):
 
 	Contours is a matplotlib ContourSet.
 	"""
-	elevations = contours.cvalues
-	for cInd, contour in enumerate(contours.collections):
-		elevation = elevations[cInd]
-		_writeContour(output, contour, elevation, classifier(elevation))
+	for elevation in elevations:
+		contourList = contourData.trace(elevation, points=0)
+		if not contourList:
+			continue
+		_writeContour(output, contourList, elevation, classifier(elevation))
