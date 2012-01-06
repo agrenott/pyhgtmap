@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: December 2011<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: January 2012<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -72,6 +72,12 @@ OSM xml mergers are running into trouble when
 encountering non unique ids.  In this case and for the
 moment, it is safe to say 10000000000 (ten billion)
 then.
+<DT><B>--max-nodes</B>=<I>MAXNODES</I><DD>
+specify an integer as a maximum number of nodes per
+generated tile.  It defaults to 1000000, which is
+approximately the maximum number of nodes handled
+properly by mkgmap.  If you want bigger tiles try
+higher values.
 <DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
 Note that the finer 1 arc second grid is only
@@ -156,6 +162,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 16:01:13 GMT, December 27, 2011
+Time: 10:32:06 GMT, January 06, 2012
 </BODY>
 </HTML>

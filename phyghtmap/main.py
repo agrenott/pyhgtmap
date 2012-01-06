@@ -5,7 +5,7 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.24"
+__version__ = "1.25"
 __copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
@@ -69,6 +69,11 @@ def parseCommandLine():
 		"\nunique ids.  In this case and for the moment, it is safe to say"
 		"\n10000000000 (ten billion) then.", dest="startId", type="int",
 		default=10000000, action="store")
+	parser.add_option("--max-nodes", help="specify an integer as a maximum"
+		"\nnumber of nodes per generated tile.  It defaults to 1000000,"
+		"\nwhich is approximately the maximum number of nodes handled properly"
+		"\nby mkgmap.  If you want bigger tiles try higher values.",
+		dest="maxNodes", type="int", default=1000000, action="store")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
 		"\narc seconds.  Note that the finer 1 arc second grid is only available"
 		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",

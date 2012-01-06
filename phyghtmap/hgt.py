@@ -82,6 +82,7 @@ class hgtFile:
 		return them as list of hgtTile objects.
 		"""
 		area = opts.area or None
+		maxNodes = opts.maxNodes
 		step = int(opts.contourStepSize) or 20
 
 		def truncateData(area, inputData):
@@ -147,10 +148,11 @@ class hgtFile:
 
 			def tooManyNodes(data):
 				"""returns True if the estimated number of nodes is greater than
-				1000000, which is an approximate limit for correct handling of osm files
-				in mkgmap, and False otherwise.
+				<maxNodes> and False otherwise.  <maxNodes> defaults to 1000000,
+				which is an approximate limit for correct handling of osm files
+				in mkgmap.
 				"""
-				if estimNumOfNodes(data) > 1000000:
+				if estimNumOfNodes(data) > maxNodes:
 					return True
 				else:
 					return False
