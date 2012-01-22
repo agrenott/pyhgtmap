@@ -51,9 +51,10 @@ value is 20.
 <DT><B>-o</B> PREFIX, <B>--output-prefix</B>=<I>PREFIX</I><DD>
 specify a prefix for the filenames of the output osm
 file(s).
-<DT><B>-p</B> PLOTNAME, <B>--plot</B>=<I>PLOTNAME</I><DD>
-specify the path to write longitude/latitude/elevation
-data to instead of generating contour osm.
+<DT><B>-p</B> PLOTPREFIX, <B>--plot</B>=<I>PLOTPREFIX</I><DD>
+specify the prefix for the files to write
+longitude/latitude/elevation data to instead of
+generating contour osm.
 <DT><B>-c</B> ELEVATION_MAJOR,ELEVATION_MEDIUM, <B>--line-cat</B>=<I>ELEVATION_MAJOR</I>,ELEVATION_MEDIUM<DD>
 specify a string of two comma seperated integers for
 major and medium elevation categories, e. g. '200,100'
@@ -65,19 +66,41 @@ number of jobs to be run in parallel (POSIX only)
 pass a number as OSM-VERSION to use for the output.
 The default value is 0.5 since this saves disk space.
 If you need a newer version, try 0.6.
-<DT><B>--start-node-id</B>=<I>STARTID</I><DD>
+<DT><B>--write-timestamp</B><DD>
+write the timestamp attribute of output OSM XML node
+and way elements.  This might be needed by some
+interpreters.
+<DT><B>--start-node-id</B>=<I>NODE-ID</I><DD>
 specify an integer as id of the first written node in
 the output OSM xml.  It defaults to 10000000 but some
 OSM xml mergers are running into trouble when
 encountering non unique ids.  In this case and for the
 moment, it is safe to say 10000000000 (ten billion)
 then.
-<DT><B>--max-nodes</B>=<I>MAXNODES</I><DD>
+<DT><B>--start-way-id</B>=<I>WAY-ID</I><DD>
+specify an integer as id of the first written way in
+the output OSM xml.  It defaults to 10000000 but some
+OSM xml mergers are running into trouble when
+encountering non unique ids.  In this case and for the
+moment, it is safe to say 10000000000 (ten billion)
+then.
+<DT><B>--max-nodes-per-tile</B>=<I>MAXNODESPERTILE</I><DD>
 specify an integer as a maximum number of nodes per
 generated tile.  It defaults to 1000000, which is
 approximately the maximum number of nodes handled
-properly by mkgmap.  If you want bigger tiles try
-higher values.
+properly by mkgmap.  For bigger tiles, try higher
+values.  For a single file output, say 0 here.
+<DT><B>--max-nodes-per-way</B>=<I>MAXNODESPERWAY</I><DD>
+specify an integer as a maximum number of nodes per
+way.  It defaults to 2000, which is the maximum value
+for OSM api version 0.6.  Say 0 here, if you want
+unsplitted ways.
+<DT><B>--gzip</B>=<I>COMPRESSLEVEL</I><DD>
+turn on gzip compression of output files. This reduces
+the needed disk space but results in higher
+computation times.  Specifiy an integer between 1 and
+9.  1 means low compression and faster computation, 9
+means high compression and lower computation.
 <DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
 Note that the finer 1 arc second grid is only
@@ -87,6 +110,16 @@ the default value is 3.
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
 and 3 (for explanation, see the <B>--srtm</B> option).
+<DT><B>--corrx</B>=<I>SRTM-CORRX</I><DD>
+correct x offset of contour lines.  A setting of
+<B>--corrx</B>=<I>0</I>.0005 was reported to give good results.
+However, the correct setting seems to depend on where
+you are, so it is may be better to start with 0 here.
+<DT><B>--corry</B>=<I>SRTM-CORRY</I><DD>
+correct y offset of contour lines.  A setting of
+<B>--corry</B>=<I>0</I>.0005 was reported to give good results.
+However, the correct setting seems to depend on where
+you are, so it may be better to start with 0 here.
 <DT><B>-v</B>, <B>--version</B><DD>
 print version and exit.
 </DL>
@@ -102,7 +135,7 @@ same as above but save data to heidelberg_*.osm files instead of automatically
 generated filenames
 <DT>phyghtmap -a -25:62:-12:68 -o iceland<DD>
 This will not work since no SRTM data is available north of 60 degrees of
-north.
+latitude.
 <DT>phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3<DD>
 Yes, this works.  There is data available for that area at
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.
@@ -116,15 +149,27 @@ meters.
 With this, you get wonderful contour line .osm with a resolution of 1 arc
 second where data is available at <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> and NASA SRTM 3
 arc second data elsewhere.
-<DT>phyghtmap -s 5 some_filename.hgt<DD>
-Make contour line .osm with steps of 5 meters from file some_filename.hgt.
-Note that no area was specified here.  You can use phyghtmap like this with .hgt
-files from sources other than NASA SRTM or <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.
-<DT>phyghtmap -p example_plotname.xyz -a 8.9:49.0:9.0:49.1<DD>
-Do not generate contour line OSM xml but write a file 'example_plotname.xyz'
+<DT>phyghtmap -a 6:44:9:47 --max-nodes-per-tile=100000 --max-nodes-per-way=400<DD>
+This generates contour lines for the high alps.  Each output file will contain
+not more than 100000 nodes, each way therein will not contain more than 400
+nodes.
+<DT>phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --gzip=9<DD>
+This generates contour lines for the high alps and writes them to a single
+output file.  Note that it is possible to use multiple processes in parallel.
+--max-nodes-per-way=0 means that the ways will be as long as possible.
+--gzip=9 will produce gzipped output with a compression level of 9.
+<DT>phyghtmap -s 5 NXXEYYY.hgt<DD>
+Make contour line .osm with steps of 5 meters from file NXXEYYY.hgt.
+Note that no area was specified here, the area is read from the filename.
+You can use phyghtmap like this with .hgt files from sources other than
+NASA SRTM or <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>, as long as the filenames contain
+the neede geographic information.
+<DT>phyghtmap -p example_plotname -a 8.9:49.0:9.0:49.1<DD>
+Do not generate contour line OSM xml but write a file example_plotname_*.xyz
 with lines containing space seperated values of longitude, latitude and
 elevation for each point stored in the corresponding .hgt file within the
-specified area.
+specified area.  For bigger areas, you will probably get more than one output
+file.
 </DL>
 <A NAME="lbAG">&nbsp;</A>
 <H2>BUGS</H2>
@@ -162,6 +207,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 10:32:06 GMT, January 06, 2012
+Time: 18:07:32 GMT, January 22, 2012
 </BODY>
 </HTML>

@@ -1,3 +1,31 @@
+phyghtmap (1.30) stable; urgency=low
+
+  * Renamed --max-nodes option to --max-nodes-per-tile.  The special value 0
+    passed to this option forces a single output.
+  * Added --max-nodes-per-way option.  If specified, contour lines are cut to
+    contain not more nodes than passed to this option.  The default value is
+    2000, which is the maximal allowed value for OSM API 0.6 output.
+  * Added the --corrx and --corry options.  Even if I think this is not useful,
+    --corrx=X.Y shifts the SRTM data by X.Y degrees of longitude, --corry does
+    the same with latitude.  In the context of srtm2osm, values of --corrx=0.0005
+    and --corry=0.0005 were reported to give good results.
+  * Added the --gzip option.  If specified, the output is directly written to
+    gzipped OSM XML.
+  * Fixed the XML output to comply with the definition on
+    http://wiki.openstreetmap.org/wiki/OSM_XML.  This means that all nodes in a
+    file are written before the way block.
+  * All ids output by a single phyghtmap call are unique, no matter if --jobs is
+    specified or not.
+  * Added the --write-timestamp option.  With this specified, timestamp
+    attributes will be written with node and way objects to the output XML.
+  * Bugfix:  Syntax of viewfinderpanoramas.org's index site changed.  This
+    phyghtmap version fixes parsing problems resulting in repeated file
+    downloads.  People upgrading from any prior version should eventually delete
+    their old viewfinderHgtIndex_*.txt files in the hgt subdirectory.
+  * Bug fixes in the context of the --plot option.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sun, 22 Jan 2012 19:19:00 +0100
+
 phyghtmap (1.25) stable; urgency=low
 
   * Added --max-nodes option.

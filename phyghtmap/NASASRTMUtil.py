@@ -31,10 +31,11 @@ VIEWhgtSaveSubDirRe = "VIEW%i"
 VIEWhgtIndexFileRe = os.path.join(hgtSaveDir, "viewfinderHgtIndex_%i.txt")
 
 
-def calcBbox(area):
+def calcBbox(area, corrx=0.0, corry=0.0):
 	"""calculates the appropriate bouding box for the needed files
 	"""
-	minLon, minLat, maxLon, maxLat = [float(value) for value in area.split(":")]
+	minLon, minLat, maxLon, maxLat = [float(value)-inc for value, inc in
+		zip(area.split(":"), [corrx, corry, corrx, corry])]
 	if minLon < 0:
 		if minLon % 1 == 0:
 			bboxMinLon = int(minLon)
@@ -190,11 +191,8 @@ def makeViewHgtIndex(resolution):
 	areaDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
 		areaNames = calcAreaNames(a["coords"])
-		href= a["href"]
 		for areaName in areaNames:
-			areaDict[areaName] = a["href"]
-	#areaDict = dict([(a["title"], a["href"]) for a in
-		#BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area")])
+			areaDict[areaName] = a["href"].strip()
 	zipFileDict = {}
 	for areaName, zipFileUrl in sorted(areaDict.items()):
 		if not zipFileDict.has_key(zipFileUrl):
@@ -265,7 +263,7 @@ def getViewUrl(area, resolution):
 	fileMap = {}
 	for line in index:
 		line = line.strip()
-		if line.startswith("["):
+		if line.startswith("[") and line.endswith("]"):
 			url = line[1:-1]
 		else:
 			fileMap[line] = url
@@ -281,6 +279,8 @@ def unzipFile(saveZipFilename):
 	zipFile = zipfile.ZipFile(saveZipFilename)
 	areaNames = []
 	for name in zipFile.namelist():
+		if os.path.splitext(name)[1].lower() != ".hgt":
+			continue
 		areaName = os.path.splitext(os.path.split(name)[-1])[0].upper().strip()
 		if not areaName:
 			continue
@@ -294,7 +294,7 @@ def unzipFile(saveZipFilename):
 	print "DONE"
 	return areaNames
 
-def getFiles(area, resolution, viewfinder=0):
+def getFiles(area, corrx, corry, resolution, viewfinder=0):
 	NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
 	VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%viewfinder)
 	try:
@@ -310,8 +310,7 @@ def getFiles(area, resolution, viewfinder=0):
 			os.stat(VIEWhgtSaveSubDir)
 		except:
 			os.mkdir(VIEWhgtSaveSubDir)
-	bbox = calcBbox(area)
-	#print bbox
+	bbox = calcBbox(area, corrx, corry)
 	filesToDownload = makeFileNames(bbox, resolution, viewfinder)	
 	files = []
 	for area, url in sorted(filesToDownload.items()):
@@ -354,8 +353,12 @@ def getFiles(area, resolution, viewfinder=0):
 					print "file %s from %s is not a zip file"%(saveZipFilename, url)
 		try:
 			os.stat(saveFilename)
+			wantedSize = 2 * (3600/fileResolution + 1)**2
+			foundSize = os.path.getsize(saveFilename)
+			if foundSize != wantedSize:
+				raise IOError("Wrong size: Expected %i, found %i"(wantedSize,foundSize))
 			files.append(saveFilename)
-		except:
-			pass
+		except Exception, msg:
+			print msg
 	return files
 

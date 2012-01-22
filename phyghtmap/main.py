@@ -5,12 +5,13 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.25"
+__version__ = "1.30"
 __copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
 import sys
 import os
+import select
 from optparse import OptionParser
 
 from phyghtmap import hgt
@@ -46,9 +47,9 @@ def parseCommandLine():
 	parser.add_option("-o", "--output-prefix", help="specify a prefix for the"
 		"\nfilenames of the output osm file(s).", dest="outputPrefix",
 		metavar="PREFIX", action="store", default=None)
-	parser.add_option("-p", "--plot", help="specify the path to write"
+	parser.add_option("-p", "--plot", help="specify the prefix for the files to write"
 		"\nlongitude/latitude/elevation data to instead of generating contour"
-		"\nosm.", dest="plotName",
+		"\nosm.", dest="plotPrefix",
 		action="store", default=None)
 	parser.add_option("-c", "--line-cat", help="specify a string of two comma"
 		"\nseperated integers for major and medium elevation categories, e. g."
@@ -63,17 +64,38 @@ def parseCommandLine():
 		"\nspace.  If you need a newer version, try 0.6.",
 		metavar="OSM-VERSION", dest="osmVersion", action="store", default=0.5,
 		type="float")
+	parser.add_option("--write-timestamp", help="write the timestamp attribute of"
+		"\noutput OSM XML node and way elements.  This might be needed by some"
+		"\ninterpreters.", dest="writeTimestamp", action="store_true",
+		default=False)
 	parser.add_option("--start-node-id", help="specify an integer as id of"
 		"\nthe first written node in the output OSM xml.  It defaults to 10000000"
 		"\nbut some OSM xml mergers are running into trouble when encountering non"
 		"\nunique ids.  In this case and for the moment, it is safe to say"
 		"\n10000000000 (ten billion) then.", dest="startId", type="int",
-		default=10000000, action="store")
-	parser.add_option("--max-nodes", help="specify an integer as a maximum"
+		default=10000000, action="store", metavar="NODE-ID")
+	parser.add_option("--start-way-id", help="specify an integer as id of"
+		"\nthe first written way in the output OSM xml.  It defaults to 10000000"
+		"\nbut some OSM xml mergers are running into trouble when encountering non"
+		"\nunique ids.  In this case and for the moment, it is safe to say"
+		"\n10000000000 (ten billion) then.", dest="startWayId", type="int",
+		default=10000000, action="store", metavar="WAY-ID")
+	parser.add_option("--max-nodes-per-tile", help="specify an integer as a maximum"
 		"\nnumber of nodes per generated tile.  It defaults to 1000000,"
 		"\nwhich is approximately the maximum number of nodes handled properly"
-		"\nby mkgmap.  If you want bigger tiles try higher values.",
-		dest="maxNodes", type="int", default=1000000, action="store")
+		"\nby mkgmap.  For bigger tiles, try higher values.  For a single file"
+		"\noutput, say 0 here.",
+		dest="maxNodesPerTile", type="int", default=1000000, action="store")
+	parser.add_option("--max-nodes-per-way", help="specify an integer as a maximum"
+		"\nnumber of nodes per way.  It defaults to 2000, which is the maximum value"
+		"\nfor OSM api version 0.6.  Say 0 here, if you want unsplitted ways.",
+		dest="maxNodesPerWay", type="int", default=2000, action="store")
+	parser.add_option("--gzip", help="turn on gzip compression of output files."
+		"\nThis reduces the needed disk space but results in higher computation"
+		"\ntimes.  Specifiy an integer between 1 and 9.  1 means low compression and"
+		"\nfaster computation, 9 means high compression and lower computation.",
+		dest="gzip", action="store", default=0, metavar="COMPRESSLEVEL",
+		type="int")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
 		"\narc seconds.  Note that the finer 1 arc second grid is only available"
 		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
@@ -84,6 +106,18 @@ def parseCommandLine():
 		"\nare 1 and 3 (for explanation, see the --srtm option).",
 		metavar="VIEWFINDER-RESOLUTION", type="int", default=0, action="store",
 		dest="viewfinder")
+	parser.add_option("--corrx", help="correct x offset of contour lines."
+		"\n A setting of --corrx=0.0005 was reported to give good results."
+		"\n However, the correct setting seems to depend on where you are, so"
+		"\nit is may be better to start with 0 here.",
+		metavar="SRTM-CORRX", dest="srtmCorrx", action="store",
+		type="float", default=0)
+	parser.add_option("--corry", help="correct y offset of contour lines."
+		"\n A setting of --corry=0.0005 was reported to give good results."
+		"\n However, the correct setting seems to depend on where you are, so"
+		"\nit may be better to start with 0 here.",
+		metavar="SRTM-CORRY", dest="srtmCorry", action="store",
+		type="float", default=0)
 	parser.add_option("-v", "--version", help="print version and exit.",
 		dest="version", action="store_true", default=False)
 	opts, args = parser.parse_args()
@@ -109,72 +143,273 @@ def makeOsmFilename(borders, opts, srcName):
 	else:
 		prefix = ""
 	srcNameMiddle = os.path.split(os.path.split(srcName)[0])[1]
-	return "%slon%.2f_%.2flat%.2f_%.2f_%s.osm"%(
-		prefix, minLon, maxLon, minLat, maxLat, srcNameMiddle.lower())
+	if srcNameMiddle.lower()[:4] in ["srtm", "view"]:
+		osmName = hgt.makeBBoxString(borders)%prefix + "_%s.osm"%(srcNameMiddle.lower())
+	else:
+		osmName = hgt.makeBBoxString(borders)%prefix + ".osm"
+	if opts.gzip:
+		osmName += ".gz"
+	return osmName
 
-
-def processHgtFile(srcName, opts):
-	hgtFile = hgt.hgtFile(srcName)
+def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
+	timestampString=""):
+	hgtFile = hgt.hgtFile(srcName, opts.srtmCorrx, opts.srtmCorry)
 	hgtTiles = hgtFile.makeTiles(opts)
-	for tile in hgtTiles:
-		if opts.plotName:
-			tile.plotData(opts.plotName)
-		else:
+	if opts.plotPrefix:
+		for tile in hgtTiles:
+			tile.plotData(opts.plotPrefix)
+		return []
+	if opts.maxNodesPerTile == 0:
+		singleOutput = True
+	else:
+		singleOutput = False
+	if opts.doFork:
+		# called from processQueue
+		numOfPoints, numOfWays = 0, 0
+		goodTiles = []
+		for tile in hgtTiles:
 			try:
-				elevations, contourData = tile.contourLines(stepCont=int(opts.contourStepSize))
+				tile.elevations, tile.contourData = tile.contourLines(
+					stepCont=int(opts.contourStepSize), maxNodesPerWay=opts.maxNodesPerWay)
+				goodTiles.append(tile)
+			except ValueError: # tiles with the same value on every element
+				continue
+			numOfPointsAdd, numOfWaysAdd = tile.countNodes(maxNodesPerWay=opts.maxNodesPerWay)
+			numOfPoints += numOfPointsAdd
+			numOfWays += numOfWaysAdd
+		hgtTiles = goodTiles
+		statsOutput.write(str(numOfWays)+":"+str(numOfPoints))
+		statsOutput.close()
+		if singleOutput:
+			# forked, single output, output is already defined
+			#output = output
+			for tile in hgtTiles:
+				# there is only one tile
+				elevations, contourData = tile.elevations, tile.contourData
+				_, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
+						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+						elevations, timestampString, opts)
+			output.close() # close the output pipe
+			wayOutput.write(str(ways))
+			wayOutput.close()
+			return # we don't need to return something special
+		else:
+			# forked, multi output
+			for tile in hgtTiles:
 				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
-					osmVersion=opts.osmVersion, startId=opts.startId)
+					osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
+					boundsTag=hgt.makeBoundsString(tile.bbox()), gzip=opts.gzip,
+					elevClassifier=osmUtil.makeElevClassifier(
+					*[int(h) for h in opts.lineCats.split(",")]),
+					timestamp=opts.writeTimestamp)
+				elevations, contourData = tile.elevations, tile.contourData
+				# we have multiple output files, so we need to count nodeIds here
+				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
+						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+						elevations, output.timestampString, opts)
+				output.writeWays(ways, opts.startWayId)
+				# we have multiple output files, so we need to count wayIds here
+				opts.startWayId += len(ways)
+				output.done()
+			return # we don't need to return something special
+	else:
+		if singleOutput:
+			# not forked, single output, output is already defined
+			# output = output
+			for tile in hgtTiles:
+				# there is only one tile
 				try:
-					osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-							*[int(h) for h in opts.lineCats.split(",")]), contourData,
-							elevations)
-				finally:
-					opts.startId = output.done()
-			except ValueError: # if arrays with the same value at each position are
-			                   # tried to be evaluated
-				pass
+					elevations, contourData = tile.contourLines(
+						stepCont=int(opts.contourStepSize), maxNodesPerWay=opts.maxNodesPerWay)
+				except ValueError: # tiles with the same value on every element
+					continue
+				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
+						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+						elevations, timestampString, opts)
+			return ways # needed to complete file later
+		else:
+			# not forked, multi output
+			for tile in hgtTiles:
+				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
+					osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
+					boundsTag=hgt.makeBoundsString(tile.bbox()), gzip=opts.gzip,
+					elevClassifier=osmUtil.makeElevClassifier(
+					*[int(h) for h in opts.lineCats.split(",")]),
+					timestamp=opts.writeTimestamp)
+				try:
+					elevations, contourData = tile.contourLines(
+						stepCont=int(opts.contourStepSize), maxNodesPerWay=opts.maxNodesPerWay)
+				except ValueError: # tiles with the same value on every element
+					continue
+				# we have multiple output files, so we need to count nodeIds here
+				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
+						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+						elevations, output.timestampString, opts)
+				output.writeWays(ways, opts.startWayId)
+				# we have multiple output files, so we need to count wayIds here
+				opts.startWayId += len(ways)
+				output.done()
+			return [] # don't need to return ways, since output is already complete
+
 
 class ProcessQueue(object):
 	def __init__(self, nJobs, fileList, **kwargs):
 		self.nJobs, self.fileList = nJobs, fileList
 		self.kwargs = kwargs
+		self.opts = self.kwargs["opts"]
 		self.children = {}
+		if self.opts.maxNodesPerTile == 0:
+			self.singleOutput = True
+			bounds = [float(b) for b in self.opts.area.split(":")]
+			self.output = osmUtil.Output(makeOsmFilename(bounds,
+				self.opts, self.fileList[0]),
+				osmVersion=self.opts.osmVersion, phyghtmapVersion=__version__,
+				boundsTag=hgt.makeBoundsString(self.opts.area), gzip=self.opts.gzip,
+				elevClassifier=osmUtil.makeElevClassifier(
+				*[int(h) for h in self.opts.lineCats.split(",")]),
+				timestamp=self.opts.writeTimestamp)
+		else:
+			self.singleOutput = False
 
-	def _forkOne(self):
+	def _forkOneSingleOutput(self):
+		nodeR, nodeW = os.pipe()
+		wayR, wayW = os.pipe()
+		statsR, statsW = os.pipe()
 		pid = os.fork()
 		srcName = self.fileList.pop()
 		if pid==0:
 			print "Computing %s"%srcName
-			processHgtFile(srcName, **self.kwargs)
+			os.close(statsR)
+			statsWPipe = os.fdopen(statsW, "w")
+			os.close(nodeR)
+			nodeWPipe = os.fdopen(nodeW, "w")
+			wayWPipe = os.fdopen(wayW, "w")
+			processHgtFile(srcName, self.opts, nodeWPipe, wayWPipe, statsWPipe,
+				self.output.timestampString)
+			statsWPipe.close()
+			nodeWPipe.close()
+			wayWPipe.close()
 			os._exit(0)
 		else:
-			self.children[pid] = srcName
+			os.close(statsW)
+			statsRPipe = os.fdopen(statsR)
+			statsRList, _, _ = select.select([statsRPipe, ], [], [])
+			stats = statsRList[0].read()
+			statsRPipe.close()
+			numOfWays, numOfNodes = [int(el) for el in stats.split(":")]
+			os.close(nodeW)
+			os.close(wayW)
+			nodeRPipe = os.fdopen(nodeR)
+			wayRPipe = os.fdopen(wayR)
+			self.children[pid] = (srcName, nodeRPipe, wayRPipe)
+			self.Poll.register(nodeRPipe, select.POLLIN)
+			return numOfWays, numOfNodes
 
-	def process(self):
+	def processSingleOutput(self):
+		self.Poll = select.poll()
+		self.ways = []
 		while self.fileList or self.children:
 			while len(self.children)<self.nJobs and self.fileList:
-				self._forkOne()
+				expectedNumOfWays, expectedNumOfNodes = self._forkOneSingleOutput()
+				self.opts.startId += expectedNumOfNodes
+				#self.opts.startWayId += expectedNumOfWays
+			if self.children:
+				rDict = dict([(nodeRPipe.fileno(), nodeRPipe) for _, nodeRPipe, _ in
+					self.children.values()])
+				readyRPipes = [rDict[i] for i, _ in self.Poll.poll()]
+				for readyRPipe in readyRPipes:
+					self.output.write(readyRPipe.read())
+				for readyWayRPipe in select.select([child[2] for child in
+					self.children.values()], [], [])[0]:
+					self.ways.extend(eval(readyWayRPipe.read()))
+				pid, res = os.wait()
+				if res:
+					print "Panic: Didn't work:", self.children[pid][0]
+				#self.output.write(self.children[pid][1].read())
+				self.Poll.unregister(self.children[pid][1])
+				self.children[pid][1].close()
+				self.children[pid][2].close()
+				del self.children[pid]
+		self.output.writeWays(self.ways, self.opts.startWayId)
+		self.output.done()
+
+	def _forkOneMultiOutput(self):
+		statsR, statsW = os.pipe()
+		pid = os.fork()
+		srcName = self.fileList.pop()
+		if pid==0:
+			print "Computing %s"%srcName
+			os.close(statsR)
+			statsWPipe = os.fdopen(statsW, "w")
+			processHgtFile(srcName, self.opts, None, None, statsWPipe)
+			statsWPipe.close()
+			os._exit(0)
+		else:
+			os.close(statsW)
+			statsRPipe = os.fdopen(statsR)
+			statsRList, _, _ = select.select([statsRPipe, ], [], [])
+			stats = statsRList[0].read()
+			statsRPipe.close()
+			numOfWays, numOfNodes = [int(el) for el in stats.split(":")]
+			self.children[pid] = (srcName, )
+			return numOfWays, numOfNodes
+
+	def processMultiOutput(self):
+		while self.fileList or self.children:
+			while len(self.children)<self.nJobs and self.fileList:
+				expectedNumOfWays, expectedNumOfNodes = self._forkOneMultiOutput()
+				self.opts.startId += expectedNumOfNodes
+				self.opts.startWayId += expectedNumOfWays
 			if self.children:
 				pid, res = os.wait()
 				if res:
-					print "Panic: Didn't work:", self.children[pid]
+					print "Panic: Didn't work:", self.children[pid][0]
 				del self.children[pid]
-	
+
+	def process(self):
+		if self.singleOutput:
+			self.processSingleOutput()
+		else:
+			self.processMultiOutput()
+
 
 def main():
 	opts, args = parseCommandLine()
 	if opts.area:
-		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmResolution,
-			opts.viewfinder)
+		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmCorrx, opts.srtmCorry,
+			opts.srtmResolution, opts.viewfinder)
 	else:
 		hgtDataFiles = [arg for arg in args if arg.endswith(".hgt")]
+		opts.area = ":".join([str(i) for i in hgt.calcHgtArea(hgtDataFiles,
+			opts.srtmCorrx, opts.srtmCorry)])
 
 	if hasattr(os, "fork") and opts.nJobs != 1:
+		opts.doFork = True
 		queue = ProcessQueue(opts.nJobs, hgtDataFiles, opts=opts)
 		queue.process()
 	else:
+		opts.doFork = False
+		if opts.maxNodesPerTile == 0:
+			bounds = [float(b) for b in opts.area.split(":")]
+			output = osmUtil.Output(makeOsmFilename(bounds,
+				opts, hgtDataFiles[0]), osmVersion=opts.osmVersion,
+				phyghtmapVersion=__version__, boundsTag=hgt.makeBoundsString(opts.area),
+				gzip=opts.gzip, elevClassifier=osmUtil.makeElevClassifier(
+				*[int(h) for h in opts.lineCats.split(",")]),
+				timestamp=opts.writeTimestamp)
+		else:
+			output = None
+		ways = []
 		for hgtDataFileName in hgtDataFiles:
-			processHgtFile(hgtDataFileName, opts)
+			if output:
+				ways.extend(processHgtFile(hgtDataFileName, opts, output,
+					timestampString=output.timestampString))
+			else:
+				ways.extend(processHgtFile(hgtDataFileName, opts, output))
+		if opts.maxNodesPerTile == 0:
+			# writing to single file, need to complete it here
+			output.writeWays(ways, opts.startWayId)
+			output.done()
 
 if __name__=="__main__":
 	if profile:
