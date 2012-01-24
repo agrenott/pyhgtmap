@@ -1,3 +1,9 @@
+phyghtmap (1.31) stable; urgency=low
+
+  * Fix of a bug which prevented phyghtmap from correctly working under Windows.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Tue, 24 Jan 2012 15:12:00 +0100
+
 phyghtmap (1.30) stable; urgency=low
 
   * Renamed --max-nodes option to --max-nodes-per-tile.  The special value 0

@@ -290,6 +290,8 @@ def unzipFile(saveZipFilename):
 		saveFile = open(saveFilename, 'wb')
 		saveFile.write(zipFile.read(name))
 		saveFile.close()
+	# destruct zipFile before removing it.  removing otherwise fails under windows
+	zipFile.__del__()
 	os.remove(saveZipFilename)
 	print "DONE"
 	return areaNames
