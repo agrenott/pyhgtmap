@@ -43,6 +43,9 @@ output file.  Note that it is possible to use multiple processes in parallel.
 --max-nodes-per-way=0 means that the ways will be as long as possible.
 --gzip=9 will produce gzipped output with a compression level of 9.
 .TP
+phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --gzip=9
+Same as above but output will be a osm protobif binary file (.osm.pbf).
+.TP
 phyghtmap -s 5 NXXEYYY.hgt
 Make contour line .osm with steps of 5 meters from file NXXEYYY.hgt.
 Note that no area was specified here, the area is read from the filename.

@@ -1,3 +1,11 @@
+phyghtmap (1.41) stable; urgency=low
+
+  * Changed DenseNodes longitude and latitude offsets to 0 and adapted
+    longitude and latitude calculations.  This is needed because osmconvert
+    doesn't implement longitude and latitude offsets.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Sat, 04 Feb 2012 18:30:00 +0100
+
 phyghtmap (1.40) stable; urgency=low
 
   * Added pbf support (--pbf option).

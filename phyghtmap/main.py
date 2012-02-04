@@ -5,7 +5,7 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.40"
+__version__ = "1.41"
 __copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 

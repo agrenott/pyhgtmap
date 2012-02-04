@@ -99,18 +99,26 @@ class Output(object):
 		nodePrimitiveBlock = osmf.PrimitiveBlock()
 		nodePrimitiveBlock.stringtable.s.append("")
 		nodePrimitiveBlock.granularity = self.granularity
-		nodePrimitiveBlock.lon_offset = nodeList[0][0]
-		nodePrimitiveBlock.lat_offset = nodeList[0][1]
+		# osmconvert can't handle longitude and latitude offsets
+		#nodePrimitiveBlock.lon_offset = nodeList[0][0]
+		#nodePrimitiveBlock.lat_offset = nodeList[0][1]
+		nodePrimitiveBlock.lon_offset = 0L
+		nodePrimitiveBlock.lat_offset = 0L
 		nodePrimitiveBlock.date_granularity = self.date_granularity
 		nodePrimitiveGroup = nodePrimitiveBlock.primitivegroup.add()
 		self.makeDenseNodes(nodePrimitiveGroup.dense, startNodeId, nodeList)
 		return nodePrimitiveBlock
 
 	def makeDenseNodes(self, dense, startNodeId, nodeList):
-		lon_offset = long(nodeList[0][0]/self.granularity)
-		lat_offset = long(nodeList[0][1]/self.granularity)
-		dense.lon.append(0)
-		dense.lat.append(0)
+		# osmconvert can't handle longitude and latitude offsets
+		#lon_offset = long(nodeList[0][0]/self.granularity)
+		#lat_offset = long(nodeList[0][1]/self.granularity)
+		#dense.lon.append(0)
+		#dense.lat.append(0)
+		lon_offset = 0L
+		lat_offset = 0L
+		dense.lon.append(nodeList[0][0]/self.granularity)
+		dense.lat.append(nodeList[0][1]/self.granularity)
 		dense.id.append(startNodeId)
 		# denseinfo
 		dense.denseinfo.timestamp.append(self.timestamp)
@@ -118,11 +126,17 @@ class Output(object):
 		dense.denseinfo.changeset.append(0)
 		dense.denseinfo.uid.append(0)
 		dense.denseinfo.user_sid.append(0)
-		last_lon = 0
-		last_lat = 0
+		# osmconvert can't handle longitude and latitude offsets
+		#last_lon = 0
+		#last_lat = 0
+		last_lon = nodeList[0][0]/self.granularity
+		last_lat = nodeList[0][1]/self.granularity
 		for lon, lat in nodeList[1:]:
-			lon = long(lon/self.granularity)-lon_offset
-			lat = long(lat/self.granularity)-lat_offset
+			# osmconvert can't handle longitude and latitude offsets
+			#lon = long(lon/self.granularity)-lon_offset
+			#lat = long(lat/self.granularity)-lat_offset
+			lon = long(lon/self.granularity)
+			lat = long(lat/self.granularity)
 			lon_diff = lon - last_lon
 			lat_diff = lat - last_lat
 			last_lon = lon
@@ -181,8 +195,8 @@ class Output(object):
 		wayPrimitiveBlock = osmf.PrimitiveBlock()
 		wayPrimitiveBlock.stringtable.s.append("")
 		wayPrimitiveBlock.granularity = self.granularity
-		wayPrimitiveBlock.lon_offset = 0
-		wayPrimitiveBlock.lat_offset = 0
+		wayPrimitiveBlock.lon_offset = 0L
+		wayPrimitiveBlock.lat_offset = 0L
 		wayPrimitiveBlock.date_granularity = self.date_granularity
 		wayPrimitiveGroup = wayPrimitiveBlock.primitivegroup.add()
 		strings = self.makeWays(wayPrimitiveGroup.ways, startWayId, wayList)
