@@ -5,7 +5,7 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.31"
+__version__ = "1.40"
 __copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
@@ -17,6 +17,12 @@ from optparse import OptionParser
 from phyghtmap import hgt
 from phyghtmap import osmUtil
 from phyghtmap import NASASRTMUtil
+try:
+	from phyghtmap import pbfUtil
+	canProtobuf = True
+except ImportError:
+	# no protobuf bindings
+	canProtobuf = False
 
 profile = False
 
@@ -41,6 +47,11 @@ def parseCommandLine():
 		"\nIf this option is given, specified hgt"
 		"\nfiles will be omitted."%NASASRTMUtil.NASAhgtFileServerRe%"[1|3]",
 	  dest="area", metavar="LEFT:BOTTOM:RIGHT:TOP", action="store", default=None)
+	parser.add_option("--polygon", help="use polygon FILENAME as downloaded from"
+		"\nhttp://download.geofabrik.de/clipbounds/ as bounds for the output contour"
+		"\ndata.  The computation time will be somewhat higher then.  If specified,"
+		"\na bounding box passed to the --area option will be ignored.",
+		dest="polygon", action="store", metavar="FILENAME", default=None)
 	parser.add_option("-s", "--step", help="specify contour line step size in"
 		"\nmeters. The default value is 20.", dest="contourStepSize",
 		metavar="STEP", action="store", default='20')
@@ -96,6 +107,12 @@ def parseCommandLine():
 		"\nfaster computation, 9 means high compression and lower computation.",
 		dest="gzip", action="store", default=0, metavar="COMPRESSLEVEL",
 		type="int")
+	if canProtobuf:
+		parser.add_option("--pbf", help="write protobuf binary files instead of OSM"
+			"\nXML.  This reduces the needed disk space. Be sure the programs you"
+			"\nwant to use the output files with must be capable of pbf parsing.  The"
+			"\noutput files will have the .osm.pbf extension.", action="store_true",
+			default=False, dest="pbf")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
 		"\narc seconds.  Note that the finer 1 arc second grid is only available"
 		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
@@ -124,13 +141,24 @@ def parseCommandLine():
 	if opts.version:
 		print "phyghtmap %s"%__version__
 		sys.exit(0)
+	if not hasattr(opts,"pbf"):
+		opts.pbf = False
+	if opts.pbf and opts.gzip:
+		sys.stderr.write("You can't combine the --gzip and --pbf options.\n")
+		sys.exit(1)
 	if opts.srtmResolution not in [1, 3]:
-		sys.stderr.write("The --srtm option can only take '1' or '3' as values.\n")
+		sys.stderr.write("The --srtm option can only take '1' or '3' as values."
+			"  Defaulting to 3.\n")
+		opts.srtmResolution = 3
 	if opts.viewfinder not in [0, 1, 3]:
-		sys.stderr.write("The --viewfinder-mask option can only take '1' or '3' as values.\n")
-	if len(args) == 0 and not opts.area:
+		sys.stderr.write("The --viewfinder-mask option can only take '1' or '3' as values."
+			"  Won't use viewfinder data.\n")
+		opts.viewfinder = 0
+	if len(args) == 0 and not opts.area and not opts.polygon:
 		parser.print_help()
 		sys.exit(1)
+	if opts.polygon:
+		opts.area, opts.polygon = hgt.parsePolygon(opts.polygon)
 	return opts, args
 
 def makeOsmFilename(borders, opts, srcName):
@@ -149,11 +177,34 @@ def makeOsmFilename(borders, opts, srcName):
 		osmName = hgt.makeBBoxString(borders)%prefix + ".osm"
 	if opts.gzip:
 		osmName += ".gz"
+	elif opts.pbf:
+		osmName += ".pbf"
 	return osmName
+
+def getOutput(opts, srcName, bounds):
+	outputFilename = makeOsmFilename(bounds, opts, srcName)
+	elevClassifier=osmUtil.makeElevClassifier(*[int(h) for h in
+		opts.lineCats.split(",")])
+	if not opts.pbf:
+		output = osmUtil.Output(outputFilename,
+			osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
+			boundsTag=hgt.makeBoundsString(bounds), gzip=opts.gzip,
+			elevClassifier=elevClassifier, timestamp=opts.writeTimestamp)
+	else:
+		output = pbfUtil.Output(outputFilename, opts.osmVersion, __version__,
+			bounds, elevClassifier)
+	return output
+
+def writeNodes(*args, **kwargs):
+	opts = args[-1]
+	if not opts.pbf:
+		return osmUtil.writeXML(*args, **kwargs)
+	else:
+		return pbfUtil.writeNodes(*args, **kwargs)
 
 def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 	timestampString=""):
-	hgtFile = hgt.hgtFile(srcName, opts.srtmCorrx, opts.srtmCorry)
+	hgtFile = hgt.hgtFile(srcName, opts.srtmCorrx, opts.srtmCorry, opts.polygon)
 	hgtTiles = hgtFile.makeTiles(opts)
 	if opts.plotPrefix:
 		for tile in hgtTiles:
@@ -186,8 +237,7 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 			for tile in hgtTiles:
 				# there is only one tile
 				elevations, contourData = tile.elevations, tile.contourData
-				_, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+				_, ways = writeNodes(output, contourData,
 						elevations, timestampString, opts)
 			output.close() # close the output pipe
 			wayOutput.write(str(ways))
@@ -196,16 +246,10 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 		else:
 			# forked, multi output
 			for tile in hgtTiles:
-				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
-					osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
-					boundsTag=hgt.makeBoundsString(tile.bbox()), gzip=opts.gzip,
-					elevClassifier=osmUtil.makeElevClassifier(
-					*[int(h) for h in opts.lineCats.split(",")]),
-					timestamp=opts.writeTimestamp)
+				output = getOutput(opts, srcName, tile.bbox())
 				elevations, contourData = tile.elevations, tile.contourData
 				# we have multiple output files, so we need to count nodeIds here
-				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+				opts.startId, ways = writeNodes(output, contourData,
 						elevations, output.timestampString, opts)
 				output.writeWays(ways, opts.startWayId)
 				# we have multiple output files, so we need to count wayIds here
@@ -223,27 +267,20 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 						stepCont=int(opts.contourStepSize), maxNodesPerWay=opts.maxNodesPerWay)
 				except ValueError: # tiles with the same value on every element
 					continue
-				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+				opts.startId, ways = writeNodes(output, contourData,
 						elevations, timestampString, opts)
 			return ways # needed to complete file later
 		else:
 			# not forked, multi output
 			for tile in hgtTiles:
-				output = osmUtil.Output(makeOsmFilename(tile.bbox(), opts, srcName),
-					osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
-					boundsTag=hgt.makeBoundsString(tile.bbox()), gzip=opts.gzip,
-					elevClassifier=osmUtil.makeElevClassifier(
-					*[int(h) for h in opts.lineCats.split(",")]),
-					timestamp=opts.writeTimestamp)
+				output = getOutput(opts, srcName, tile.bbox())
 				try:
 					elevations, contourData = tile.contourLines(
 						stepCont=int(opts.contourStepSize), maxNodesPerWay=opts.maxNodesPerWay)
 				except ValueError: # tiles with the same value on every element
 					continue
 				# we have multiple output files, so we need to count nodeIds here
-				opts.startId, ways = osmUtil.writeXML(output, osmUtil.makeElevClassifier(
-						*[int(h) for h in opts.lineCats.split(",")]), contourData,
+				opts.startId, ways = writeNodes(output, contourData,
 						elevations, output.timestampString, opts)
 				output.writeWays(ways, opts.startWayId)
 				# we have multiple output files, so we need to count wayIds here
@@ -261,13 +298,7 @@ class ProcessQueue(object):
 		if self.opts.maxNodesPerTile == 0:
 			self.singleOutput = True
 			bounds = [float(b) for b in self.opts.area.split(":")]
-			self.output = osmUtil.Output(makeOsmFilename(bounds,
-				self.opts, self.fileList[0]),
-				osmVersion=self.opts.osmVersion, phyghtmapVersion=__version__,
-				boundsTag=hgt.makeBoundsString(self.opts.area), gzip=self.opts.gzip,
-				elevClassifier=osmUtil.makeElevClassifier(
-				*[int(h) for h in self.opts.lineCats.split(",")]),
-				timestamp=self.opts.writeTimestamp)
+			self.output = getOutput(self.opts, self.fileList[0], bounds)
 		else:
 			self.singleOutput = False
 
@@ -318,14 +349,19 @@ class ProcessQueue(object):
 					self.children.values()])
 				readyRPipes = [rDict[i] for i, _ in self.Poll.poll()]
 				for readyRPipe in readyRPipes:
-					self.output.write(readyRPipe.read())
+					while True:
+						line = readyRPipe.readline()
+						if len(line) == 0:
+							break
+						self.output.write(line)
 				for readyWayRPipe in select.select([child[2] for child in
 					self.children.values()], [], [])[0]:
-					self.ways.extend(eval(readyWayRPipe.read()))
+					s = readyWayRPipe.read()
+					if len(s):
+						self.ways.extend(eval(s))
 				pid, res = os.wait()
 				if res:
 					print "Panic: Didn't work:", self.children[pid][0]
-				#self.output.write(self.children[pid][1].read())
 				self.Poll.unregister(self.children[pid][1])
 				self.children[pid][1].close()
 				self.children[pid][2].close()
@@ -391,12 +427,7 @@ def main():
 		opts.doFork = False
 		if opts.maxNodesPerTile == 0:
 			bounds = [float(b) for b in opts.area.split(":")]
-			output = osmUtil.Output(makeOsmFilename(bounds,
-				opts, hgtDataFiles[0]), osmVersion=opts.osmVersion,
-				phyghtmapVersion=__version__, boundsTag=hgt.makeBoundsString(opts.area),
-				gzip=opts.gzip, elevClassifier=osmUtil.makeElevClassifier(
-				*[int(h) for h in opts.lineCats.split(",")]),
-				timestamp=opts.writeTimestamp)
+			output = getOutput(opts, hgtDataFiles[0], bounds)
 		else:
 			output = None
 		ways = []

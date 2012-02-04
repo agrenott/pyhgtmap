@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: January 2012<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: February 2012<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -45,6 +45,12 @@ latitude and longitude, respectively. Latitudes south
 of the equator and longitudes west of Greenwich may be
 given as negative decimal numbers. If this option is
 given, specified hgt files will be omitted.
+<DT><B>--polygon</B>=<I>FILENAME</I><DD>
+use polygon FILENAME as downloaded from
+<A HREF="http://download.geofabrik.de/clipbounds/">http://download.geofabrik.de/clipbounds/</A> as bounds for
+the output contour data.  The computation time will be
+somewhat higher then.  If specified, a bounding box
+passed to the <B>--area</B> option will be ignored.
 <DT><B>-s</B> STEP, <B>--step</B>=<I>STEP</I><DD>
 specify contour line step size in meters. The default
 value is 20.
@@ -101,6 +107,12 @@ the needed disk space but results in higher
 computation times.  Specifiy an integer between 1 and
 9.  1 means low compression and faster computation, 9
 means high compression and lower computation.
+<DT><B>--pbf</B><DD>
+write protobuf binary files instead of OSM XML.  This
+reduces the needed disk space. Be sure the programs
+you want to use the output files with must be capable
+of pbf parsing.  The output files will have the
+.osm.pbf extension.
 <DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
 Note that the finer 1 arc second grid is only
@@ -207,6 +219,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 14:15:17 GMT, January 24, 2012
+Time: 09:45:41 GMT, February 04, 2012
 </BODY>
 </HTML>

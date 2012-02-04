@@ -1,0 +1,23 @@
+Copyright 2009-2012 Markus Demleitner <msdemlei@users.sf.net>, Adrian Dempwolff
+<dempwolff@informatik.uni-heidelberg.de>
+
+Parts of the code are distributed under the GNU Lesser General Public
+License.  Theses files are the protocol buffer definition files
+
+pbf/fileformat.proto and
+pbf/osmformat.proto
+
+and the python modules compiled from it:
+
+phyghtmap/fileformat_pb2.py
+phyghtmap/osmformat_pb2.py.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+The rest of the code is distributed under the GNU General Public License version 2,
+or, at your option, any later version.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
+

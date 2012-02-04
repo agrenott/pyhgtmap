@@ -102,7 +102,7 @@ class Output(object):
 					elevation,
 					self.elevClassifier(elevation)))
 
-def _makePoints(output, path, ele, IDCounter, versionString, timestampString):
+def _makePoints(output, path, IDCounter, versionString, timestampString):
 	"""writes OSM representations of the points making up a path to
 	output.
 
@@ -127,15 +127,15 @@ def _makePoints(output, path, ele, IDCounter, versionString, timestampString):
 	output.write("".join(content)+"\n")
 	return ids
 
-def _writeContourNodes(output, contourList, elevation, osmCat, IDCounter,
-	versionString, timestampString, maxNodesPerWay):
+def _writeContourNodes(output, contourList, elevation, IDCounter,
+	versionString, timestampString):
 	"""calls _makePoints() to write nodes to <output> and collects information
 	about the paths in contourList, namely the node ids for each path, which is
 	the returned.
 	"""
 	ways = []
 	for path in contourList:
-		nodeRefs = _makePoints(output, path, elevation, IDCounter, versionString,
+		nodeRefs = _makePoints(output, path, IDCounter, versionString,
 			timestampString)
 		if nodeRefs[0] == nodeRefs[-1]:
 			ways.append((nodeRefs[0], len(nodeRefs)-1, True, elevation))
@@ -144,14 +144,11 @@ def _writeContourNodes(output, contourList, elevation, osmCat, IDCounter,
 	return ways
 
 
-def writeXML(output, classifier, contourData, elevations, timestampString, opts):
+def writeXML(output, contourData, elevations, timestampString, opts):
 	"""emits node OSM XML to <output> and collects path information.
 
 	<output> may be anything having a write method.  For now, its used with
 	Output instance or an open pipe to the parent process, if running in parallel.
-
-	<classifier> is a function returning an osm contour class for a given
-	height.  You probably want to generate it using makeElevClassifier.
 
 	<contourData> is a phyghtmap.hgt.ContourObject instance, <elevations> a list
 	of elevations to generate contour lines for.
@@ -169,8 +166,7 @@ def writeXML(output, classifier, contourData, elevations, timestampString, opts)
 		if not contourList:
 			continue
 		ways.extend(_writeContourNodes(output, contourList, elevation,
-			classifier(elevation), IDCounter, versionString, timestampString,
-			opts.maxNodesPerWay))
+			IDCounter, versionString, timestampString))
 		#output.flush()
 	newId = IDCounter.getId()
 	return newId, ways

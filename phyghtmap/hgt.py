@@ -1,6 +1,7 @@
 import os
 from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
+from matplotlib.nxutils import points_inside_poly, pnpoly
 import numpy
 
 
@@ -26,6 +27,27 @@ def makeBBoxString(bbox):
 		bbox[0], bbox[2],
 		bbox[1], bbox[3]
 	)
+
+def parsePolygon(filename):
+	"""reads a polygon from a file like one included in
+	http://download.geofabrik.de/clipbounds/clipbounds.tgz
+	and returns it as list of (<lon>, <lat>) tuples.
+	"""
+	p = [line.split() for line in
+		open(filename).read().split("\n") if line and len(line.split())==2]
+	lonLatList = []
+	for lon, lat in p:
+		try:
+			lonLatList.append((float(lon), float(lat)))
+		except ValueError:
+			continue
+	lonList = sorted([lon for lon, lat in lonLatList])
+	latList = sorted([lat for lon, lat in lonLatList])
+	minLon = lonList[0]
+	maxLon = lonList[-1]
+	minLat = latList[0]
+	maxLat = latList[-1]
+	return "%.7f:%.7f:%.7f:%.7f"%(minLon, minLat, maxLon, maxLat), lonLatList
 
 def makeBoundsString(bbox):
 	"""returns an OSM XML bounds tag.
@@ -82,9 +104,10 @@ def calcHgtArea(filenames, corrx, corry):
 
 
 class ContourObject(object):
-	def __init__(self, Cntr, maxNodesPerWay):
+	def __init__(self, Cntr, maxNodesPerWay, polygon=None):
 		self.Cntr = Cntr
 		self.maxNodesPerWay = maxNodesPerWay
+		self.polygon = polygon
 
 	def _cutBeginning(self, p):
 		"""is recursively called to cut off a path's first element
@@ -93,7 +116,7 @@ class ContourObject(object):
 		This is needed for beauty only.  Such a path makes no sense, but
 		matplotlib.Cntr.cntr's trace method sometimes returns this.
 
-		If the path gets too short, an emty list is returned.
+		If the path gets too short, an empty list is returned.
 		"""
 		if len(p)<2:
 			return []
@@ -102,8 +125,32 @@ class ContourObject(object):
 		else:
 			return self._cutBeginning(p[1:])
 
+	def clipPath(self, path):
+		"""clips a path with self.polygon and returns a list of
+		clipped paths
+		"""
+		if not self.polygon:
+			return [path, ]
+		pathList = []
+		tmpList = []
+		for x, y in path:
+			if pnpoly(x, y, self.polygon):
+				# (x, y) inside polygon
+				tmpList.append((x, y))
+			elif len(tmpList) > 0:
+				# (x, y) outside polygon, non-empty tmpList
+				pathList.append(tmpList)
+				tmpList = []
+			else:
+				# (x, y) outside polygon, previous (x, y) dto.
+				continue
+		else:
+			if len(tmpList) > 0:
+				pathList.append(tmpList)
+		return pathList
+
 	def splitList(self, l):
-		"""splits paths to contain not more than self.maxNodesPerWay nodes.
+		"""splits a path to contain not more than self.maxNodesPerWay nodes.
 
 		A list of paths containing at least 2 (or, with closed paths, 3) nodes
 		is returned, along with the number of nodes and paths as written later to
@@ -153,10 +200,11 @@ class ContourObject(object):
 		numOfPaths, numOfNodes = 0, 0
 		resultPaths = []
 		for path in rawPaths:
-			splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
-			resultPaths.extend(splitPaths)
-			numOfPaths += numOfPathsAdd
-			numOfNodes += numOfNodesAdd
+			for clippedPath in self.clipPath(path):
+				splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(clippedPath)
+				resultPaths.extend(splitPaths)
+				numOfPaths += numOfPathsAdd
+				numOfNodes += numOfNodesAdd
 		return resultPaths, numOfNodes, numOfPaths
 
 
@@ -164,7 +212,7 @@ class hgtFile:
 	"""is a handle for SRTM data files
 	"""
 
-	def __init__(self, filename, corrx, corry):
+	def __init__(self, filename, corrx, corry, polygon=None):
 		"""tries to open <filename> and extracts content to self.zData.
 
 		<corrx> and <corry> are longitude and latitude corrections (floats)
@@ -188,10 +236,25 @@ class hgtFile:
 			self.latIncrement = 1.0/(self.numOfRows-1)
 			self.minLon, self.minLat, self.maxLon, self.maxLat = self.borders(corrx,
 				corry)
+			self.polygon = polygon
+			xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
+			yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		# some statistics
 		print 'hgt file %s: %i x %i points, bbox: (%.5f, %.5f, %.5f, %.5f)'%(self.fullFilename,
 			self.numOfCols, self.numOfRows, self.minLon, self.minLat, self.maxLon,
 			self.maxLat)
+
+	def polygonMask(self, xData, yData):
+		"""return a mask on self.zData corresponding to the passed <polygon>.
+		<X> is meant to be a 1-D array of longitude values, <Y> a 1-D array of
+		latitude values.  An array usable as mask for the corresponding zData
+		2-D array is returned.
+		"""
+		X, Y = numpy.meshgrid(xData, yData)
+		xyPoints = numpy.vstack(([X.T],
+			[Y.T])).T.reshape(len(xData)*len(yData), 2)
+		return numpy.invert(points_inside_poly(xyPoints,
+			self.polygon).reshape(len(xData), len(yData)))
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
@@ -327,8 +390,23 @@ class hgtFile:
 				for choppedBbox, choppedData  in chops:
 					chopData(choppedBbox, choppedData)
 			else:
+				if self.polygon:
+					tileXData = numpy.arange(inputBbox[0],
+						inputBbox[2]+self.lonIncrement/2.0, self.lonIncrement)
+					tileYData = numpy.arange(inputBbox[1],
+						inputBbox[3]+self.latIncrement/2.0, self.latIncrement)
+					tileMask = self.polygonMask(tileXData, tileYData)
+					tilePolygon = self.polygon
+					if not numpy.any(tileMask):
+						tilePolygon = None
+					elif numpy.all(tileMask):
+						# all elements are masked -> tile is outside of self.polygon
+						return
+				else:
+					tilePolygon = None
 				tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
-					"increments": (self.lonIncrement, self.latIncrement)}))
+					"increments": (self.lonIncrement, self.latIncrement),
+					"polygon": tilePolygon}))
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)
@@ -350,8 +428,9 @@ class hgtTile:
 		self.numOfRows = self.zData.shape[0]
 		self.numOfCols = self.zData.shape[1]
 		self.lonIncrement, self.latIncrement = tile["increments"]
-		self.xData = numpy.array(range(self.numOfCols)) * self.lonIncrement + self.minLon
-		self.yData = numpy.array(range(self.numOfRows)) * self.latIncrement * -1 + self.maxLat
+		self.polygon = tile["polygon"]
+		self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
+		self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		self.minEle, self.maxEle = self.getElevRange()
 
 	def printStats(self):
@@ -404,7 +483,8 @@ class hgtTile:
 		levels = range(minCont, maxCont, stepCont)
 		x, y = numpy.meshgrid(self.xData, self.yData)
 		z = numpy.ma.asarray(self.zData)
-		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay)
+		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay,
+			self.polygon)
 		return levels, Contours
 
 	def countNodes(self, maxNodesPerWay=0, stepCont=20, minCont=None,
