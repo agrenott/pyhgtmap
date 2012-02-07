@@ -1,12 +1,39 @@
+# -*- encoding: utf-8 -*-
+
 import zlib
 from struct import pack
 import time
 import numpy
 
-from phyghtmap import osmformat_pb2 as osmf
-from phyghtmap import fileformat_pb2 as ff
 
 NANO = 1000000000L
+
+def bits(n):
+	return bin(n)[2:]
+
+def int2str(n):
+	b = n&127
+	n >>= 7
+	s = ""
+	while n:
+		s += chr(b|128)
+		b = n&127
+		n >>= 7
+	s += chr(b)
+	return s
+
+def sint2str(n):
+	if n > -1:
+		# 0 or positive, shift 1 to the left
+		n <<= 1
+		return int2str(n)
+	# negative number, take abs(n), decrease by 1, shift 1 to the left, add 1
+	# as negative bit
+	n = ((-n-1)<<1)|1
+	return int2str(n)
+
+def n2n(s):
+	return s
 
 class Output(object):
 	def __init__(self, filename, osmVersion, phyghtmapVersion, bbox=[],
@@ -20,51 +47,85 @@ class Output(object):
 		self.maxNodesPerWayBlock = 32000
 		self.timestamp = long(time.mktime(time.localtime()))
 		self.timestampString = "" # dummy attribute
+		#self.makeHeader(osmVersion, phyghtmapVersion)
 		self.makeHeader(osmVersion, phyghtmapVersion)
 
+	def makeVarIdent(self, vType, vId):
+		vTypes = {"V": 0, "D": 1, "S": 2, "I": 5}
+		vTypeNum = vTypes[vType]
+		varIdentNum = vTypeNum + (vId<<3)
+		return int2str(varIdentNum)
+
+	def makeVar(self, vType, vId, content, func=n2n):
+		if vType == "S":
+			return "".join([
+				self.makeVarIdent(vType, vId),
+				int2str(len(content)),
+				content, ])
+		elif vType == "V":
+			return "".join([
+				self.makeVarIdent(vType, vId),
+				func(content), ])
+
 	def makeHeader(self, osmVersion, phyghtmapVersion):
-		blobHeader = ff.BlobHeader()
-		blobHeader.type = 'OSMHeader'
-		blob = self.makeHeaderBlob(osmVersion, phyghtmapVersion).SerializeToString()
-		blobHeader.datasize = len(blob)
-		blobHeader = blobHeader.SerializeToString()
-		size = pack('!L', len(blobHeader))
-		self.outf.write(size)
+		blobHeader = []
+		# type, id=1
+		blobHeader.append(self.makeVarIdent(vType="S", vId=1))
+		# len("OSMHeader") == 9
+		blobHeader.append(chr(9))
+		blobHeader.append("OSMHeader")
+		# datasize, id=3
+		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
+		blob = self.makeHeaderBlob(osmVersion, phyghtmapVersion)
+		blobHeader.append(int2str(len(blob)))
+		blobHeader = "".join(blobHeader)
+		self.outf.write(pack('!L', len(blobHeader)))
 		self.outf.write(blobHeader)
 		self.outf.write(blob)
 
 	def makeHeaderBlob(self, osmVersion, phyghtmapVersion):
-		blob = ff.Blob()
-		headerBlock = self.makeHeaderBlock(osmVersion,
-			phyghtmapVersion).SerializeToString()
-		#blob.raw = ''
-		blob.raw_size = len(headerBlock)
-		blob.zlib_data = zlib.compress(headerBlock)
-		return blob
+		blob = []
+		headerBlock = self.makeHeaderBlock(osmVersion, phyghtmapVersion)
+		# raw_size, id=2
+		blob.append(self.makeVarIdent("V", 2))
+		blob.append(int2str(len(headerBlock)))
+		# zlib_data, id=3
+		zlib_data = zlib.compress(headerBlock)
+		blob.append(self.makeVar("S", 3, zlib_data))
+		return "".join(blob)
 
 	def makeHeaderBlock(self, osmVersion, phyghtmapVersion):
-		headerBlock = osmf.HeaderBlock()
-		headerBlock.writingprogram = (
-			u"phyghtmap %s (http://wiki.openstreetmap.org/wiki/phyghtmap)"%(
-			phyghtmapVersion))
-		headerBlock.required_features.append(u"OsmSchema-V%.1f"%osmVersion)
-		headerBlock.required_features.append(u"DenseNodes")
-		#headerBlock.optional_features = []
-		if len(self.bbox) == 4:
-			headerBBox = self.makeHeaderBBox()
-			for b in ["left", "bottom", "right", "top"]:
-				setattr(headerBlock.bbox, b, getattr(headerBBox, b))
-		#headerBlock.source = u""
-		return headerBlock
+		headerBlock = []
+		# bbox, id=1
+		bbox = self.makeHeaderBBox()
+		headerBlock.append(self.makeVar("S", 1, bbox))
+		# required_features, id=4
+		requiredFeature = "OsmSchema-V%.1f"%osmVersion
+		headerBlock.append(self.makeVar("S", 4, "OsmSchema-V%.1f"%osmVersion))
+		headerBlock.append(self.makeVar("S", 4, "DenseNodes"))
+		# writingprogram, id=16
+		headerBlock.append(self.makeVar("S", 16,
+			"phyghtmap %s (http://wiki.openstreetmap.org/wiki/phyghtmap)"%(
+			phyghtmapVersion)))
+		return "".join(headerBlock)
 
 	def makeHeaderBBox(self):
-		left, bottom, right, top = [long(i*NANO) for i in self.bbox]
-		headerBBox = osmf.HeaderBBox()
-		headerBBox.left = left
-		headerBBox.right = right
-		headerBBox.top = top
-		headerBBox.bottom = bottom
-		return headerBBox
+		bbox = []
+		left, bottom, right, top = [sint2str(long(i*NANO))
+			for i in self.bbox]
+		# left, id=1
+		bbox.append(self.makeVarIdent("V", 1))
+		bbox.append(left)
+		# right, id=2
+		bbox.append(self.makeVarIdent("V", 2))
+		bbox.append(right)
+		# top, id=3
+		bbox.append(self.makeVarIdent("V", 3))
+		bbox.append(top)
+		# bottom, id=4
+		bbox.append(self.makeVarIdent("V", 4))
+		bbox.append(bottom)
+		return "".join(bbox)
 
 	def writeNodes(self, nodes, startNodeId):
 		"""writes nodes to self.outf.  nodeList shall be a list of
@@ -77,79 +138,103 @@ class Output(object):
 			self.writeNodesChunk(nodes[i:i+self.maxNodesPerNodeBlock], startNodeId+i)
 
 	def writeNodesChunk(self, nodes, startNodeId):
-		nodeBlobHeader = ff.BlobHeader()
-		nodeBlobHeader.type = u"OSMData"
-		nodeBlob = self.makeNodeBlob(startNodeId, nodes).SerializeToString()
-		nodeBlobHeader.datasize = len(nodeBlob)
-		nodeBlobHeader = nodeBlobHeader.SerializeToString()
-		size = pack('!L', len(nodeBlobHeader))
-		self.outf.write(size)
-		self.outf.write(nodeBlobHeader)
-		self.outf.write(nodeBlob)
+		blobHeader = []
+		# type, id=1
+		blobHeader.append(self.makeVar(vType="S", vId=1, content="OSMData"))
+		# datasize, id=3
+		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
+		blob = self.makeNodeBlob(startNodeId, nodes)
+		blobHeader.append(int2str(len(blob)))
+		blobHeader = "".join(blobHeader)
+		self.outf.write(pack('!L', len(blobHeader)))
+		self.outf.write(blobHeader)
+		self.outf.write(blob)
 
-	def makeNodeBlob(self, startNodeId, nodeList):
-		nodeBlob = ff.Blob()
-		nodePrimitiveBlock = self.makeNodePrimitiveBlock(
-			startNodeId, nodeList).SerializeToString()
-		nodeBlob.raw_size = len(nodePrimitiveBlock)
-		nodeBlob.zlib_data = zlib.compress(nodePrimitiveBlock)
-		return nodeBlob
+	def makeNodeBlob(self, startNodeId, nodes):
+		blob = []
+		nodePrimitiveBlock = self.makeNodePrimitiveBlock(startNodeId, nodes)
+		# raw_size, id=2
+		blob.append(self.makeVarIdent("V", 2))
+		blob.append(int2str(len(nodePrimitiveBlock)))
+		# zlib_data, id=3
+		zlib_data = zlib.compress(nodePrimitiveBlock)
+		blob.append(self.makeVar("S", 3, zlib_data))
+		return "".join(blob)
 
-	def makeNodePrimitiveBlock(self, startNodeId, nodeList):
-		nodePrimitiveBlock = osmf.PrimitiveBlock()
-		nodePrimitiveBlock.stringtable.s.append("")
-		nodePrimitiveBlock.granularity = self.granularity
-		# osmconvert can't handle longitude and latitude offsets
-		#nodePrimitiveBlock.lon_offset = nodeList[0][0]
-		#nodePrimitiveBlock.lat_offset = nodeList[0][1]
-		nodePrimitiveBlock.lon_offset = 0L
-		nodePrimitiveBlock.lat_offset = 0L
-		nodePrimitiveBlock.date_granularity = self.date_granularity
-		nodePrimitiveGroup = nodePrimitiveBlock.primitivegroup.add()
-		self.makeDenseNodes(nodePrimitiveGroup.dense, startNodeId, nodeList)
-		return nodePrimitiveBlock
+	def makeStringTable(self, stringList):
+		# s, id=1
+		return "".join([self.makeVar("S", 1, s) for s in stringList])
 
-	def makeDenseNodes(self, dense, startNodeId, nodeList):
-		# osmconvert can't handle longitude and latitude offsets
-		#lon_offset = long(nodeList[0][0]/self.granularity)
-		#lat_offset = long(nodeList[0][1]/self.granularity)
-		#dense.lon.append(0)
-		#dense.lat.append(0)
-		lon_offset = 0L
-		lat_offset = 0L
-		dense.lon.append(nodeList[0][0]/self.granularity)
-		dense.lat.append(nodeList[0][1]/self.granularity)
-		dense.id.append(startNodeId)
-		# denseinfo
-		dense.denseinfo.timestamp.append(self.timestamp)
-		dense.denseinfo.version.append(1)
-		dense.denseinfo.changeset.append(0)
-		dense.denseinfo.uid.append(0)
-		dense.denseinfo.user_sid.append(0)
-		# osmconvert can't handle longitude and latitude offsets
-		#last_lon = 0
-		#last_lat = 0
-		last_lon = nodeList[0][0]/self.granularity
-		last_lat = nodeList[0][1]/self.granularity
+	def makeNodePrimitiveBlock(self, startNodeId, nodes):
+		nodePrimitiveBlock = []
+		# stringtable, id=1
+		stringtable = self.makeStringTable(["", ])
+		nodePrimitiveBlock.append(self.makeVar("S", 1, stringtable))
+		# primitivegroup, id=2
+		nodePrimitiveGroup = self.makeNodePrimitiveGroup(
+			startNodeId, nodes)
+		nodePrimitiveBlock.append(self.makeVar("S", 2, nodePrimitiveGroup))
+		# granularity, id=17
+		nodePrimitiveBlock.append(self.makeVar("V", 17, self.granularity, int2str))
+		# date_granularity, id=18
+		nodePrimitiveBlock.append(self.makeVar("V", 18, self.date_granularity, int2str))
+		# lat_offset, id=19
+		nodePrimitiveBlock.append(self.makeVar("V", 19, 0, int2str))
+		# lon_offset, id=20
+		nodePrimitiveBlock.append(self.makeVar("V", 20, 0, int2str))
+		return "".join(nodePrimitiveBlock)
+
+	def makeNodePrimitiveGroup(self, startNodeId, nodes):
+		denseNodes = self.makeDenseNodes(startNodeId, nodes)
+		# dense, id=2
+		return self.makeVar("S", 2, denseNodes)
+
+	def makeDenseInfo(self, times):
+		denseInfo = []
+		# version, id=1
+		version = int2str(1)*times
+		denseInfo.append(self.makeVar("S", 1, version))
+		# timestamp, id=2
+		timestamp = sint2str(self.timestamp)+(sint2str(0)*(times-1))
+		denseInfo.append(self.makeVar("S", 2, timestamp))
+		# changeset, id=3
+		changeset = sint2str(1)*times
+		denseInfo.append(self.makeVar("S", 3, changeset))
+		# uid, id=4
+		uid = sint2str(0)*times
+		denseInfo.append(self.makeVar("S", 4, uid))
+		# user_sid, id=5
+		user_sid = sint2str(0)*times
+		denseInfo.append(self.makeVar("S", 5, user_sid))
+		return "".join(denseInfo)
+
+	def makeDenseNodes(self, startNodeId, nodeList):
+		dense = []
+		Lon = [nodeList[0][0]/self.granularity, ]
+		Lat = [nodeList[0][1]/self.granularity, ]
+		last_lon = Lon[0]
+		last_lat = Lat[0]
 		for lon, lat in nodeList[1:]:
-			# osmconvert can't handle longitude and latitude offsets
-			#lon = long(lon/self.granularity)-lon_offset
-			#lat = long(lat/self.granularity)-lat_offset
-			lon = long(lon/self.granularity)
-			lat = long(lat/self.granularity)
+			lon = lon/self.granularity
+			lat = lat/self.granularity
 			lon_diff = lon - last_lon
 			lat_diff = lat - last_lat
+			Lon.append(lon_diff)
+			Lat.append(lat_diff)
 			last_lon = lon
 			last_lat = lat
-			dense.lon.append(lon_diff)
-			dense.lat.append(lat_diff)
-			dense.id.append(1)
-			# denseinfo
-			dense.denseinfo.timestamp.append(0)
-			dense.denseinfo.version.append(1)
-			dense.denseinfo.changeset.append(0)
-			dense.denseinfo.uid.append(0)
-			dense.denseinfo.user_sid.append(0)
+		# id, id=1
+		id = sint2str(startNodeId)+sint2str(1)*(len(Lon)-1)
+		dense.append(self.makeVar("S", 1, id))
+		# denseinfo, id=5
+		dense.append(self.makeVar("S", 5, self.makeDenseInfo(len(Lon))))
+		# lat, id=8
+		LAT = "".join([sint2str(l) for l in Lat])
+		dense.append(self.makeVar("S", 8, LAT))
+		# lon, id=9
+		LON = "".join([sint2str(l) for l in Lon])
+		dense.append(self.makeVar("S", 9, LON))
+		return "".join(dense)
 
 	def writeWays(self, ways, startWayId):
 		"""writes ways to self.outf.  ways shall be a list of
@@ -173,38 +258,56 @@ class Output(object):
 				self.writeWaysChunk(curWays, startWayId+len(ways)-len(curWays))
 
 	def writeWaysChunk(self, ways, startWayId):
-		wayBlobHeader = ff.BlobHeader()
-		wayBlobHeader.type = u"OSMData"
-		wayBlob = self.makeWayBlob(startWayId, ways).SerializeToString()
-		wayBlobHeader.datasize = len(wayBlob)
-		wayBlobHeader = wayBlobHeader.SerializeToString()
-		size = pack('!L', len(wayBlobHeader))
-		self.outf.write(size)
-		self.outf.write(wayBlobHeader)
-		self.outf.write(wayBlob)
+		blobHeader = []
+		# type, id=1
+		blobHeader.append(self.makeVar(vType="S", vId=1, content="OSMData"))
+		# datasize, id=3
+		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
+		blob = self.makeWayBlob(startWayId, ways)
+		blobHeader.append(int2str(len(blob)))
+		blobHeader = "".join(blobHeader)
+		self.outf.write(pack('!L', len(blobHeader)))
+		self.outf.write(blobHeader)
+		self.outf.write(blob)
 
-	def makeWayBlob(self, startWayId, wayList):
-		wayBlob = ff.Blob()
-		wayPrimitiveBlock = self.makeWayPrimitiveBlock(
-			startWayId, wayList).SerializeToString()
-		wayBlob.raw_size = len(wayPrimitiveBlock)
-		wayBlob.zlib_data = zlib.compress(wayPrimitiveBlock)
-		return wayBlob
+	def makeWayBlob(self, startWayId, ways):
+		blob = []
+		wayPrimitiveBlock = self.makeWayPrimitiveBlock(startWayId, ways)
+		# raw_size, id=2
+		blob.append(self.makeVarIdent("V", 2))
+		blob.append(int2str(len(wayPrimitiveBlock)))
+		# zlib_data, id=3
+		zlib_data = zlib.compress(wayPrimitiveBlock)
+		blob.append(self.makeVar("S", 3, zlib_data))
+		return "".join(blob)
 
-	def makeWayPrimitiveBlock(self, startWayId, wayList):
-		wayPrimitiveBlock = osmf.PrimitiveBlock()
-		wayPrimitiveBlock.stringtable.s.append("")
-		wayPrimitiveBlock.granularity = self.granularity
-		wayPrimitiveBlock.lon_offset = 0L
-		wayPrimitiveBlock.lat_offset = 0L
-		wayPrimitiveBlock.date_granularity = self.date_granularity
-		wayPrimitiveGroup = wayPrimitiveBlock.primitivegroup.add()
-		strings = self.makeWays(wayPrimitiveGroup.ways, startWayId, wayList)
-		wayPrimitiveBlock.stringtable.s.extend(strings)
-		return wayPrimitiveBlock
+	def makeWayPrimitiveBlock(self, startWayId, ways):
+		wayPrimitiveBlock = []
+		strings = []
+		wayPrimitiveGroup = self.makeWayPrimitiveGroup(
+			startWayId, ways, strings)
+		stringtable = self.makeStringTable(strings)
+		# stringtable, id=1
+		wayPrimitiveBlock.append(self.makeVar("S", 1, stringtable))
+		# primitivegroup, id=2
+		wayPrimitiveBlock.append(self.makeVar("S", 2, wayPrimitiveGroup))
+		# granularity, id=17
+		wayPrimitiveBlock.append(self.makeVar("V", 17, self.granularity, int2str))
+		# date_granularity, id=18
+		wayPrimitiveBlock.append(self.makeVar("V", 18, self.date_granularity, int2str))
+		# lat_offset, id=19
+		wayPrimitiveBlock.append(self.makeVar("V", 19, 0, int2str))
+		# lon_offset, id=20
+		wayPrimitiveBlock.append(self.makeVar("V", 20, 0, int2str))
+		return "".join(wayPrimitiveBlock)
 
-	def makeWays(self, ways, startWayId, wayList):
-		strings = ["", ]
+	def makeWayPrimitiveGroup(self, startWayId, ways, stringtable):
+		ways = self.makeWays(startWayId, ways, stringtable)
+		# ways, id=3
+		return "".join([self.makeVar("S", 3, w) for w in ways])
+
+	def makeWays(self, startWayId, wayList, strings):
+		strings.append("")                 # 0
 		strings.append("ele")              # 1
 		strings.append("contour")          # 2
 		strings.append("elevation")        # 3
@@ -212,26 +315,49 @@ class Output(object):
 		strings.append("elevation_minor")  # 5
 		strings.append("elevation_medium") # 6
 		strings.append("elevation_major")  # 7
-		for ind, (startNodeId, length, isCycle, elevation) in enumerate(wayList):
-			way = ways.add()
-			way.id = startWayId+ind
-			way.refs.append(startNodeId)
-			way.refs.extend([1]*(length-1))
-			if isCycle:
-				way.refs.append(-(length-1))
-			if not str(elevation) in strings:
-				strings.append(str(elevation))
-			way.keys.append(1)
-			way.vals.append(strings.index(str(elevation)))
-			way.keys.append(2)
-			way.vals.append(3)
-			way.keys.append(4)
-			way.vals.append(strings.index(self.elevClassifier(elevation)))
-			way.info.version = 1
-			way.info.timestamp = self.timestamp
-			way.info.uid = 0
-			way.info.user_sid = 0
-		return strings[1:]
+		ways = []
+		for ind, w in enumerate(wayList):
+			wId = startWayId+ind
+			ways.append(self.makeWay(w, wId, strings))
+		return ways
+
+	def makeWay(self, w, wayId, strings):
+		way = []
+		startNodeId, length, isCycle, elevation = w
+		if not str(elevation) in strings:
+			strings.append(str(elevation))
+		# id, id=1
+		way.append(self.makeVar("V", 1, wayId, int2str))
+		# keys, id=2
+		keys = "".join([int2str(el) for el in [1, 2, 4]])
+		way.append(self.makeVar("S", 2, keys))
+		# ways, id=3
+		vals = "".join([int2str(el) for el in [strings.index(str(elevation)),
+			3, strings.index(self.elevClassifier(elevation))]])
+		way.append(self.makeVar("S", 3, vals))
+		# info, id=4
+		info = self.makeWayInfo()
+		way.append(self.makeVar("S", 4, info))
+		# refs, id=8
+		refs = sint2str(startNodeId)+sint2str(1)*(length-1)
+		if isCycle:
+			refs += sint2str(-(length-1))
+		way.append(self.makeVar("S", 8, refs))
+		return "".join(way)
+
+	def makeWayInfo(self):
+		info = []
+		# version, id=1
+		info.append(self.makeVar("V", 1, 1, int2str))
+		# timestamp, id=2
+		info.append(self.makeVar("V", 2, self.timestamp, int2str))
+		# changeset, id=3
+		info.append(self.makeVar("V", 3, 1, int2str))
+		# uid, id=4
+		info.append(self.makeVar("V", 4, 0, int2str))
+		# user_sid, id=5
+		info.append(self.makeVar("V", 5, 0, int2str))
+		return "".join(info)
 
 	def write(self, nodeString):
 		"""wrapper imitating osmUtil.Output's write method.

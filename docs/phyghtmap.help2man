@@ -43,7 +43,7 @@ output file.  Note that it is possible to use multiple processes in parallel.
 --max-nodes-per-way=0 means that the ways will be as long as possible.
 --gzip=9 will produce gzipped output with a compression level of 9.
 .TP
-phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --gzip=9
+phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --pbf
 Same as above but output will be a osm protobif binary file (.osm.pbf).
 .TP
 phyghtmap -s 5 NXXEYYY.hgt
@@ -67,7 +67,7 @@ Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>
 
 Markus Demleitner <msdemlei@users.sf.net>
 [COPYRIGHT]
-Copyright (c) 2009-2011 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
+Copyright (c) 2009-2012 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
 GPL version 2 <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO  WARRANTY, to the extent permitted by law.

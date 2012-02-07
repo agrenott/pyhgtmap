@@ -2,6 +2,8 @@ import urllib
 import os
 from BeautifulSoup import BeautifulSoup
 import zipfile
+from matplotlib.nxutils import points_inside_poly
+import numpy
 
 ############################################################
 ### general vriables #######################################
@@ -65,8 +67,72 @@ def calcBbox(area, corrx=0.0, corry=0.0):
 		else:
 			bboxMaxLat = int(maxLat) + 1
 	return bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat
-	
-def makeFileNamePrefixes(bbox, lowercase=False):
+
+def writeTex(milo, mila, malo, mala, inside=True):
+	if inside:
+		open("tex", "a").write("green/%.2f/%-2f/%.2f/%.2f, \n"%(
+			milo, mila, malo, mala))
+	else:
+		open("tex", "a").write("red/%.2f/%-2f/%.2f/%.2f, \n"%(
+			milo, mila, malo, mala))
+
+def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
+	"""checks if a source file is needed depending on the bounding box and
+	the passed polygon.
+	"""
+	if polygon==None:
+		return True
+	minLat = lat + corry
+	maxLat = minLat + 1
+	minLon = lon + corrx
+	maxLon = minLon + 1
+	MinLon, MinLat, MaxLon, MaxLat = bbox
+	MinLon += corrx
+	MaxLon += corrx
+	MinLat += corry
+	MaxLat += corry
+	print "checking if area %s intersects with polygon ..."%(
+		makeFileNamePrefix(lon, lat)),
+	if minLon==MinLon and minLat==MinLat and maxLon==MaxLon and maxLat==MaxLat:
+		# the polygon is completely inside the bounding box
+		print "yes"
+		#writeTex(minLon, minLat, maxLon, maxLat, True)
+		return True
+	# the polygon is only partly or not in this area.  First look, if one of the
+	# corners is inside the polygon.  If this is not the case, we consequentely
+	# increase the resolution of the area borders and look if they intersect with
+	# the polygon.  The highest border resolution is 1/10 arc second which I hope
+	# is enough and should be ok for all polygons out there.
+	for res in [1, 1200, 36000]:
+		points = []
+		for lo in numpy.arange(minLon, maxLon+1.0/res, 1.0/res):
+			points.append((lo, minLat))
+			points.append((lo, maxLat))
+		for la in numpy.arange(minLat, maxLat+1.0/res, 1.0/res):
+			points.append((minLon, la))
+			points.append((maxLon, la))
+		inside = points_inside_poly(points, polygon)
+		if numpy.any(inside):
+			print "yes"
+			#writeTex(minLon, minLat, maxLon, maxLat, True)
+			return True
+	print "no"
+	#writeTex(minLon, minLat, maxLon, maxLat, False)
+	return False
+
+def makeFileNamePrefix(lon, lat):
+	if lon < 0:
+		lonSwitch = "W"
+	else:
+		lonSwitch = "E"
+	if lat < 0:
+		latSwitch = "S"
+	else:
+		latSwitch = "N"
+	return "%s%s%s%s"%(latSwitch, str(abs(lat)).rjust(2, '0'),
+		lonSwitch, str(abs(lon)).rjust(3, '0'))
+
+def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	"""generates a list of filename prefixes of the files containing data within the
 	bounding box.
 	"""
@@ -74,18 +140,10 @@ def makeFileNamePrefixes(bbox, lowercase=False):
 	lon = minLon
 	prefixes = []
 	while lon <= maxLon:
-		if lon < 0:
-			lonSwitch = "W"
-		else:
-			lonSwitch = "E"
 		lat = minLat
 		while lat <= maxLat:
-			if lat < 0:
-				latSwitch = "S"
-			else:
-				latSwitch = "N"
-			prefixes.append("%s%s%s%s"%(latSwitch, str(abs(lat)).rjust(2, '0'),
-				lonSwitch, str(abs(lon)).rjust(3, '0')))
+			if areaNeeded(lat, lon, bbox, polygon, corrx, corry):
+				prefixes.append(makeFileNamePrefix(lon, lat))
 			lat += 1
 			if minLat == maxLat or lat == maxLat:
 				break
@@ -97,12 +155,12 @@ def makeFileNamePrefixes(bbox, lowercase=False):
 	else:
 		return prefixes
 
-def makeFileNames(bbox, resolution, viewfinder):
+def makeFileNames(bbox, polygon, corrx, corry, resolution, viewfinder):
 	"""generates a list of filenames of the files containing data within the
 	bounding box.  If <viewfinder> exists, this data is preferred to NASA SRTM
 	data.
 	"""
-	areas = makeFileNamePrefixes(bbox)
+	areas = makeFileNamePrefixes(bbox, polygon, corrx, corry)
 	areaDict = {}
 	for a in areas:
 		NASAurl = getNASAUrl(a, resolution)
@@ -296,7 +354,7 @@ def unzipFile(saveZipFilename):
 	print "DONE"
 	return areaNames
 
-def getFiles(area, corrx, corry, resolution, viewfinder=0):
+def getFiles(area, polygon, corrx, corry, resolution, viewfinder=0):
 	NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
 	VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%viewfinder)
 	try:
@@ -313,7 +371,7 @@ def getFiles(area, corrx, corry, resolution, viewfinder=0):
 		except:
 			os.mkdir(VIEWhgtSaveSubDir)
 	bbox = calcBbox(area, corrx, corry)
-	filesToDownload = makeFileNames(bbox, resolution, viewfinder)	
+	filesToDownload = makeFileNames(bbox, polygon, corrx, corry, resolution, viewfinder)	
 	files = []
 	for area, url in sorted(filesToDownload.items()):
 		if not url:

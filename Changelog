@@ -1,3 +1,20 @@
+phyghtmap (1.42) stable; urgency=low
+
+  * Introduced a different pbf-Output implementation which doesn't require
+    python-protobuf bindings and massively improves performance.
+  * Removed all google protobuf specific code and adapted license (all code
+    under GPL again).
+  * The --osm-version option now defaults to 0.6.
+  * Fixed bug concerning uninitialized 'ways' variable in main.py which occurred
+    when evaluating source files outside a specified polygon which then yield no
+    tiles.  This was done by a) variable initialization and b) by introducing a
+    new routine in NASASRTMUtil.py which checks if a given source file inside
+    the bounding box of a polygon pass passed by the --polygon option intersects
+    with this polygon.  The side effect of this is that some needless downloads
+    are avoided.
+
+ -- Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>  Tue, 07 Feb 2012 13:16:00 +0100
+
 phyghtmap (1.41) stable; urgency=low
 
   * Changed DenseNodes longitude and latitude offsets to 0 and adapted

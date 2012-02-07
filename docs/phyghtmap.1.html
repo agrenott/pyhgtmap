@@ -70,8 +70,8 @@ rendering.
 number of jobs to be run in parallel (POSIX only)
 <DT><B>--osm-version</B>=<I>OSM-VERSION</I><DD>
 pass a number as OSM-VERSION to use for the output.
-The default value is 0.5 since this saves disk space.
-If you need a newer version, try 0.6.
+The default value is 0.6.  If you need an older
+version, try 0.5.
 <DT><B>--write-timestamp</B><DD>
 write the timestamp attribute of output OSM XML node
 and way elements.  This might be needed by some
@@ -110,9 +110,9 @@ means high compression and lower computation.
 <DT><B>--pbf</B><DD>
 write protobuf binary files instead of OSM XML.  This
 reduces the needed disk space. Be sure the programs
-you want to use the output files with must be capable
-of pbf parsing.  The output files will have the
-.osm.pbf extension.
+you want to use the output files with are capable of
+pbf parsing.  The output files will have the .osm.pbf
+extension.
 <DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
 Note that the finer 1 arc second grid is only
@@ -170,7 +170,7 @@ This generates contour lines for the high alps and writes them to a single
 output file.  Note that it is possible to use multiple processes in parallel.
 --max-nodes-per-way=0 means that the ways will be as long as possible.
 --gzip=9 will produce gzipped output with a compression level of 9.
-<DT>phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --gzip=9<DD>
+<DT>phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --pbf<DD>
 Same as above but output will be a osm protobif binary file (.osm.pbf).
 <DT>phyghtmap -s 5 NXXEYYY.hgt<DD>
 Make contour line .osm with steps of 5 meters from file NXXEYYY.hgt.
@@ -199,7 +199,7 @@ Markus Demleitner &lt;<A HREF="mailto:msdemlei@users.sf.net">msdemlei@users.sf.n
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2011 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
+Copyright (c) 2009-2012 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
 GPL version 2 &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 This is free software: you are free to change and redistribute it.
 There is NO  WARRANTY, to the extent permitted by law.
@@ -221,6 +221,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 17:33:37 GMT, February 04, 2012
+Time: 13:07:55 GMT, February 06, 2012
 </BODY>
 </HTML>

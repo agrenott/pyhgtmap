@@ -5,8 +5,8 @@
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
 	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.41"
-__copyright__ = "Copyright (c) 2009-2011 Markus Demleitner, Adrian Dempwolff"
+__version__ = "1.42"
+__copyright__ = "Copyright (c) 2009-2012 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
 import sys
@@ -17,12 +17,7 @@ from optparse import OptionParser
 from phyghtmap import hgt
 from phyghtmap import osmUtil
 from phyghtmap import NASASRTMUtil
-try:
-	from phyghtmap import pbfUtil
-	canProtobuf = True
-except ImportError:
-	# no protobuf bindings
-	canProtobuf = False
+from phyghtmap import pbfUtil
 
 profile = False
 
@@ -71,9 +66,9 @@ def parseCommandLine():
 		" in parallel (POSIX only)", dest="nJobs", action="store",
 		type="int", default=1)
 	parser.add_option("--osm-version", help="pass a number as OSM-VERSION to"
-		"\nuse for the output.  The default value is 0.5 since this saves disk"
-		"\nspace.  If you need a newer version, try 0.6.",
-		metavar="OSM-VERSION", dest="osmVersion", action="store", default=0.5,
+		"\nuse for the output.  The default value is 0.6.  If you need an older"
+		"\nversion, try 0.5.",
+		metavar="OSM-VERSION", dest="osmVersion", action="store", default=0.6,
 		type="float")
 	parser.add_option("--write-timestamp", help="write the timestamp attribute of"
 		"\noutput OSM XML node and way elements.  This might be needed by some"
@@ -107,12 +102,11 @@ def parseCommandLine():
 		"\nfaster computation, 9 means high compression and lower computation.",
 		dest="gzip", action="store", default=0, metavar="COMPRESSLEVEL",
 		type="int")
-	if canProtobuf:
-		parser.add_option("--pbf", help="write protobuf binary files instead of OSM"
-			"\nXML.  This reduces the needed disk space. Be sure the programs you"
-			"\nwant to use the output files with must be capable of pbf parsing.  The"
-			"\noutput files will have the .osm.pbf extension.", action="store_true",
-			default=False, dest="pbf")
+	parser.add_option("--pbf", help="write protobuf binary files instead of OSM"
+		"\nXML.  This reduces the needed disk space. Be sure the programs you"
+		"\nwant to use the output files with are capable of pbf parsing.  The"
+		"\noutput files will have the .osm.pbf extension.", action="store_true",
+		default=False, dest="pbf")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
 		"\narc seconds.  Note that the finer 1 arc second grid is only available"
 		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
@@ -141,8 +135,6 @@ def parseCommandLine():
 	if opts.version:
 		print "phyghtmap %s"%__version__
 		sys.exit(0)
-	if not hasattr(opts,"pbf"):
-		opts.pbf = False
 	if opts.pbf and opts.gzip:
 		sys.stderr.write("You can't combine the --gzip and --pbf options.\n")
 		sys.exit(1)
@@ -234,6 +226,7 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 		if singleOutput:
 			# forked, single output, output is already defined
 			#output = output
+			ways = []
 			for tile in hgtTiles:
 				# there is only one tile
 				elevations, contourData = tile.elevations, tile.contourData
@@ -260,6 +253,7 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 		if singleOutput:
 			# not forked, single output, output is already defined
 			# output = output
+			ways = []
 			for tile in hgtTiles:
 				# there is only one tile
 				try:
@@ -412,8 +406,12 @@ class ProcessQueue(object):
 def main():
 	opts, args = parseCommandLine()
 	if opts.area:
-		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.srtmCorrx, opts.srtmCorry,
+		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.polygon,
+			opts.srtmCorrx, opts.srtmCorry,
 			opts.srtmResolution, opts.viewfinder)
+		if len(hgtDataFiles) == 0:
+			print "No files for this area %s from desired source."%opts.area
+			sys.exit(0)
 	else:
 		hgtDataFiles = [arg for arg in args if arg.endswith(".hgt")]
 		opts.area = ":".join([str(i) for i in hgt.calcHgtArea(hgtDataFiles,
