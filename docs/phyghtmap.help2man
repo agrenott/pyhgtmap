@@ -22,6 +22,9 @@ www.viewfinderpanoramas.org.
 phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3 -j 16
 Same as above but use 16 parallel processes for the contour line calculation.
 .TP
+phyghtmap -a -25:62:-12:68 -o iceland --source=view3,srtm3 -j 16
+Essentially the same as above.
+.TP
 phyghtmap -a -25:62:-12:68 -o iceland -s 10 -c 100,50
 Say this, if you want contour lines for Iceland with a step size of ten meters
 and major contour lines every 100 meters and medium contour lines every 50
@@ -31,6 +34,10 @@ phyghtmap -a 6:44:9:47 -o high_alps --viewfinder-mask=1
 With this, you get wonderful contour line .osm with a resolution of 1 arc
 second where data is available at www.viewfinderpanoramas.org and NASA SRTM 3
 arc second data elsewhere.
+.TP
+phyghtmap -a 6:44:9:47 -o high_alps --source=view1,view3,srtm3
+Similar to the example above, but try to use viewfinder 1 arc second data
+first, viewfinder 3 arc second data second and srtm 3 arc second data last.
 .TP
 phyghtmap -a 6:44:9:47 --max-nodes-per-tile=100000 --max-nodes-per-way=400
 This generates contour lines for the high alps.  Each output file will contain
@@ -61,9 +68,9 @@ specified area.  For bigger areas, you will probably get more than one output
 file.
 [BUGS]
 If you find a bug, please report it to
-<dempwolff@informatik.uni-heidelberg.de>.
+<adrian.dempwolff@urz.uni-heidelberg.de>.
 [AUTHOR]
-Adrian Dempwolff <dempwolff@informatik.uni-heidelberg.de>
+Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>
 
 Markus Demleitner <msdemlei@users.sf.net>
 [COPYRIGHT]

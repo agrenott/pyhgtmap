@@ -29,25 +29,43 @@ def makeBBoxString(bbox):
 	)
 
 def parsePolygon(filename):
-	"""reads a polygon from a file like one included in
+	"""reads polygons from a file like one included in
 	http://download.geofabrik.de/clipbounds/clipbounds.tgz
 	and returns it as list of (<lon>, <lat>) tuples.
 	"""
-	p = [line.split() for line in
-		open(filename).read().split("\n") if line and len(line.split())==2]
-	lonLatList = []
-	for lon, lat in p:
-		try:
-			lonLatList.append((float(lon), float(lat)))
-		except ValueError:
+	lines = [line.strip().lower() for line in
+		open(filename).read().split("\n") if line.strip()]
+	polygons = []
+	curPolygon = []
+	for l in lines:
+		if l in [str(i) for i in range(1, lines.count("end"))]:
+			# new polygon begins
+			curPolygon = []
+		elif l == "end" and len(curPolygon)>0:
+			# polygon ends
+			polygons.append(curPolygon)
+			curPolygon = []
+		elif l == "end":
+			# file ends
+			break
+		elif len(l.split()) == 2:
+			lon, lat = l.split()
+			try:
+				curPolygon.append((float(lon), float(lat)))
+			except ValueError:
+				continue
+		else:
 			continue
+	lonLatList = []
+	for p in polygons:
+		lonLatList.extend(p)
 	lonList = sorted([lon for lon, lat in lonLatList])
 	latList = sorted([lat for lon, lat in lonLatList])
 	minLon = lonList[0]
 	maxLon = lonList[-1]
 	minLat = latList[0]
 	maxLat = latList[-1]
-	return "%.7f:%.7f:%.7f:%.7f"%(minLon, minLat, maxLon, maxLat), lonLatList
+	return "%.7f:%.7f:%.7f:%.7f"%(minLon, minLat, maxLon, maxLat), polygons
 
 def makeBoundsString(bbox):
 	"""returns an OSM XML bounds tag.
@@ -127,14 +145,27 @@ class ContourObject(object):
 
 	def clipPath(self, path):
 		"""clips a path with self.polygon and returns a list of
-		clipped paths
+		clipped paths.  This method also removes consecutive identical nodes.
 		"""
 		if not self.polygon:
-			return [path, ]
+			tmpList = []
+			for ind, p in enumerate(path):
+				if ind != 0:
+					op = path[ind-1]
+					if numpy.all(p==op):
+						continue
+				tmpList.append(p)
+			return [tmpList, ]
 		pathList = []
 		tmpList = []
-		for x, y in path:
-			if pnpoly(x, y, self.polygon):
+		for ind, p in enumerate(path):
+			if ind != 0:
+				op = path[ind-1]
+				if numpy.all(p==op):
+					# skip the rest if there are two consecutive identical nodes
+					continue
+			x, y = p
+			if any([pnpoly(x, y, p) for p in self.polygon]):
 				# (x, y) inside polygon
 				tmpList.append((x, y))
 			elif len(tmpList) > 0:
@@ -157,8 +188,8 @@ class ContourObject(object):
 		the OSM XML output.
 		"""
 		length = self.maxNodesPerWay
-		l = self._cutBeginning(l)
-		if len(l) == 0:
+		#l = self._cutBeginning(l)
+		if len(l) < 2:
 			return [], 0, 0
 		if length == 0 or len(l) <= length:
 			tmpList = [l, ]
@@ -174,7 +205,7 @@ class ContourObject(object):
 		pathList = []
 		numOfClosedPaths = 0
 		for path in tmpList:
-			path = self._cutBeginning(path)
+			#path = self._cutBeginning(path)
 			if len(path) == 0:
 				# self._cutBeginning() returned an empty list for this path
 				continue
@@ -190,7 +221,7 @@ class ContourObject(object):
 		"""this emulates matplotlib.cntr.Cntr's trace method.
 		The difference is that this method returns already split paths,
 		along with the number of nodes and paths as expected in the OSM
-		XML output.
+		XML output.  Also, consecutive identical nodes are removed.
 		"""
 		if mplversion >= "1.0.0":
 			# matplotlib 1.0.0 and above returns vertices and segments, but we only need vertices
@@ -245,16 +276,21 @@ class hgtFile:
 			self.maxLat)
 
 	def polygonMask(self, xData, yData):
-		"""return a mask on self.zData corresponding to the passed <polygon>.
-		<X> is meant to be a 1-D array of longitude values, <Y> a 1-D array of
+		"""return a mask on self.zData corresponding to all polygons in self.polygon.
+		<xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
 		latitude values.  An array usable as mask for the corresponding zData
 		2-D array is returned.
 		"""
 		X, Y = numpy.meshgrid(xData, yData)
 		xyPoints = numpy.vstack(([X.T],
 			[Y.T])).T.reshape(len(xData)*len(yData), 2)
-		return numpy.invert(points_inside_poly(xyPoints,
-			self.polygon).reshape(len(xData), len(yData)))
+		maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
+		for p in self.polygon:
+			# run through alll polygons and combine masks
+			mask = points_inside_poly(xyPoints, p)
+			maskArray = numpy.ma.array(maskArray,
+				mask=mask, keep_mask=True)
+		return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
@@ -277,12 +313,25 @@ class hgtFile:
 			if area:
 				bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = (float(bound)
 					for bound in area.split(":"))
-				if bboxMinLon <= self.minLon:
-					bboxMinLon = self.minLon
+				if bboxMinLon > bboxMaxLon:
+					# bbox covers the W180/E180 longitude
+					if self.minLon < 0 or self.minLon < bboxMaxLon:
+						# we are right of W180
+						bboxMinLon = self.minLon
+						if bboxMaxLon >= self.maxLon:
+							bboxMaxLon = self.maxLon
+					else:
+						# we are left of E180
+						bboxMaxLon = self.maxLon
+						if bboxMinLon <= self.minLon:
+							bboxMinLon = self.minLon
+				else:
+					if bboxMinLon <= self.minLon:
+						bboxMinLon = self.minLon
+					if bboxMaxLon >= self.maxLon:
+						bboxMaxLon = self.maxLon
 				if bboxMinLat <= self.minLat:
 					bboxMinLat = self.minLat
-				if bboxMaxLon >= self.maxLon:
-					bboxMaxLon = self.maxLon
 				if bboxMaxLat >= self.maxLat:
 					bboxMaxLat = self.maxLat
 				minLonTruncIndex = int((bboxMinLon-self.minLon) /
@@ -398,6 +447,7 @@ class hgtFile:
 					tileMask = self.polygonMask(tileXData, tileYData)
 					tilePolygon = self.polygon
 					if not numpy.any(tileMask):
+						# all points are inside the polygon
 						tilePolygon = None
 					elif numpy.all(tileMask):
 						# all elements are masked -> tile is outside of self.polygon
@@ -474,6 +524,8 @@ class hgtTile:
 			"""returns a proper value for the lower or upper limit to generate contour
 			lines for.
 			"""
+			if ele%step == 0:
+				return ele
 			corrEle = ele + step - ele % step
 			return corrEle
 

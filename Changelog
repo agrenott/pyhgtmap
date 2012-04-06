@@ -1,3 +1,22 @@
+phyghtmap (1.43) stable; urgency=low
+
+  * Integrated adaptions of some patches by Thorsten Kukuk:
+    - Added the --source option which allows specification of data source
+      selection preference lists.  This option may be used instead of the
+      --viewfinder-mask and --srtm options.
+    - Fixed a typo in NASASRTMUtil.py. 
+    - Added code to remove duplicate nodes in paths created using
+      matplotlib.cntr.Cntr's trace method.
+  * Fixed bug in hgt.hgtTile's getElevRange method.  In cases where the min/max
+    elevation of a tile mod stepsize was zero, too high values were returned.
+  * Added support for bounding boxes containing the E180/W180 longitude.
+  * Fixed handling of polygon files with multiple polygon definitions.
+  * NASASRTMUtil.intersecTiles() checks which source tiles are intersect by the
+    polygon line.  Using this, the initial check which source files intersect
+    with a polygon passed by the --polygon option is much faster.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Fri, 23 Mar 2012 09:58:00 +0100
+
 phyghtmap (1.42) stable; urgency=low
 
   * Introduced a different pbf-Output implementation which doesn't require
@@ -9,7 +28,7 @@ phyghtmap (1.42) stable; urgency=low
     when evaluating source files outside a specified polygon which then yield no
     tiles.  This was done by a) variable initialization and b) by introducing a
     new routine in NASASRTMUtil.py which checks if a given source file inside
-    the bounding box of a polygon pass passed by the --polygon option intersects
+    the bounding box of a polygon passed by the --polygon option intersects
     with this polygon.  The side effect of this is that some needless downloads
     are avoided.
 

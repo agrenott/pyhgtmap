@@ -5,6 +5,7 @@ from struct import pack
 import time
 import numpy
 
+#from phyghtmap.pbfint import int2str, sint2str
 
 NANO = 1000000000L
 
@@ -47,7 +48,6 @@ class Output(object):
 		self.maxNodesPerWayBlock = 32000
 		self.timestamp = long(time.mktime(time.localtime()))
 		self.timestampString = "" # dummy attribute
-		#self.makeHeader(osmVersion, phyghtmapVersion)
 		self.makeHeader(osmVersion, phyghtmapVersion)
 
 	def makeVarIdent(self, vType, vId):

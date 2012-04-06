@@ -4,8 +4,8 @@
 #psyco.full()
 
 __author__ = "Markus Demleitner (msdemlei@users.sf.net), " +\
-	"Adrian Dempwolff (dempwolff@informatik.uni-heidelberg.de)"
-__version__ = "1.42"
+	"Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
+__version__ = "1.43"
 __copyright__ = "Copyright (c) 2009-2012 Markus Demleitner, Adrian Dempwolff"
 __license__ = "GPLv2"
 
@@ -117,6 +117,13 @@ def parseCommandLine():
 		"\nare 1 and 3 (for explanation, see the --srtm option).",
 		metavar="VIEWFINDER-RESOLUTION", type="int", default=0, action="store",
 		dest="viewfinder")
+	parser.add_option("--source", "--data-source", help="specify a list of"
+		"\nsources to use as comma-seperated string.  Available sources are"
+		"\n'srtm1', 'srtm3', 'view1' and 'view3'.  If specified, the data source"
+		"\nwill be selected using this option as preference list.  Specifying"
+		"\n--source=view3,srtm3 for example will prefer viewfinder 3 arc second"
+		"\ndata to NASA SRTM 3 arc second data.", metavar="DATA-SOURCE",
+		action="store", default=None, dest="dataSource")
 	parser.add_option("--corrx", help="correct x offset of contour lines."
 		"\n A setting of --corrx=0.0005 was reported to give good results."
 		"\n However, the correct setting seems to depend on where you are, so"
@@ -146,6 +153,17 @@ def parseCommandLine():
 		sys.stderr.write("The --viewfinder-mask option can only take '1' or '3' as values."
 			"  Won't use viewfinder data.\n")
 		opts.viewfinder = 0
+	if opts.dataSource:
+		opts.dataSource = opts.dataSource.lower().split(",")
+		for s in opts.dataSource:
+			if not s in ["view1", "view3", "srtm1", "srtm3"]:
+				print "Unknown data source: %s"%s
+				sys.exit(1)
+	else:
+		opts.dataSource = []
+		if opts.viewfinder != 0:
+			opts.dataSource.append("view%i"%opts.viewfinder)
+		opts.dataSource.append("srtm%i"%opts.srtmResolution)
 	if len(args) == 0 and not opts.area and not opts.polygon:
 		parser.print_help()
 		sys.exit(1)
@@ -407,8 +425,7 @@ def main():
 	opts, args = parseCommandLine()
 	if opts.area:
 		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.polygon,
-			opts.srtmCorrx, opts.srtmCorry,
-			opts.srtmResolution, opts.viewfinder)
+			opts.srtmCorrx, opts.srtmCorry, opts.dataSource)
 		if len(hgtDataFiles) == 0:
 			print "No files for this area %s from desired source."%opts.area
 			sys.exit(0)

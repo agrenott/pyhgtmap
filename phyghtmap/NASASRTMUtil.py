@@ -32,6 +32,7 @@ VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%%20map%%20view
 VIEWhgtSaveSubDirRe = "VIEW%i"
 VIEWhgtIndexFileRe = os.path.join(hgtSaveDir, "viewfinderHgtIndex_%i.txt")
 
+texAreas = []
 
 def calcBbox(area, corrx=0.0, corry=0.0):
 	"""calculates the appropriate bouding box for the needed files
@@ -68,13 +69,66 @@ def calcBbox(area, corrx=0.0, corry=0.0):
 			bboxMaxLat = int(maxLat) + 1
 	return bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat
 
-def writeTex(milo, mila, malo, mala, inside=True):
-	if inside:
-		open("tex", "a").write("green/%.2f/%-2f/%.2f/%.2f, \n"%(
-			milo, mila, malo, mala))
+"""
+def writeTex(milo, mila, malo, mala, color):
+	texAreas.append("%s/%.2f/%-2f/%.2f/%.2f"%(
+		color, milo, mila, malo, mala))
+"""
+
+def getLowInt(n):
+	if n%1==0:
+		return int(n)
+	if n < 0:
+		return int(n)-1
 	else:
-		open("tex", "a").write("red/%.2f/%-2f/%.2f/%.2f, \n"%(
-			milo, mila, malo, mala))
+		return int(n)
+
+def getHighInt(n):
+	if n < 0 or n%1==0:
+		return int(n)
+	else:
+		return int(n)+1
+
+def getRange(a, b):
+	a, b = sorted([a, b])
+	l, h = getHighInt(a), getHighInt(b)
+	return range(l, h)
+
+def intersecTiles(polygonList, corrx, corry):
+	if not polygonList:
+		return []
+	secs = []
+	for polygon in polygonList:
+		x_last, y_last = polygon[0]
+		x_last -= corrx
+		y_last -= corry
+		for x, y in polygon[1:]:
+			x -= corrx
+			y -= corry
+			secs.append((getLowInt(x), getLowInt(y)))
+			if x-x_last == 0:
+				# vertical vertex, don't calculate s
+				secs.extend([(getLowInt(x), getLowInt(Y)) for Y in getRange(
+					y, y_last)])
+			elif y-y_last == 0:
+				# horizontal vertex
+				secs.extend([(getLowInt(X), getLowInt(y)) for X in getRange(
+					x, x_last)])
+			else:
+				s = (y-y_last)/(x-x_last)
+				o = y_last-x_last*s
+				for X in getRange(x, x_last):
+					# determine intersections with latitude degrees
+					Y = getLowInt(s*X+o)
+					secs.append((X-1, Y)) # left
+					secs.append((X, Y)) # right
+				for Y in getRange(y, y_last):
+					# determine intersections with longitude degrees
+					X = getLowInt((Y-o)/s)
+					secs.append((X, Y-1)) # below
+					secs.append((X, Y)) # above
+			x_last, y_last = x, y
+	return [makeFileNamePrefix(x, y) for x, y in set(secs)]
 
 def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 	"""checks if a source file is needed depending on the bounding box and
@@ -96,29 +150,32 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 	if minLon==MinLon and minLat==MinLat and maxLon==MaxLon and maxLat==MaxLat:
 		# the polygon is completely inside the bounding box
 		print "yes"
-		#writeTex(minLon, minLat, maxLon, maxLat, True)
+		#writeTex(lon, lat, lon+1, lat+1, "green")
 		return True
-	# the polygon is only partly or not in this area.  First look, if one of the
-	# corners is inside the polygon.  If this is not the case, we consequentely
-	# increase the resolution of the area borders and look if they intersect with
-	# the polygon.  The highest border resolution is 1/10 arc second which I hope
-	# is enough and should be ok for all polygons out there.
-	for res in [1, 1200, 36000]:
-		points = []
-		for lo in numpy.arange(minLon, maxLon+1.0/res, 1.0/res):
-			points.append((lo, minLat))
-			points.append((lo, maxLat))
-		for la in numpy.arange(minLat, maxLat+1.0/res, 1.0/res):
-			points.append((minLon, la))
-			points.append((maxLon, la))
-		inside = points_inside_poly(points, polygon)
-		if numpy.any(inside):
-			print "yes"
-			#writeTex(minLon, minLat, maxLon, maxLat, True)
-			return True
-	print "no"
-	#writeTex(minLon, minLat, maxLon, maxLat, False)
-	return False
+	# the area is not or completely inside one of the polygons passed to
+	# <polygon>.  We just look if the corners are inside the polygons.
+	points = []
+	for lo in [minLon, maxLon]:
+		for la in [minLat, maxLat]:
+			points.append((lo, la))
+	inside = numpy.zeros((1, 4))
+	for p in polygon:
+		inside += points_inside_poly(points, p)
+	if numpy.all(inside):
+		print "yes"
+		#writeTex(lon, lat, lon+1, lat+1, "green")
+		return True
+	elif not numpy.any(inside):
+		print "no"
+		#writeTex(lon, lat, lon+1, lat+1, "red")
+		return False
+	else:
+		# This only happens it a polygon vertex is on the tile border.
+		# Because in this case points_inside_poly() returns unpredictable
+		# results, we better return True here.
+		print "maybe"
+		#writeTex(lon, lat, lon+1, lat+1, "pink")
+		return True
 
 def makeFileNamePrefix(lon, lat):
 	if lon < 0:
@@ -138,18 +195,21 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	"""
 	minLon, minLat, maxLon, maxLat = bbox
 	lon = minLon
+	intersecAreas = intersecTiles(polygon, corrx, corry)
 	prefixes = []
-	while lon <= maxLon:
-		lat = minLat
-		while lat <= maxLat:
-			if areaNeeded(lat, lon, bbox, polygon, corrx, corry):
-				prefixes.append(makeFileNamePrefix(lon, lat))
-			lat += 1
-			if minLat == maxLat or lat == maxLat:
-				break
-		lon += 1
-		if minLon == maxLon or lon == maxLon:
-			break
+	if minLon > maxLon:
+		# bbox covers the W180/E180 longitude
+		lonRange = range(minLon, 180) + range(-180, maxLon)
+	else:
+		lonRange = range(minLon, maxLon)
+	for lon in lonRange:
+		for lat in range(minLat, maxLat):
+			fileNamePrefix = makeFileNamePrefix(lon, lat)
+			if fileNamePrefix in intersecAreas:
+				prefixes.append(fileNamePrefix)
+				#writeTex(lon, lat, lon+1, lat+1, "blue")
+			elif areaNeeded(lat, lon, bbox, polygon, corrx, corry):
+				prefixes.append(fileNamePrefix)
 	if lowercase:
 		return [p.lower() for p in prefixes]
 	else:
@@ -178,10 +238,11 @@ def makeNasaHgtIndex(resolution):
 	"""
 	hgtIndexFile = NASAhgtIndexFileRe%resolution
 	hgtFileServer = NASAhgtFileServerRe%resolution
-	print "generating index in %s ..."%hgtIndexFile
+	print "generating index in %s ..."%hgtIndexFile, 
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
+		print ""
 		raise IOError("could not open %s for writing"%hgtIndexFile)
 	for continent in NASAhgtFileDirs[resolution]:
 		index.write("[%s]\n"%continent)
@@ -200,6 +261,7 @@ def writeViewIndex(resolution, zipFileDict):
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
+		print ""
 		raise IOError("could not open %s for writing"%hgtIndexFile)
 	for zipFileUrl in sorted(zipFileDict):
 		index.write("[%s]\n"%zipFileUrl)
@@ -256,7 +318,7 @@ def makeViewHgtIndex(resolution):
 		if not zipFileDict.has_key(zipFileUrl):
 			zipFileDict[zipFileUrl] = []
 		zipFileDict[zipFileUrl].append(areaName.upper())
-	print "generating index in %s ..."%hgtIndexFile
+	print "generating index in %s ..."%hgtIndexFile,
 	writeViewIndex(resolution, zipFileDict)
 
 def updateViewIndex(resolution, zipFileUrl, areaList):
@@ -330,10 +392,10 @@ def getViewUrl(area, resolution):
 	url = fileMap[area]
 	return url
 
-def unzipFile(saveZipFilename):
+def unzipFile(saveZipFilename, area):
 	"""unzip a zip file.
 	"""
-	print "unzipping file %s ..."%saveZipFilename
+	print "%s: unzipping file %s ..."%(area, saveZipFilename)
 	zipFile = zipfile.ZipFile(saveZipFilename)
 	areaNames = []
 	for name in zipFile.namelist():
@@ -351,74 +413,116 @@ def unzipFile(saveZipFilename):
 	# destruct zipFile before removing it.  removing otherwise fails under windows
 	zipFile.__del__()
 	os.remove(saveZipFilename)
-	print "DONE"
+	#print "DONE"
 	return areaNames
 
-def getFiles(area, polygon, corrx, corry, resolution, viewfinder=0):
-	NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
-	VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%viewfinder)
+"""
+def makePolygonCoords(polygonList):
+	pathList = []
+	for polygon in polygonList:
+		coords = []
+		for lon, lat in polygon:
+			coords.append("(%.7f, %.7f)"%(lon, lat))
+		pathList.append("\\draw[line width=2pt] plot coordinates{%s} --cycle;"%(" ".join(coords)))
+	return "\n\t".join(pathList)
+"""
+
+def mkdir(dirName):
 	try:
-		os.stat(hgtSaveDir)
+		os.stat(dirName)
 	except:
-		os.mkdir(hgtSaveDir)
+		os.mkdir(dirName)
+
+def getDirNames(source):
+	resolution = int(source[-1])
+	if source.startswith("srtm"):
+		hgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
+	elif source.startswith("view"):
+		hgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%resolution)
+	return hgtSaveDir, hgtSaveSubDir
+
+def initDirs(sources):
+	mkdir(hgtSaveDir)
+	for source in sources:
+		sourceType, sourceResolution = source[:4], int(source[-1])
+		if sourceType == "srtm":
+			NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%sourceResolution)
+			mkdir(NASAhgtSaveSubDir)
+		elif sourceType == "view":
+			VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%sourceResolution)
+			mkdir(VIEWhgtSaveSubDir)
+
+def downloadAndUnzip(url, area, source):
+	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
+	fileResolution = int(source[-1])
+	saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])
+	saveFilename = os.path.join(hgtSaveSubDir, "%s.hgt"%area)
 	try:
-		os.stat(NASAhgtSaveSubDir)
+		os.stat(saveFilename)
+		wantedSize = 2 * (3600/fileResolution + 1)**2
+		foundSize = os.path.getsize(saveFilename)
+		if foundSize != wantedSize:
+			raise IOError("Wrong size: Expected %i, found %i"%(wantedSize,foundSize))
+		print "%s: using existing file %s."%(area, saveFilename)
+		return saveFilename
 	except:
-		os.mkdir(NASAhgtSaveSubDir)
-	if viewfinder:
 		try:
-			os.stat(VIEWhgtSaveSubDir)
+			os.stat(saveZipFilename)
+			areaNames = unzipFile(saveZipFilename, area)
+			if source.startswith("view"):
+				updateViewIndex(fileResolution, url, areaNames)
+				if not inViewIndex(fileResolution, area):
+					return None
 		except:
-			os.mkdir(VIEWhgtSaveSubDir)
-	bbox = calcBbox(area, corrx, corry)
-	filesToDownload = makeFileNames(bbox, polygon, corrx, corry, resolution, viewfinder)	
-	files = []
-	for area, url in sorted(filesToDownload.items()):
-		if not url:
-			print "no file for area %s found on server."%area
-			continue
-		if "viewfinderpanoramas" in url:
-			if not inViewIndex(viewfinder, area):
-				# we dynamically update the viewfinder index, so always check this here
-				continue
-			hgtSaveSubDir = VIEWhgtSaveSubDir
-			fileResolution = viewfinder
-		else:
-			hgtSaveSubDir = NASAhgtSaveSubDir
-			fileResolution = resolution
-		saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])
-		saveFilename = os.path.join(hgtSaveSubDir, "%s.hgt"%area)
-		try:
-			os.stat(saveFilename)
-			wantedSize = 2 * (3600/fileResolution + 1)**2
-			foundSize = os.path.getsize(saveFilename)
-			if foundSize != wantedSize:
-				raise IOError("Wrong size: Expected %i, found %i"(wantedSize,foundSize))
-			print "found existing file %s."%saveFilename
-		except:
+			print "%s: downloading file %s to %s ..."%(area, url, saveZipFilename)
+			urllib.urlretrieve(url, filename=saveZipFilename)
 			try:
-				os.stat(saveZipFilename)
-				areaNames = unzipFile(saveZipFilename)
-				if "viewfinderpanoramas" in url:
-					updateViewIndex(viewfinder, url, areaNames)
-			except:
-				print "downloading file %s to %s ..."%(url, saveZipFilename)
-				urllib.urlretrieve(url, filename=saveZipFilename)
-				try:
-					areaNames = unzipFile(saveZipFilename)
-					if "viewfinderpanoramas" in url:
-						updateViewIndex(viewfinder, url, areaNames)
-				except Exception, msg:
-					print msg
-					print "file %s from %s is not a zip file"%(saveZipFilename, url)
-		try:
-			os.stat(saveFilename)
-			wantedSize = 2 * (3600/fileResolution + 1)**2
-			foundSize = os.path.getsize(saveFilename)
-			if foundSize != wantedSize:
-				raise IOError("Wrong size: Expected %i, found %i"(wantedSize,foundSize))
-			files.append(saveFilename)
-		except Exception, msg:
-			print msg
+				areaNames = unzipFile(saveZipFilename, area)
+				if source.startswith("view"):
+					updateViewIndex(fileResolution, url, areaNames)
+					if not inViewIndex(fileResolution, area):
+						return None
+			except Exception, msg:
+				print msg
+				print "%s: file %s from %s is not a zip file"%(area, saveZipFilename, url)
+	try:
+		os.stat(saveFilename)
+		wantedSize = 2 * (3600/fileResolution + 1)**2
+		foundSize = os.path.getsize(saveFilename)
+		if foundSize != wantedSize:
+			raise IOError("%s: wrong size: Expected %i, found %i"%(area,
+				wantedSize,foundSize))
+		print "%s: using file %s."%(area, saveFilename)
+		return saveFilename
+	except Exception, msg:
+		print msg
+		return None
+
+def getFile(area, source):
+	fileResolution = int(source[-1])
+	if source.startswith("srtm"):
+		url = getNASAUrl(area, fileResolution)
+	elif source.startswith("view"):
+		url = getViewUrl(area, fileResolution)
+	if not url:
+		return None
+	else:
+		return downloadAndUnzip(url, area, source)
+
+def getFiles(area, polygon, corrx, corry, sources):
+	initDirs(sources)
+	bbox = calcBbox(area, corrx, corry)
+	areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
+	files = []
+	for area in areaPrefixes:
+		for source in sources:
+			print "%s: trying %s ..."%(area, source)
+			saveFilename = getFile(area, source)
+			if saveFilename:
+				files.append(saveFilename)
+				break
+		else:
+			print "%s: no file found on server."%area
+			continue
 	return files
 

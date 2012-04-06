@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: February 2012<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: March 2012<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -122,6 +122,14 @@ the default value is 3.
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
 and 3 (for explanation, see the <B>--srtm</B> option).
+<DT><B>--source</B>=<I>DATA-SOURCE</I>, <B>--data-source</B>=<I>DATA-SOURCE</I><DD>
+specify a list of sources to use as comma-seperated
+string.  Available sources are 'srtm1', 'srtm3',
+'view1' and 'view3'.  If specified, the data source
+will be selected using this option as preference list.
+Specifying <B>--source</B>=<I>view3</I>,srtm3 for example will
+prefer viewfinder 3 arc second data to NASA SRTM 3 arc
+second data.
 <DT><B>--corrx</B>=<I>SRTM-CORRX</I><DD>
 correct x offset of contour lines.  A setting of
 <B>--corrx</B>=<I>0</I>.0005 was reported to give good results.
@@ -153,6 +161,8 @@ Yes, this works.  There is data available for that area at
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.
 <DT>phyghtmap -a -25:62:-12:68 -o iceland --viewfinder-mask=3 -j 16<DD>
 Same as above but use 16 parallel processes for the contour line calculation.
+<DT>phyghtmap -a -25:62:-12:68 -o iceland --source=view3,srtm3 -j 16<DD>
+Essentially the same as above.
 <DT>phyghtmap -a -25:62:-12:68 -o iceland -s 10 -c 100,50<DD>
 Say this, if you want contour lines for Iceland with a step size of ten meters
 and major contour lines every 100 meters and medium contour lines every 50
@@ -161,6 +171,9 @@ meters.
 With this, you get wonderful contour line .osm with a resolution of 1 arc
 second where data is available at <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> and NASA SRTM 3
 arc second data elsewhere.
+<DT>phyghtmap -a 6:44:9:47 -o high_alps --source=view1,view3,srtm3<DD>
+Similar to the example above, but try to use viewfinder 1 arc second data
+first, viewfinder 3 arc second data second and srtm 3 arc second data last.
 <DT>phyghtmap -a 6:44:9:47 --max-nodes-per-tile=100000 --max-nodes-per-way=400<DD>
 This generates contour lines for the high alps.  Each output file will contain
 not more than 100000 nodes, each way therein will not contain more than 400
@@ -189,11 +202,11 @@ file.
 <H2>BUGS</H2>
 
 If you find a bug, please report it to
-&lt;<A HREF="mailto:dempwolff@informatik.uni-heidelberg.de">dempwolff@informatik.uni-heidelberg.de</A>&gt;.
+&lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adrian.dempwolff@urz.uni-heidelberg.de</A>&gt;.
 <A NAME="lbAH">&nbsp;</A>
 <H2>AUTHOR</H2>
 
-Adrian Dempwolff &lt;<A HREF="mailto:dempwolff@informatik.uni-heidelberg.de">dempwolff@informatik.uni-heidelberg.de</A>&gt;
+Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adrian.dempwolff@urz.uni-heidelberg.de</A>&gt;
 <P>
 Markus Demleitner &lt;<A HREF="mailto:msdemlei@users.sf.net">msdemlei@users.sf.net</A>&gt;
 <A NAME="lbAI">&nbsp;</A>
@@ -221,6 +234,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 13:07:55 GMT, February 06, 2012
+Time: 08:59:57 GMT, March 23, 2012
 </BODY>
 </HTML>
