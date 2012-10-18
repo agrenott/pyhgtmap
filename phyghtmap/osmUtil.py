@@ -89,7 +89,7 @@ class Output(object):
 			nodeIds = range(startNodeId, startNodeId+length)
 			if isCycle:
 				nodeIds.append(nodeIds[0])
-			nodeRefs = ('<nd ref="%d"/>'*len(nodeIds))%tuple(nodeIds)
+			nodeRefs = ('<nd ref="%d"/>\n'*len(nodeIds))%tuple(nodeIds)
 			self.write('<way id="%d"%s%s>%s'
 				'<tag k="ele" v="%d"/>'
 				'<tag k="contour" v="elevation"/>'
@@ -124,7 +124,7 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
 		del ids[-1]
 		ids.append(ids[0])
 		IDCounter.curId -= 1
-	output.write("".join(content)+"\n")
+	output.write("\n".join(content)+"\n")
 	return ids
 
 def _writeContourNodes(output, contourList, elevation, IDCounter,

@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: March 2012<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: September 2012<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -23,11 +23,11 @@ Section: User Commands (1)<BR>Updated: March 2012<BR><A HREF="#index">Index</A>
 
 phyghtmap generates contour lines from NASA SRTM data.
 It takes at least an area definition as input.  It then looks for a
-cache directory (./hgt/) and the needed SRTM files.  If no cache
-directory is found, it will be created.  It then downloads all the
-needed NASA SRTM data files automatically if they are not cached yet.
-There is also the possibility of masking the NASA SRTM data with data
-from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
+cache directory (per default: ./hgt/) and the needed SRTM files.  If
+no cache directory is found, it will be created.  It then downloads
+all the needed NASA SRTM data files automatically if they are not cached
+yet.  There is also the possibility of masking the NASA SRTM data with
+data from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
 lacking in the NASA data set.
 <A NAME="lbAE">&nbsp;</A>
 <H2>OPTIONS</H2>
@@ -54,6 +54,10 @@ passed to the <B>--area</B> option will be ignored.
 <DT><B>-s</B> STEP, <B>--step</B>=<I>STEP</I><DD>
 specify contour line step size in meters. The default
 value is 20.
+<DT><B>-0</B>, <B>--no-zero-contour</B><DD>
+say this, if you don't want the sea level contour line
+(0 m) (which sometimes looks rather ugly) to appear in
+the output.
 <DT><B>-o</B> PREFIX, <B>--output-prefix</B>=<I>PREFIX</I><DD>
 specify a prefix for the filenames of the output osm
 file(s).
@@ -140,6 +144,12 @@ correct y offset of contour lines.  A setting of
 <B>--corry</B>=<I>0</I>.0005 was reported to give good results.
 However, the correct setting seems to depend on where
 you are, so it may be better to start with 0 here.
+<DT><B>--hgtdir</B>=<I>DIRECTORY</I><DD>
+Cache directory for hgt files. The downloaded SRTM
+files are stored in a cache directory for later use.
+The default directory for this is ./hgt/ in the
+current directory.  You can specify another cache
+directory with this option.
 <DT><B>-v</B>, <B>--version</B><DD>
 print version and exit.
 </DL>
@@ -207,12 +217,10 @@ If you find a bug, please report it to
 <H2>AUTHOR</H2>
 
 Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adrian.dempwolff@urz.uni-heidelberg.de</A>&gt;
-<P>
-Markus Demleitner &lt;<A HREF="mailto:msdemlei@users.sf.net">msdemlei@users.sf.net</A>&gt;
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2012 Adrian Dempwolff, Markus Demleitner.  License GPLv2: GNU
+Copyright (c) 2009-2012 Adrian Dempwolff.  License GPLv2: GNU
 GPL version 2 &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 This is free software: you are free to change and redistribute it.
 There is NO  WARRANTY, to the extent permitted by law.
@@ -234,6 +242,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 08:59:57 GMT, March 23, 2012
+Time: 21:56:04 GMT, September 11, 2012
 </BODY>
 </HTML>

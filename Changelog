@@ -1,3 +1,30 @@
+phyghtmap (1.44) stable; urgency=low
+
+  * Fixed issue with too long lines in OSM XML output (some parsers can't parse
+    very long lines) by adding new line characters to node ref lines.
+  * Added an initial check if a file has to be checked for polygon intersection
+    or not.  Eventually created tiles inherit this attribute.
+  * Removed polygon intersection check in hgt.ContourObject.clipPath.  The same
+    result is achieved by masking the input array and filling masked values with
+    NaN which results in contour nodes with (nan, nan) coordinates.  The
+    invocation of large polygon definitions should work much faster now.  Thanks
+    to Juraj Štolc for pointing out the problem.
+  * Fixed handling of faulty filenames in SRTM3/North_America directory.
+    Introduced versioning of index files in this context.  Thanks to Giacomo
+    Catenazzi for pointing out this issue.
+  * Added a patch by Giacomo Catenazzi which allows for better file name parsing.
+  * Added the -0, --no-zero-contour option which allows removal of the sea level
+    (0 m) contour line in the output.  Thanks to Jaromír Mikeš for the
+    suggestion.
+  * Added the --hgtdir option which allows for specification of a custom hgt
+    cache directory (patch by Edamame).
+  * Improved output filename generation.  All data sources used as input for an
+    output file are contained in the output filename, preserving the preference
+    eventually given by the --source option.  Unused data sources are omitted in
+    the filename.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Thu, 18 Oct 2012 12:00:00 +0200
+
 phyghtmap (1.43) stable; urgency=low
 
   * Integrated adaptions of some patches by Thorsten Kukuk:

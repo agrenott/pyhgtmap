@@ -5,32 +5,51 @@ import zipfile
 from matplotlib.nxutils import points_inside_poly
 import numpy
 
-############################################################
-### general vriables #######################################
-############################################################
+class NASASRTMUtilConfigClass(object):
+	"""The config is stored in a class, to be configurable from outside
 
-hgtSaveDir = "hgt"
+	Don't change configuration during usage, only at the beginning!
+	You can use the member call CustomHgtSaveDir for configuration from outside:
+  NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(custom_hgt_directory)
+  """
 
-############################################################
-### NASA SRTM specific variables ###########################
-############################################################
+	# C'Tor setting the defaults
+	def __init__(self):
+		# Set the default ght directory
+		self.CustomHgtSaveDir("hgt")
+		# Other config
+		############################################################
+		### NASA SRTM specific variables ###########################
+		############################################################
+		self.NASAhgtFileServerRe = "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"
+		self.NASAhgtFileDirs = {3: ["Africa", "Australia", "Eurasia", "Islands",
+			"North_America", "South_America"],
+			1: ["Region_0%i"%i for i in range(1, 8)]}
+		self.NASAhgtSaveSubDirRe = "SRTM%i"
+		############################################################
+		### www.vierfinderpanoramas.org specific variables #########
+		############################################################
+		self.VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%%20map%%20viewfinderpanoramas_org%i.htm"
+		self.VIEWhgtSaveSubDirRe = "VIEW%i"
 
-NASAhgtFileServerRe = "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"
-NASAhgtFileDirs = {3: ["Africa", "Australia", "Eurasia", "Islands", "North_America",
-               "South_America"],
-               1: ["Region_0%i"%i for i in range(1, 8)]}
 
-NASAhgtSaveSubDirRe = "SRTM%i"
-NASAhgtIndexFileRe = os.path.join(hgtSaveDir, "hgtIndex_%i.txt")
+	def CustomHgtSaveDir(self, directory):
+		"""Set a custom directory to store the hgt files
 
-############################################################
-### www.vierfinderpanoramas.org specific variables #########
-############################################################
+		<directory>:  Directory to use
+		"""
+		############################################################
+		### general config variables ###############################
+		############################################################
+		# Default value
+		self.hgtSaveDir = directory
+		self.NASAhgtIndexFileRe = os.path.join(self.hgtSaveDir,
+			"hgtIndex_%i.txt")
+		self.VIEWhgtIndexFileRe = os.path.join(self.hgtSaveDir,
+			"viewfinderHgtIndex_%i.txt")
 
-VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%%20map%%20viewfinderpanoramas_org%i.htm"
-
-VIEWhgtSaveSubDirRe = "VIEW%i"
-VIEWhgtIndexFileRe = os.path.join(hgtSaveDir, "viewfinderHgtIndex_%i.txt")
+# Create the config object
+NASASRTMUtilConfig = NASASRTMUtilConfigClass()
 
 texAreas = []
 
@@ -135,7 +154,7 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 	the passed polygon.
 	"""
 	if polygon==None:
-		return True
+		return True, False
 	minLat = lat + corry
 	maxLat = minLat + 1
 	minLon = lon + corrx
@@ -151,7 +170,7 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 		# the polygon is completely inside the bounding box
 		print "yes"
 		#writeTex(lon, lat, lon+1, lat+1, "green")
-		return True
+		return True, True
 	# the area is not or completely inside one of the polygons passed to
 	# <polygon>.  We just look if the corners are inside the polygons.
 	points = []
@@ -162,20 +181,22 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 	for p in polygon:
 		inside += points_inside_poly(points, p)
 	if numpy.all(inside):
+		# area ist completely inside
 		print "yes"
 		#writeTex(lon, lat, lon+1, lat+1, "green")
-		return True
+		return True, False
 	elif not numpy.any(inside):
+		# area is completely outside
 		print "no"
 		#writeTex(lon, lat, lon+1, lat+1, "red")
-		return False
+		return False, False
 	else:
 		# This only happens it a polygon vertex is on the tile border.
 		# Because in this case points_inside_poly() returns unpredictable
 		# results, we better return True here.
 		print "maybe"
 		#writeTex(lon, lat, lon+1, lat+1, "pink")
-		return True
+		return True, True
 
 def makeFileNamePrefix(lon, lat):
 	if lon < 0:
@@ -206,12 +227,14 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 		for lat in range(minLat, maxLat):
 			fileNamePrefix = makeFileNamePrefix(lon, lat)
 			if fileNamePrefix in intersecAreas:
-				prefixes.append(fileNamePrefix)
+				prefixes.append((fileNamePrefix, True))
 				#writeTex(lon, lat, lon+1, lat+1, "blue")
-			elif areaNeeded(lat, lon, bbox, polygon, corrx, corry):
-				prefixes.append(fileNamePrefix)
+			else:
+				needed, checkPoly = areaNeeded(lat, lon, bbox, polygon, corrx, corry)
+				if needed:
+					prefixes.append((fileNamePrefix, checkPoly))
 	if lowercase:
-		return [p.lower() for p in prefixes]
+		return [(p.lower(), checkPoly) for p, checkPoly in prefixes]
 	else:
 		return prefixes
 
@@ -236,33 +259,37 @@ def makeFileNames(bbox, polygon, corrx, corry, resolution, viewfinder):
 def makeNasaHgtIndex(resolution):
 	"""generates an index file for the NASA SRTM server.
 	"""
-	hgtIndexFile = NASAhgtIndexFileRe%resolution
-	hgtFileServer = NASAhgtFileServerRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%resolution
+	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
 	print "generating index in %s ..."%hgtIndexFile, 
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
 		print ""
 		raise IOError("could not open %s for writing"%hgtIndexFile)
-	for continent in NASAhgtFileDirs[resolution]:
+	index.write("# SRTM%i index file, VERSION=%i\n"%(resolution,
+		desiredIndexVersion["srtm%i"%resolution]))
+	for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
 		index.write("[%s]\n"%continent)
 		url = "/".join([hgtFileServer, continent])
 		continentHtml = urllib.urlopen(url)
 		continentSoup = BeautifulSoup(continentHtml)
 		anchors = continentSoup.findAll("a")
 		for anchor in anchors:
-			if anchor.contents[0].endswith(".hgt.zip"):
+			if anchor.contents[0].endswith("hgt.zip"):
 				zipFilename = anchor.contents[0].strip()
 				index.write("%s\n"%zipFilename)
 	print "DONE"
 
 def writeViewIndex(resolution, zipFileDict):
-	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
 		print ""
 		raise IOError("could not open %s for writing"%hgtIndexFile)
+	index.write("# VIEW%i index file, VERSION=%i\n"%(resolution,
+		desiredIndexVersion["view%i"%resolution]))
 	for zipFileUrl in sorted(zipFileDict):
 		index.write("[%s]\n"%zipFileUrl)
 		for areaName in zipFileDict[zipFileUrl]:
@@ -271,9 +298,8 @@ def writeViewIndex(resolution, zipFileDict):
 	print "DONE"
 
 def inViewIndex(resolution, areaName):
-	hgtIndexFile = VIEWhgtIndexFileRe%resolution
-	index = [line.strip() for line in open(hgtIndexFile, 'r').read().split("\n")
-		if line.strip()]
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
+	index = getIndex(hgtIndexFile, "view%i"%resolution)
 	areaNames = [a for a in index if not a.startswith("[")]
 	if areaName in areaNames:
 		return True
@@ -305,9 +331,9 @@ def makeViewHgtIndex(resolution):
 				names.append(name)
 		return names
 
-	hgtIndexFile = VIEWhgtIndexFileRe%resolution
-	hgtFileServer = NASAhgtFileServerRe%resolution
-	hgtDictUrl = VIEWfileDictPageRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
+	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
+	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe%resolution
 	areaDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
 		areaNames = calcAreaNames(a["coords"])
@@ -324,14 +350,13 @@ def makeViewHgtIndex(resolution):
 def updateViewIndex(resolution, zipFileUrl, areaList):
 	"""cleans up the viewfinder index.
 	"""
-	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
 	try:
 		os.stat(hgtIndexFile)
 	except:
 		print "Cannot update index file %s because it's not there."%hgtIndexFile
 		return
-	index = [line.strip() for line in open(hgtIndexFile, 'r').read().split("\n")
-		if line.strip()]
+	index = getIndex(hgtIndexFile, "view%i"%resolution)
 	zipFileDict = {}
 	for line in index:
 		if line.startswith("["):
@@ -348,41 +373,72 @@ def updateViewIndex(resolution, zipFileUrl, areaList):
 		print "updating index in %s ..."%hgtIndexFile
 		writeViewIndex(resolution, zipFileDict)
 
+def makeIndex(indexType):
+	if indexType == "srtm1":
+		makeNasaHgtIndex(1)
+	elif indexType == "srtm3":
+		makeNasaHgtIndex(3)
+	elif indexType == "view1":
+		makeViewHgtIndex(1)
+	elif indexType == "view3":
+		makeViewHgtIndex(3)
+
+desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 1}
+
+def getIndex(filename, indexType):
+	index = open(filename, 'r').readlines()
+	for l in index:
+		if l.startswith("#"):
+			indexVersion = int(l.replace("#",
+				"").strip().split()[-1].split("=")[-1])
+			break
+	else:
+		indexVersion = 1
+	if indexVersion != desiredIndexVersion[indexType]:
+		print "Creating new version of index file for source %s."%indexType
+		makeIndex(indexType)
+	index = [l.strip() for l in open(filename, 'r').readlines() if not l.startswith("#")]
+	index = [l for l in index if l]
+	return index
+
 def getNASAUrl(area, resolution):
 	"""determines the NASA download url for a given area.
 	"""
 	file = "%s.hgt.zip"%area
-	hgtIndexFile = NASAhgtIndexFileRe%resolution
-	hgtFileServer = NASAhgtFileServerRe%resolution
+	fileFaulty = "%shgt.zip"%area
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%resolution
+	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
 	try:
 		os.stat(hgtIndexFile)
 	except:
 		makeNasaHgtIndex(resolution)
-	index = open(hgtIndexFile, 'r').readlines()
+	index = getIndex(hgtIndexFile, "srtm%i"%resolution)
 	fileMap = {}
 	for line in index:
-		line = line.strip()
 		if line.startswith("["):
 			continent = line[1:-1]
 		else:
 			fileMap[line] = continent
-	if not fileMap.has_key(file):
+	if fileMap.has_key(file):
+		url = '/'.join([hgtFileServer, fileMap[file], file])
+		return url
+	elif fileMap.has_key(fileFaulty):
+		url = '/'.join([hgtFileServer, fileMap[fileFaulty], fileFaulty])
+		return url
+	else:
 		return None
-	url = '/'.join([hgtFileServer, fileMap[file], file])
-	return url
 
 def getViewUrl(area, resolution):
 	"""determines the viewfinder download url for a given area.
 	"""
-	hgtIndexFile = VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
 	try:
 		os.stat(hgtIndexFile)
 	except:
 		makeViewHgtIndex(resolution)
-	index = open(hgtIndexFile, 'r').readlines()
+	index = getIndex(hgtIndexFile, "view%i"%resolution)
 	fileMap = {}
 	for line in index:
-		line = line.strip()
 		if line.startswith("[") and line.endswith("]"):
 			url = line[1:-1]
 		else:
@@ -436,20 +492,20 @@ def mkdir(dirName):
 def getDirNames(source):
 	resolution = int(source[-1])
 	if source.startswith("srtm"):
-		hgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%resolution)
+		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.NASAhgtSaveSubDirRe%resolution)
 	elif source.startswith("view"):
-		hgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%resolution)
-	return hgtSaveDir, hgtSaveSubDir
+		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%resolution)
+	return NASASRTMUtilConfig.hgtSaveDir, hgtSaveSubDir
 
 def initDirs(sources):
-	mkdir(hgtSaveDir)
+	mkdir(NASASRTMUtilConfig.hgtSaveDir)
 	for source in sources:
 		sourceType, sourceResolution = source[:4], int(source[-1])
 		if sourceType == "srtm":
-			NASAhgtSaveSubDir = os.path.join(hgtSaveDir, NASAhgtSaveSubDirRe%sourceResolution)
+			NASAhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.NASAhgtSaveSubDirRe%sourceResolution)
 			mkdir(NASAhgtSaveSubDir)
 		elif sourceType == "view":
-			VIEWhgtSaveSubDir = os.path.join(hgtSaveDir, VIEWhgtSaveSubDirRe%sourceResolution)
+			VIEWhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%sourceResolution)
 			mkdir(VIEWhgtSaveSubDir)
 
 def downloadAndUnzip(url, area, source):
@@ -514,12 +570,12 @@ def getFiles(area, polygon, corrx, corry, sources):
 	bbox = calcBbox(area, corrx, corry)
 	areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
 	files = []
-	for area in areaPrefixes:
+	for area, checkPoly in areaPrefixes:
 		for source in sources:
 			print "%s: trying %s ..."%(area, source)
 			saveFilename = getFile(area, source)
 			if saveFilename:
-				files.append(saveFilename)
+				files.append((saveFilename, checkPoly))
 				break
 		else:
 			print "%s: no file found on server."%area

@@ -1,7 +1,7 @@
 import os
 from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
-from matplotlib.nxutils import points_inside_poly, pnpoly
+from matplotlib.nxutils import points_inside_poly
 import numpy
 
 
@@ -91,23 +91,25 @@ def parseHgtFilename(filename, corrx, corry):
 	Eventually specified longitude (<corrx>) and latitude (<corry>)
 	corrections are added here.
 	"""
-	latSwitch = filename[0:1]
+	latSwitch = filename[0:1].upper()
 	latValue  = filename[1:3]
-	lonSwitch = filename[3:4]
+	lonSwitch = filename[3:4].upper()
 	lonValue  = filename[4:7]		
-	if latSwitch == 'N':
+	if latSwitch == 'N' and latValue.isdigit():
 		minLat = int(latValue)
-	elif latSwitch == 'S':
+	elif latSwitch == 'S' and latValue.isdigit():
 		minLat = -1 * int(latValue)
 	else:
-		raise filenameError("something wrong with latSwitch %s"%latSwitch)
+		raise filenameError("something wrong with latitude coding in"
+			" filename %s"%filename)
 	maxLat = minLat + 1
-	if lonSwitch == 'E':
+	if lonSwitch == 'E' and lonValue.isdigit():
 		minLon = int(lonValue)
-	elif lonSwitch == 'W':
+	elif lonSwitch == 'W' and lonValue.isdigit():
 		minLon = -1 * int(lonValue)
 	else:
-		raise filenameError("something wrong with lonSwitch %s"%lonSwitch)
+		raise filenameError("something wrong with longitude coding in"
+			" filename %s"%filename)
 	maxLon = minLon + 1
 	return minLon+corrx, minLat+corry, maxLon+corrx, maxLat+corry
 
@@ -156,6 +158,7 @@ class ContourObject(object):
 						continue
 				tmpList.append(p)
 			return [tmpList, ]
+		# we've got a polygon
 		pathList = []
 		tmpList = []
 		for ind, p in enumerate(path):
@@ -165,8 +168,10 @@ class ContourObject(object):
 					# skip the rest if there are two consecutive identical nodes
 					continue
 			x, y = p
-			if any([pnpoly(x, y, p) for p in self.polygon]):
-				# (x, y) inside polygon
+			if not False in [x==x, y==y]:
+				# (x, y) inside polygon.  We know this because x or y would else be
+				# nan since data outside the polygon is masked and filled with nans
+				# and the resulting nodes' coordinates are (nan, nan).
 				tmpList.append((x, y))
 			elif len(tmpList) > 0:
 				# (x, y) outside polygon, non-empty tmpList
@@ -238,12 +243,29 @@ class ContourObject(object):
 				numOfNodes += numOfNodesAdd
 		return resultPaths, numOfNodes, numOfPaths
 
+def polygonMask(xData, yData, polygon):
+	"""return a mask on self.zData corresponding to all polygons in self.polygon.
+	<xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
+	latitude values.  An array usable as mask for the corresponding zData
+	2-D array is returned.
+	"""
+	X, Y = numpy.meshgrid(xData, yData)
+	xyPoints = numpy.vstack(([X.T],
+		[Y.T])).T.reshape(len(xData)*len(yData), 2)
+	maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
+	for p in polygon:
+		# run through all polygons and combine masks
+		mask = points_inside_poly(xyPoints, p)
+		maskArray = numpy.ma.array(maskArray,
+			mask=mask, keep_mask=True)
+	return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
+
 
 class hgtFile:
 	"""is a handle for SRTM data files
 	"""
 
-	def __init__(self, filename, corrx, corry, polygon=None):
+	def __init__(self, filename, corrx, corry, polygon=None, checkPoly=False):
 		"""tries to open <filename> and extracts content to self.zData.
 
 		<corrx> and <corry> are longitude and latitude corrections (floats)
@@ -261,36 +283,22 @@ class hgtFile:
 			numOfDataPoints = os.path.getsize(self.fullFilename) / 2
 			self.numOfRows = self.numOfCols = int(numOfDataPoints ** 0.5)
 			self.zData = numpy.fromfile(self.fullFilename,
-				dtype=">i2").reshape(self.numOfRows, self.numOfCols)
+				dtype=">i2").reshape(self.numOfRows, self.numOfCols).astype("float32")
 		finally:
 			self.lonIncrement = 1.0/(self.numOfCols-1)
 			self.latIncrement = 1.0/(self.numOfRows-1)
 			self.minLon, self.minLat, self.maxLon, self.maxLat = self.borders(corrx,
 				corry)
-			self.polygon = polygon
+			if checkPoly:
+				self.polygon = polygon
+			else:
+				self.polygon = None
 			xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 			yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		# some statistics
-		print 'hgt file %s: %i x %i points, bbox: (%.5f, %.5f, %.5f, %.5f)'%(self.fullFilename,
+		print 'hgt file %s: %i x %i points, bbox: (%.5f, %.5f, %.5f, %.5f)%s'%(self.fullFilename,
 			self.numOfCols, self.numOfRows, self.minLon, self.minLat, self.maxLon,
-			self.maxLat)
-
-	def polygonMask(self, xData, yData):
-		"""return a mask on self.zData corresponding to all polygons in self.polygon.
-		<xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
-		latitude values.  An array usable as mask for the corresponding zData
-		2-D array is returned.
-		"""
-		X, Y = numpy.meshgrid(xData, yData)
-		xyPoints = numpy.vstack(([X.T],
-			[Y.T])).T.reshape(len(xData)*len(yData), 2)
-		maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
-		for p in self.polygon:
-			# run through alll polygons and combine masks
-			mask = points_inside_poly(xyPoints, p)
-			maskArray = numpy.ma.array(maskArray,
-				mask=mask, keep_mask=True)
-		return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
+			self.maxLat, {True: ", checking polygon borders", False: ""}[checkPoly])
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
@@ -367,11 +375,11 @@ class hgtFile:
 				size.
 
 				This method works pretty well in areas with no voids (e. g. points
-				tagged with the value -32768), but overestimates the number of points
+				tagged with the value -32768 (-0x8000)), but overestimates the number of points
 				in areas with voids by approximately 0 ... 50 % although the
 				corresponding differences are explicitly set to 0.
 				"""
-				helpData = numpy.where(data==-32768, 0, data) / step
+				helpData = numpy.where(data==-0x8000, 0, data) / step
 				xHelpData = numpy.abs(helpData[:,1:]-helpData[:,:-1])
 				yHelpData = numpy.abs(helpData[1:,:]-helpData[:-1,:])
 				xHelpData = numpy.where(xHelpData > 30000/step, 0, xHelpData).sum()
@@ -442,9 +450,9 @@ class hgtFile:
 				if self.polygon:
 					tileXData = numpy.arange(inputBbox[0],
 						inputBbox[2]+self.lonIncrement/2.0, self.lonIncrement)
-					tileYData = numpy.arange(inputBbox[1],
-						inputBbox[3]+self.latIncrement/2.0, self.latIncrement)
-					tileMask = self.polygonMask(tileXData, tileYData)
+					tileYData = numpy.arange(inputBbox[3],
+						inputBbox[1]-self.latIncrement/2.0, -self.latIncrement)
+					tileMask = polygonMask(tileXData, tileYData, self.polygon)
 					tilePolygon = self.polygon
 					if not numpy.any(tileMask):
 						# all points are inside the polygon
@@ -454,9 +462,10 @@ class hgtFile:
 						return
 				else:
 					tilePolygon = None
+					tileMask = None
 				tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
 					"increments": (self.lonIncrement, self.latIncrement),
-					"polygon": tilePolygon}))
+					"polygon": tilePolygon, "mask": tileMask}))
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)
@@ -479,6 +488,7 @@ class hgtTile:
 		self.numOfCols = self.zData.shape[1]
 		self.lonIncrement, self.latIncrement = tile["increments"]
 		self.polygon = tile["polygon"]
+		self.mask = tile["mask"]
 		self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 		self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		self.minEle, self.maxEle = self.getElevRange()
@@ -499,7 +509,7 @@ class hgtTile:
 		helpData = self.zData.flatten()
 		helpData.sort()
 		for zValue in helpData:
-			if zValue != -32768:
+			if zValue != -0x8000:
 				minEle = zValue
 				break
 		else:
@@ -511,10 +521,13 @@ class hgtTile:
 		"""
 		return  self.minLon, self.minLat, self.maxLon, self.maxLat
 
-	def contourLines(self, stepCont=20, maxNodesPerWay=0, minCont=None, maxCont=None):
+	def contourLines(self, stepCont=20, maxNodesPerWay=0, noZero=False,
+		minCont=None, maxCont=None):
 		"""generates contour lines using matplotlib.
 
 		<stepCont> is height difference of contiguous contour lines in meters
+		<maxNodesPerWay>:  the maximum number of nodes contained in each way
+		<noZero>:  if True, the 0 m contour line is discarded
 		<minCont>:  lower limit of the range to generate contour lines for
 		<maxCont>:  upper limit of the range to generate contour lines for
 
@@ -532,9 +545,13 @@ class hgtTile:
 		minCont = minCont or getContLimit(self.minEle, stepCont)
 		maxCont = maxCont or getContLimit(self.maxEle, stepCont)
 		contourSet = []
-		levels = range(minCont, maxCont, stepCont)
+		if noZero:
+			levels = [l for l in range(int(minCont), int(maxCont), stepCont) if l!=0]
+		else:
+			levels = range(int(minCont), int(maxCont), stepCont)
 		x, y = numpy.meshgrid(self.xData, self.yData)
-		z = numpy.ma.asarray(self.zData)
+		# z data is a masked array filled with nan.
+		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"))
 		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay,
 			self.polygon)
 		return levels, Contours

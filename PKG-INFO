@@ -1,10 +1,10 @@
 Metadata-Version: 1.0
 Name: phyghtmap
-Version: 1.43
+Version: 1.44
 Summary: OSM contour lines creator.
 Home-page: http://katze.tfiu.de/projects/phyghtmap/
-Author: Markus Demleitner, Adrian Dempwolff
-Author-email: msdemlei@users.sf.net, adrian.dempwolff@urz.uni-heidelberg.de
+Author: Adrian Dempwolff
+Author-email: adrian.dempwolff@urz.uni-heidelberg.de
 License: GPL
 Description: phyghtmap creates openstreetmap suitable contour lines from NASA SRTM data.
 Platform: UNKNOWN
