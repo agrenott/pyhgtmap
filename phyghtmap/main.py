@@ -4,7 +4,7 @@
 #psyco.full()
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.44"
+__version__ = "1.45"
 __copyright__ = "Copyright (c) 2009-2012 Adrian Dempwolff"
 __license__ = "GPLv2"
 
@@ -143,11 +143,19 @@ def parseCommandLine():
 		"\nThe default directory for this is ./hgt/ in the current directory.  You can"
 		"\nspecify another cache directory with this option.",
 		dest="hgtdir", action="store", default=None, metavar="DIRECTORY")
+	parser.add_option("--rewrite-indices", help="rewrite the index files and"
+		"\nexit.  Try this if phyghtmap encounters problems when trying to download"
+		"\ndata files.", dest="rewriteIndices", action="store_true", default=False)
 	parser.add_option("-v", "--version", help="print version and exit.",
 		dest="version", action="store_true", default=False)
 	opts, args = parser.parse_args()
 	if opts.version:
 		print "phyghtmap %s"%__version__
+		sys.exit(0)
+	if opts.hgtdir:  # Set custom ./hgt/ directory
+		NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
+	if opts.rewriteIndices:
+		NASASRTMUtil.rewriteIndices()
 		sys.exit(0)
 	if opts.pbf and opts.gzip:
 		sys.stderr.write("You can't combine the --gzip and --pbf options.\n")
@@ -171,13 +179,15 @@ def parseCommandLine():
 		if opts.viewfinder != 0:
 			opts.dataSource.append("view%i"%opts.viewfinder)
 		opts.dataSource.append("srtm%i"%opts.srtmResolution)
+		if not opts.area and not opts.polygon:
+			# this is a hint for makeOsmFilename() that files are specified on the
+			# command line
+			opts.dataSource = []
 	if len(args) == 0 and not opts.area and not opts.polygon:
 		parser.print_help()
 		sys.exit(1)
 	if opts.polygon:
 		opts.area, opts.polygon = hgt.parsePolygon(opts.polygon)
-	if opts.hgtdir:  # Set custom ./hgt/ directory
-		NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
 	return opts, args
 
 def makeOsmFilename(borders, opts, srcNames):
@@ -192,8 +202,13 @@ def makeOsmFilename(borders, opts, srcNames):
 	srcNameMiddles = [os.path.split(os.path.split(srcName)[0])[1].lower() for srcName in
 		srcNames]
 	for srcNameMiddle in set(srcNameMiddles):
-		if srcNameMiddle.lower()[:4] in ["srtm", "view"]:
+		if srcNameMiddle.lower() in ["srtm1", "srtm3", "view1", "view3"]:
 			continue
+		elif not opts.dataSource:
+			# files from the command line, this could be something custom
+			srcTag = ",".join(set(srcNameMiddles))
+			osmName = hgt.makeBBoxString(borders)%prefix + "_%s.osm"%(srcTag)
+			break
 		else:
 			osmName = hgt.makeBBoxString(borders)%prefix + ".osm"
 			break

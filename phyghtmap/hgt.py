@@ -114,7 +114,7 @@ def parseHgtFilename(filename, corrx, corry):
 	return minLon+corrx, minLat+corry, maxLon+corrx, maxLat+corry
 
 def calcHgtArea(filenames, corrx, corry):
-	filenames = [os.path.split(f)[1] for f in filenames]
+	filenames = [os.path.split(f[0])[1] for f in filenames]
 	bboxes = [parseHgtFilename(f, corrx, corry) for f in filenames]
 	minLon = sorted([b[0] for b in bboxes])[0]
 	minLat = sorted([b[1] for b in bboxes])[0]

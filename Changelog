@@ -1,3 +1,14 @@
+phyghtmap (1.45) stable; urgency=low
+
+  * Added the --rewrite-indices option to force index rewriting from the
+    command line.  This might sometimes be helpful.
+  * Fixed issue with broken viewfinder 3 arc second index.
+  * Fixed bug preventing phyghtmap from processing files specified as
+    arguments on the command line.  Improved output filename handling for this
+    case.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Wed, 26 Dec 2012 16:00:00 +0100
+
 phyghtmap (1.44) stable; urgency=low
 
   * Fixed issue with too long lines in OSM XML output (some parsers can't parse

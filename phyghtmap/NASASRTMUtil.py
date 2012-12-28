@@ -309,8 +309,11 @@ def inViewIndex(resolution, areaName):
 def makeViewHgtIndex(resolution):
 	"""generates an index file for the viewfinder hgt files.
 	"""
-	def calcAreaNames(coordTag):
-		viewfinderGraphicsDimension = 2000.0/360.0
+	def calcAreaNames(coordTag, resolution):
+		if resolution == 3:
+			viewfinderGraphicsDimension = 1800.0/360.0
+		else:
+			viewfinderGraphicsDimension = 2000.0/360.0
 		l, t, r, b = [int(c) for c in coordTag.split(",")]
 		w = int(l / viewfinderGraphicsDimension + 0.5) - 180
 		e = int(r / viewfinderGraphicsDimension + 0.5) - 180
@@ -336,7 +339,7 @@ def makeViewHgtIndex(resolution):
 	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe%resolution
 	areaDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
-		areaNames = calcAreaNames(a["coords"])
+		areaNames = calcAreaNames(a["coords"], resolution)
 		for areaName in areaNames:
 			areaDict[areaName] = a["href"].strip()
 	zipFileDict = {}
@@ -383,7 +386,11 @@ def makeIndex(indexType):
 	elif indexType == "view3":
 		makeViewHgtIndex(3)
 
-desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 1}
+desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 2}
+
+def rewriteIndices():
+	for indexType in desiredIndexVersion.keys():
+		makeIndex(indexType)
 
 def getIndex(filename, indexType):
 	index = open(filename, 'r').readlines()
