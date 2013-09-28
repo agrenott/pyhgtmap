@@ -1,6 +1,10 @@
 manpage: ../phyghtmap/main.py phyghtmap.help2man
-	help2man --no-info --include phyghtmap.help2man ../phyghtmap/main.py |\
-		sed -e s/main.py/phyghtmap/ > phyghtmap.1
+	echo "#!/usr/bin/env python" > ../phyghtmap/phyghtmap_main.py
+	cat ../phyghtmap/main.py >> ../phyghtmap/phyghtmap_main.py
+	chmod 755 ../phyghtmap/phyghtmap_main.py
+	help2man --no-info --include phyghtmap.help2man ../phyghtmap/phyghtmap_main.py |\
+		sed -e s/phyghtmap_main.py/phyghtmap/ > phyghtmap.1
+	rm ../phyghtmap/phyghtmap_main.py
 
 html: manpage
 	man2html phyghtmap.1 |sed -e s/FBPHYGHTMAPFR/PHYGHTMAP/ \

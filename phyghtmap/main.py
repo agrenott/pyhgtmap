@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-
 #import psyco
 #psyco.full()
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.45"
-__copyright__ = "Copyright (c) 2009-2012 Adrian Dempwolff"
-__license__ = "GPLv2"
+__version__ = "1.46"
+__copyright__ = "Copyright (c) 2009-2013 Adrian Dempwolff"
+__license__ = "GPLv2+"
 
 import sys
 import os
@@ -24,14 +22,22 @@ def parseCommandLine():
 	"""parses the command line.
 	"""
 	parser = OptionParser(usage="%prog [options] [<hgt file>] [<hgt files>]"
-    "\nphyghtmap generates contour lines from NASA SRTM data."
-		"\nIt takes at least an area definition as input.  It then looks for a"
+    "\nphyghtmap generates contour lines from NASA SRTM and smiliar data"
+		"\nin OSM formats.  For now, there are three ways to achieve this. First,"
+		"\nit can be used to process existing source files given as arguments"
+		"\non the command line.  Note that the filenames must have the format"
+		"\n[N|S]YY[W|E]XXX.hgt, with YY the latitude and XXX the longitude of the"
+		"\nlower left corner of the tile.  Second, it can be used with an area"
+		"\ndefinition as input.  The third way to use phyghtmap is to specify a"
+		"\npolygon definition.  In the last two cases, phyghtmap will look for a"
 		"\ncache directory (per default: ./hgt/) and the needed SRTM files.  If"
 		"\nno cache directory is found, it will be created.  It then downloads"
 		"\nall the needed NASA SRTM data files automatically if they are not cached"
 		"\nyet.  There is also the possibility of masking the NASA SRTM data with"
 		"\ndata from www.viewfinderpanoramas.org which fills voids and other data"
-		"\nlacking in the NASA data set.")
+		"\nlacking in the NASA data set.  Since the 3 arc second data available"
+		"\nfrom www.viewfinderpanoramas.org is now complete for the whole world,"
+		"\ngood results can be achieved by specifying --source=view3.")
 	parser.add_option("-a", "--area", help="choses the area to generate osm SRTM"
 		"\ndata for by bounding box. If necessary, files are downloaded from"
 		"\nthe NASA server (%s)."
@@ -146,6 +152,16 @@ def parseCommandLine():
 	parser.add_option("--rewrite-indices", help="rewrite the index files and"
 		"\nexit.  Try this if phyghtmap encounters problems when trying to download"
 		"\ndata files.", dest="rewriteIndices", action="store_true", default=False)
+	parser.add_option("--void-range-max", help="extend the void value range"
+		"\nup to this height.  The hgt file format uses a void value which is"
+		"\n-0x8000 or, in terms of decimal numbers, -32768.  Some hgt files"
+		"\ncontain other negative values which are implausible as height values,"
+		"\ne. g. -0x4000 (-16384) or similar.  Since the lowest place on earth is"
+		"\nabout -420 m below sea level, it should be safe to say -500 here in"
+		"\ncase you encounter strange phyghtmap behaviour such as program aborts"
+		"\ndue to exceeding the maximum allowed number of recursions.",
+		default=-0x8000, type="int", metavar="MINIMUM_PLAUSIBLE_HEIGHT_VALUE",
+		action="store", dest="voidMax")
 	parser.add_option("-v", "--version", help="print version and exit.",
 		dest="version", action="store_true", default=False)
 	opts, args = parser.parse_args()
@@ -187,6 +203,14 @@ def parseCommandLine():
 		parser.print_help()
 		sys.exit(1)
 	if opts.polygon:
+		try:
+			os.stat(opts.polygon)
+		except OSError:
+			print "Couldn't find polygon file: %s"%opts.polygon
+			sys.exit(1)
+		if not os.path.isfile(opts.polygon):
+			print "Polygon file '%s' is not a regular file"%opts.polygon
+			sys.exit(1)
 		opts.area, opts.polygon = hgt.parsePolygon(opts.polygon)
 	return opts, args
 
@@ -246,7 +270,7 @@ def writeNodes(*args, **kwargs):
 def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 	timestampString="", checkPoly=False):
 	hgtFile = hgt.hgtFile(srcName, opts.srtmCorrx, opts.srtmCorry, opts.polygon,
-		checkPoly)
+		checkPoly, opts.voidMax)
 	hgtTiles = hgtFile.makeTiles(opts)
 	if opts.plotPrefix:
 		for tile in hgtTiles:

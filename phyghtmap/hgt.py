@@ -1,3 +1,8 @@
+__author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
+__version__ = "1.46"
+__copyright__ = "Copyright (c) 2009-2013 Adrian Dempwolff"
+__license__ = "GPLv2+"
+
 import os
 from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
@@ -149,7 +154,11 @@ class ContourObject(object):
 		"""clips a path with self.polygon and returns a list of
 		clipped paths.  This method also removes consecutive identical nodes.
 		"""
-		if not self.polygon:
+		if numpy.where(path!=path, 1, 0).sum() != 0:
+			pathContainsNans = True
+		else:
+			pathContainsNans = False
+		if not pathContainsNans:
 			tmpList = []
 			for ind, p in enumerate(path):
 				if ind != 0:
@@ -158,7 +167,7 @@ class ContourObject(object):
 						continue
 				tmpList.append(p)
 			return [tmpList, ]
-		# we've got a polygon
+		# path contains nans (from a polygon or void area or both)
 		pathList = []
 		tmpList = []
 		for ind, p in enumerate(path):
@@ -265,7 +274,8 @@ class hgtFile:
 	"""is a handle for SRTM data files
 	"""
 
-	def __init__(self, filename, corrx, corry, polygon=None, checkPoly=False):
+	def __init__(self, filename, corrx, corry, polygon=None, checkPoly=False,
+		voidMax=None):
 		"""tries to open <filename> and extracts content to self.zData.
 
 		<corrx> and <corry> are longitude and latitude corrections (floats)
@@ -284,6 +294,9 @@ class hgtFile:
 			self.numOfRows = self.numOfCols = int(numOfDataPoints ** 0.5)
 			self.zData = numpy.fromfile(self.fullFilename,
 				dtype=">i2").reshape(self.numOfRows, self.numOfCols).astype("float32")
+			if voidMax != None:
+				voidMask = numpy.asarray(numpy.where(self.zData<=voidMax, True, False))
+				self.zData = numpy.ma.array(self.zData, mask=voidMask, fill_value=float("NaN"))
 		finally:
 			self.lonIncrement = 1.0/(self.numOfCols-1)
 			self.latIncrement = 1.0/(self.numOfRows-1)
@@ -379,11 +392,13 @@ class hgtFile:
 				in areas with voids by approximately 0 ... 50 % although the
 				corresponding differences are explicitly set to 0.
 				"""
-				helpData = numpy.where(data==-0x8000, 0, data) / step
+				# get rid of the void mask values
+				# the next line is obsolete since voids are now generally masked by nans
+				helpData = numpy.where(data==-0x8000, float("NaN"), data) / step
 				xHelpData = numpy.abs(helpData[:,1:]-helpData[:,:-1])
 				yHelpData = numpy.abs(helpData[1:,:]-helpData[:-1,:])
-				xHelpData = numpy.where(xHelpData > 30000/step, 0, xHelpData).sum()
-				yHelpData = numpy.where(yHelpData > 30000/step, 0, yHelpData).sum()
+				xHelpData = numpy.where(xHelpData!=xHelpData, 0, xHelpData).sum()
+				yHelpData = numpy.where(yHelpData!=yHelpData, 0, yHelpData).sum()
 				estimatedNumOfNodes = xHelpData + yHelpData
 				return estimatedNumOfNodes
 
@@ -551,7 +566,8 @@ class hgtTile:
 			levels = range(int(minCont), int(maxCont), stepCont)
 		x, y = numpy.meshgrid(self.xData, self.yData)
 		# z data is a masked array filled with nan.
-		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"))
+		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"),
+			keep_mask=True)
 		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay,
 			self.polygon)
 		return levels, Contours

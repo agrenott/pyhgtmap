@@ -1,3 +1,20 @@
+phyghtmap (1.46) stable; urgency=low
+
+  * Added input validation for the --polygon option.
+  * Fixed licensing issues.
+  * Improved handling of void values in number of nodes estimation.
+  * Added the --void-range-max option to extend the range of height values read
+    from the source hgt files regarded as void values (by default, this is
+    only -0x8000 [-32768]).  This is mainly a workaround for using source files
+    containing implausible height values.
+  * Void areas are now generally masked with NaNs.  This was necessary to
+    implement the --void-range-max option and has the side effect that contour
+    lines adjoining void areas are not closed at the void area edges
+    which---depending on the files' topology---can render the resulting osm
+    files much smaller.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Wed, 28 Sep 2013 17:00:00 +0200
+
 phyghtmap (1.45) stable; urgency=low
 
   * Added the --rewrite-indices option to force index rewriting from the

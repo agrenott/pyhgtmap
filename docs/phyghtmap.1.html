@@ -4,14 +4,14 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: December 2012<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: September 2013<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
 <B>phyghtmap</B>
-- NASA SRTM -&gt; OSM xml translator
+- NASA SRTM -&gt; OSM xml (.osm) or OSM pbf (.osm.pbf) translator
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
 
@@ -21,14 +21,22 @@ Section: User Commands (1)<BR>Updated: December 2012<BR><A HREF="#index">Index</
 <A NAME="lbAD">&nbsp;</A>
 <H2>DESCRIPTION</H2>
 
-phyghtmap generates contour lines from NASA SRTM data.
-It takes at least an area definition as input.  It then looks for a
+phyghtmap generates contour lines from NASA SRTM and smiliar data
+in OSM formats.  For now, there are three ways to achieve this. First,
+it can be used to process existing source files given as arguments
+on the command line.  Note that the filenames must have the format
+[N|S]YY[W|E]XXX.hgt, with YY the latitude and XXX the longitude of the
+lower left corner of the tile.  Second, it can be used with an area
+definition as input.  The third way to use phyghtmap is to specify a
+polygon definition.  In the last two cases, phyghtmap will look for a
 cache directory (per default: ./hgt/) and the needed SRTM files.  If
 no cache directory is found, it will be created.  It then downloads
 all the needed NASA SRTM data files automatically if they are not cached
 yet.  There is also the possibility of masking the NASA SRTM data with
 data from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
-lacking in the NASA data set.
+lacking in the NASA data set.  Since the 3 arc second data available
+from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> is now complete for the whole world,
+good results can be achieved by specifying <B>--source</B>=<I>view3</I>.
 <A NAME="lbAE">&nbsp;</A>
 <H2>OPTIONS</H2>
 
@@ -154,6 +162,17 @@ directory with this option.
 rewrite the index files and exit.  Try this if
 phyghtmap encounters problems when trying to download
 data files.
+<DT><B>--void-range-max</B>=<I>MINIMUM_PLAUSIBLE_HEIGHT_VALUE</I><DD>
+extend the void value range up to this height.  The
+hgt file format uses a void value which is <B>-0x8000</B> or,
+in terms of decimal numbers, <B>-32768</B>.  Some hgt files
+contain other negative values which are implausible as
+height values, e. g. <B>-0x4000</B> (<B>-16384</B>) or similar.
+Since the lowest place on earth is about <B>-420</B> m below
+sea level, it should be safe to say <B>-500</B> here in case
+you encounter strange phyghtmap behaviour such as
+program aborts due to exceeding the maximum allowed
+number of recursions.
 <DT><B>-v</B>, <B>--version</B><DD>
 print version and exit.
 </DL>
@@ -224,10 +243,9 @@ Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adr
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2012 Adrian Dempwolff.  License GPLv2: GNU
-GPL version 2 &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
-This is free software: you are free to change and redistribute it.
-There is NO  WARRANTY, to the extent permitted by law.
+Copyright (c) 2009-2013 Adrian Dempwolff.  This code is distributed under
+the GNU General Public License version 2, or, at your option, any later
+version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 <P>
 
 <HR>
@@ -246,6 +264,6 @@ There is NO  WARRANTY, to the extent permitted by law.
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 10:59:21 GMT, December 28, 2012
+Time: 09:56:43 GMT, September 23, 2013
 </BODY>
 </HTML>

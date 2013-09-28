@@ -1,6 +1,6 @@
 [NAME]
 \fBphyghtmap\fR
-- NASA SRTM -> OSM xml translator
+- NASA SRTM -> OSM xml (.osm) or OSM pbf (.osm.pbf) translator
 [USAGE EXAMPLES]
 Here are some usage examples
 .TP
@@ -72,7 +72,6 @@ If you find a bug, please report it to
 [AUTHOR]
 Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>
 [COPYRIGHT]
-Copyright (c) 2009-2012 Adrian Dempwolff.  License GPLv2: GNU
-GPL version 2 <http://gnu.org/licenses/gpl.html>.
-This is free software: you are free to change and redistribute it.
-There is NO  WARRANTY, to the extent permitted by law.
+Copyright (c) 2009-2013 Adrian Dempwolff.  This code is distributed under
+the GNU General Public License version 2, or, at your option, any later
+version  <http://gnu.org/licenses/gpl.html>.
