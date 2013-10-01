@@ -1,5 +1,5 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.46"
+__version__ = "1.47"
 __copyright__ = "Copyright (c) 2009-2013 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -7,7 +7,11 @@ import urllib
 import os
 from BeautifulSoup import BeautifulSoup
 import zipfile
-from matplotlib.nxutils import points_inside_poly
+from matplotlib import __version__ as mplversion
+if mplversion < "1.3.0":
+	from matplotlib.nxutils import points_inside_poly
+else:
+	from matplotlib.path import Path as PolygonPath
 import numpy
 
 class NASASRTMUtilConfigClass(object):
@@ -184,7 +188,10 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 			points.append((lo, la))
 	inside = numpy.zeros((1, 4))
 	for p in polygon:
-		inside += points_inside_poly(points, p)
+		if mplversion < "1.3.0":
+			inside += points_inside_poly(points, p)
+		else:
+			inside += PolygonPath(p).contains_points(points)
 	if numpy.all(inside):
 		# area ist completely inside
 		print "yes"

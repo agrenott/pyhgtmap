@@ -1,12 +1,15 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.46"
+__version__ = "1.47"
 __copyright__ = "Copyright (c) 2009-2013 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import os
 from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
-from matplotlib.nxutils import points_inside_poly
+if mplversion < "1.3.0":
+	from matplotlib.nxutils import points_inside_poly
+else:
+	from matplotlib.path import Path as PolygonPath
 import numpy
 
 
@@ -264,7 +267,10 @@ def polygonMask(xData, yData, polygon):
 	maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
 	for p in polygon:
 		# run through all polygons and combine masks
-		mask = points_inside_poly(xyPoints, p)
+		if mplversion < "1.3.0":
+			mask = points_inside_poly(xyPoints, p)
+		else:
+			mask = PolygonPath(p).contains_points(xyPoints)
 		maskArray = numpy.ma.array(maskArray,
 			mask=mask, keep_mask=True)
 	return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
