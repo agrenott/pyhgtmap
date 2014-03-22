@@ -1,6 +1,6 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.47"
-__copyright__ = "Copyright (c) 2009-2013 Adrian Dempwolff"
+__version__ = "1.48"
+__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import urllib
@@ -250,24 +250,6 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	else:
 		return prefixes
 
-def makeFileNames(bbox, polygon, corrx, corry, resolution, viewfinder):
-	"""generates a list of filenames of the files containing data within the
-	bounding box.  If <viewfinder> exists, this data is preferred to NASA SRTM
-	data.
-	"""
-	areas = makeFileNamePrefixes(bbox, polygon, corrx, corry)
-	areaDict = {}
-	for a in areas:
-		NASAurl = getNASAUrl(a, resolution)
-		areaDict[a] = NASAurl
-	if viewfinder:
-		for a in areas:
-			VIEWurl = getViewUrl(a, viewfinder)
-			if not VIEWurl:
-				continue
-			areaDict[a] = VIEWurl
-	return areaDict
-
 def makeNasaHgtIndex(resolution):
 	"""generates an index file for the NASA SRTM server.
 	"""
@@ -309,15 +291,6 @@ def writeViewIndex(resolution, zipFileDict):
 	index.close()
 	print "DONE"
 
-def inViewIndex(resolution, areaName):
-	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
-	index = getIndex(hgtIndexFile, "view%i"%resolution)
-	areaNames = [a for a in index if not a.startswith("[")]
-	if areaName in areaNames:
-		return True
-	else:
-		return False
-
 def makeViewHgtIndex(resolution):
 	"""generates an index file for the viewfinder hgt files.
 	"""
@@ -349,16 +322,11 @@ def makeViewHgtIndex(resolution):
 	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
 	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
 	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe%resolution
-	areaDict = {}
+	zipFileDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
 		areaNames = calcAreaNames(a["coords"], resolution)
-		for areaName in areaNames:
-			areaDict[areaName] = a["href"].strip()
-	zipFileDict = {}
-	for areaName, zipFileUrl in sorted(areaDict.items()):
-		if not zipFileDict.has_key(zipFileUrl):
-			zipFileDict[zipFileUrl] = []
-		zipFileDict[zipFileUrl].append(areaName.upper())
+		zipFileUrl = a["href"].strip()
+		zipFileDict[zipFileUrl] = sorted([aName.upper() for aName in areaNames])
 	print "generating index in %s ..."%hgtIndexFile,
 	writeViewIndex(resolution, zipFileDict)
 
@@ -398,7 +366,7 @@ def makeIndex(indexType):
 	elif indexType == "view3":
 		makeViewHgtIndex(3)
 
-desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 2}
+desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 3}
 
 def rewriteIndices():
 	for indexType in desiredIndexVersion.keys():
@@ -456,16 +424,12 @@ def getViewUrl(area, resolution):
 	except:
 		makeViewHgtIndex(resolution)
 	index = getIndex(hgtIndexFile, "view%i"%resolution)
-	fileMap = {}
 	for line in index:
 		if line.startswith("[") and line.endswith("]"):
 			url = line[1:-1]
-		else:
-			fileMap[line] = url
-	if not fileMap.has_key(area):
-		return None
-	url = fileMap[area]
-	return url
+		elif line == area:
+			return url
+	return None
 
 def unzipFile(saveZipFilename, area):
 	"""unzip a zip file.
@@ -546,8 +510,12 @@ def downloadAndUnzip(url, area, source):
 			areaNames = unzipFile(saveZipFilename, area)
 			if source.startswith("view"):
 				updateViewIndex(fileResolution, url, areaNames)
-				if not inViewIndex(fileResolution, area):
+				viewUrl = getViewUrl(area, fileResolution)
+				if not viewUrl:
 					return None
+				elif not viewUrl==url:
+					print "Got the wrong zip file (area found multiple times in index file)."
+					return downloadAndUnzip(viewUrl, area, source)
 		except:
 			print "%s: downloading file %s to %s ..."%(area, url, saveZipFilename)
 			urllib.urlretrieve(url, filename=saveZipFilename)
@@ -555,8 +523,12 @@ def downloadAndUnzip(url, area, source):
 				areaNames = unzipFile(saveZipFilename, area)
 				if source.startswith("view"):
 					updateViewIndex(fileResolution, url, areaNames)
-					if not inViewIndex(fileResolution, area):
+					viewUrl = getViewUrl(area, fileResolution)
+					if not viewUrl:
 						return None
+					elif not viewUrl==url:
+						print "Got the wrong zip file (area found multiple times in index file)."
+						return downloadAndUnzip(viewUrl, area, source)
 			except Exception, msg:
 				print msg
 				print "%s: file %s from %s is not a zip file"%(area, saveZipFilename, url)

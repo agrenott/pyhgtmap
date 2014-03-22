@@ -1,3 +1,10 @@
+phyghtmap (1.48) stable; urgency=low
+
+  * Fixed minor bugs related with index generation and missing file downloads
+    when using viewfinder 3 arc second data.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Sat, 22 Mar 2014 23:00:00 +0100
+
 phyghtmap (1.47) stable; urgency=low
 
   * Fixed broken dependency matplotlib.nxutils which was removed in matplotlib
