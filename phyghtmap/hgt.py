@@ -1,5 +1,5 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.48"
+__version__ = "1.49"
 __copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -484,9 +484,14 @@ class hgtFile:
 				else:
 					tilePolygon = None
 					tileMask = None
-				tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
-					"increments": (self.lonIncrement, self.latIncrement),
-					"polygon": tilePolygon, "mask": tileMask}))
+				voidMaskValues = numpy.unique(inputData.mask)
+				if len(voidMaskValues)==1 and voidMaskValues[0]==True:
+					# this tile is full of void values, so discard this tile
+					return
+				else:
+					tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
+						"increments": (self.lonIncrement, self.latIncrement),
+						"polygon": tilePolygon, "mask": tileMask}))
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)

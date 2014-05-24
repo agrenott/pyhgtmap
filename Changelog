@@ -1,3 +1,10 @@
+phyghtmap (1.49) stable; urgency=low
+
+  * Fixed bug which caused program aborts when trying to evaluate tiles full of
+    void values.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Fri, 24 May 2014 20:32:00:00 +0200
+
 phyghtmap (1.48) stable; urgency=low
 
   * Fixed minor bugs related with index generation and missing file downloads
