@@ -1,5 +1,5 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.49"
+__version__ = "1.50"
 __copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -298,7 +298,7 @@ def makeViewHgtIndex(resolution):
 		if resolution == 3:
 			viewfinderGraphicsDimension = 1800.0/360.0
 		else:
-			viewfinderGraphicsDimension = 2000.0/360.0
+			viewfinderGraphicsDimension = 1800.0/360.0
 		l, t, r, b = [int(c) for c in coordTag.split(",")]
 		w = int(l / viewfinderGraphicsDimension + 0.5) - 180
 		e = int(r / viewfinderGraphicsDimension + 0.5) - 180
@@ -326,7 +326,10 @@ def makeViewHgtIndex(resolution):
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
 		areaNames = calcAreaNames(a["coords"], resolution)
 		zipFileUrl = a["href"].strip()
-		zipFileDict[zipFileUrl] = sorted([aName.upper() for aName in areaNames])
+		if not zipFileDict.has_key(zipFileUrl):
+			zipFileDict[zipFileUrl] = []
+		zipFileDict[zipFileUrl].extend(sorted([aName.upper() for aName in
+			areaNames]))
 	print "generating index in %s ..."%hgtIndexFile,
 	writeViewIndex(resolution, zipFileDict)
 
@@ -366,7 +369,7 @@ def makeIndex(indexType):
 	elif indexType == "view3":
 		makeViewHgtIndex(3)
 
-desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 1, "view3": 3}
+desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 2, "view3": 4}
 
 def rewriteIndices():
 	for indexType in desiredIndexVersion.keys():

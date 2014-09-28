@@ -1,3 +1,10 @@
+phyghtmap (1.50) stable; urgency=low
+
+  * Fixed generation of viefinder 1 arc second data index.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Sun, 28 Sep 2014 16:15:00:00 +0200
+
+
 phyghtmap (1.49) stable; urgency=low
 
   * Fixed bug which caused program aborts when trying to evaluate tiles full of
