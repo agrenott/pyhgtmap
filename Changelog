@@ -1,9 +1,16 @@
+phyghtmap (1.60) stable; urgency=low
+
+  * Added o5m binary output format (via the --o5m option).
+  * Added NASA SRTM v3 sources (this is default; for old v2.1
+    SRTM data, say --srtm-version=2.1).
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Sat, 27 Dec 2014 22:35:00 +0100
+
 phyghtmap (1.50) stable; urgency=low
 
   * Fixed generation of viefinder 1 arc second data index.
 
  -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Sun, 28 Sep 2014 16:15:00:00 +0200
-
 
 phyghtmap (1.49) stable; urgency=low
 

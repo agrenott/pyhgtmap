@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: September 2014<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: December 2014<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -46,13 +46,12 @@ show this help message and exit
 <DT><B>-a</B> LEFT:BOTTOM:RIGHT:TOP, <B>--area</B>=<I>LEFT</I>:BOTTOM:RIGHT:TOP<DD>
 choses the area to generate osm SRTM data for by
 bounding box. If necessary, files are downloaded from
-the NASA server
-(<A HREF="http://dds.cr.usgs.gov/srtm/version2_1/SRTM[1|3]).">http://dds.cr.usgs.gov/srtm/version2_1/SRTM[1|3]).</A>
-Specify as &lt;left&gt;:&lt;bottom&gt;:&lt;right&gt;:&lt;top&gt; in degrees of
-latitude and longitude, respectively. Latitudes south
-of the equator and longitudes west of Greenwich may be
-given as negative decimal numbers. If this option is
-given, specified hgt files will be omitted.
+the NASA server.  Specify as
+&lt;left&gt;:&lt;bottom&gt;:&lt;right&gt;:&lt;top&gt; in degrees of latitude
+and longitude, respectively. Latitudes south of the
+equator and longitudes west of Greenwich may be given
+as negative decimal numbers. If this option is given,
+specified hgt files will be omitted.
 <DT><B>--polygon</B>=<I>FILENAME</I><DD>
 use polygon FILENAME as downloaded from
 <A HREF="http://download.geofabrik.de/clipbounds/">http://download.geofabrik.de/clipbounds/</A> as bounds for
@@ -125,11 +124,25 @@ reduces the needed disk space. Be sure the programs
 you want to use the output files with are capable of
 pbf parsing.  The output files will have the .osm.pbf
 extension.
+<DT><B>--o5m</B><DD>
+write o5m binary files instead of OSM XML.  This
+reduces the needed disk space. Be sure the programs
+you want to use the output files with are capable of
+o5m parsing.  The output files will have the .o5m
+extension.
 <DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
-Note that the finer 1 arc second grid is only
-available in the USA.  Possible values are 1 and 3,
-the default value is 3.
+Possible values are 1 and 3, the default value is 3.
+For different SRTM data versions and map coverage, see
+the <B>--srtm-version</B> option.
+<DT><B>--srtm-version</B>=<I>VERSION</I><DD>
+use this VERSION of SRTM data. Supported SRTM versions
+are 2.1 and 3.  Version 2.1 has voids which were
+filled in version 3 using ASTER GDEM and other data.
+In version 2.1, only the US territory is included in
+the 1 arc second dataset.  In version 3, nearly the
+whole world is covered.  The default for this option
+is 3.  If you want the old version, say <B>--srtmversion</B>=<I>2</I>.1 here
 <DT><B>--viewfinder-mask</B>=<I>VIEWFINDER-RESOLUTION</I><DD>
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
@@ -141,7 +154,8 @@ string.  Available sources are 'srtm1', 'srtm3',
 will be selected using this option as preference list.
 Specifying <B>--source</B>=<I>view3</I>,srtm3 for example will
 prefer viewfinder 3 arc second data to NASA SRTM 3 arc
-second data.
+second data.  Also see the <B>--srtm-version</B> option for
+different versions of SRTM data.
 <DT><B>--corrx</B>=<I>SRTM-CORRX</I><DD>
 correct x offset of contour lines.  A setting of
 <B>--corrx</B>=<I>0</I>.0005 was reported to give good results.
@@ -217,13 +231,15 @@ output file.  Note that it is possible to use multiple processes in parallel.
 --max-nodes-per-way=0 means that the ways will be as long as possible.
 --gzip=9 will produce gzipped output with a compression level of 9.
 <DT>phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --pbf<DD>
-Same as above but output will be a osm protobif binary file (.osm.pbf).
+Same as above but output will be a osm protobuf binary file (.osm.pbf).
+<DT>phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --o5m<DD>
+Same as above but output will be a o5m binary file (.o5m).
 <DT>phyghtmap -s 5 NXXEYYY.hgt<DD>
 Make contour line .osm with steps of 5 meters from file NXXEYYY.hgt.
 Note that no area was specified here, the area is read from the filename.
 You can use phyghtmap like this with .hgt files from sources other than
 NASA SRTM or <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>, as long as the filenames contain
-the neede geographic information.
+the needed geographic information.
 <DT>phyghtmap -p example_plotname -a 8.9:49.0:9.0:49.1<DD>
 Do not generate contour line OSM xml but write a file example_plotname_*.xyz
 with lines containing space seperated values of longitude, latitude and
@@ -264,6 +280,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 14:15:17 GMT, September 28, 2014
+Time: 22:13:58 GMT, December 27, 2014
 </BODY>
 </HTML>

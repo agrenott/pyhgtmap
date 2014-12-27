@@ -51,14 +51,17 @@ output file.  Note that it is possible to use multiple processes in parallel.
 --gzip=9 will produce gzipped output with a compression level of 9.
 .TP
 phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --pbf
-Same as above but output will be a osm protobif binary file (.osm.pbf).
+Same as above but output will be a osm protobuf binary file (.osm.pbf).
+.TP
+phyghtmap -a 6:44:9:47 -j 2 --max-nodes-per-tile=0 --max-nodes-per-way=0 --o5m
+Same as above but output will be a o5m binary file (.o5m).
 .TP
 phyghtmap -s 5 NXXEYYY.hgt
 Make contour line .osm with steps of 5 meters from file NXXEYYY.hgt.
 Note that no area was specified here, the area is read from the filename.
 You can use phyghtmap like this with .hgt files from sources other than
 NASA SRTM or www.viewfinderpanoramas.org, as long as the filenames contain
-the neede geographic information.
+the needed geographic information.
 .TP
 phyghtmap -p example_plotname -a 8.9:49.0:9.0:49.1
 Do not generate contour line OSM xml but write a file example_plotname_*.xyz

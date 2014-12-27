@@ -1,5 +1,5 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.50"
+__version__ = "1.60"
 __copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -30,17 +30,21 @@ class NASASRTMUtilConfigClass(object):
 		############################################################
 		### NASA SRTM specific variables ###########################
 		############################################################
-		self.NASAhgtFileServerRe = "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"
 		self.NASAhgtFileDirs = {3: ["Africa", "Australia", "Eurasia", "Islands",
 			"North_America", "South_America"],
 			1: ["Region_0%i"%i for i in range(1, 8)]}
-		self.NASAhgtSaveSubDirRe = "SRTM%i"
+		self.NASAhgtSaveSubDirRe = "SRTM%iv%.1f"
 		############################################################
 		### www.vierfinderpanoramas.org specific variables #########
 		############################################################
 		self.VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%%20map%%20viewfinderpanoramas_org%i.htm"
 		self.VIEWhgtSaveSubDirRe = "VIEW%i"
 
+	def getSRTMFileServer(self, resolution, srtmVersion):
+		if srtmVersion == 2.1:
+			return "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"%resolution
+		elif srtmVersion == 3.0:
+			return "http://e4ftl01.cr.usgs.gov/SRTM/SRTMGL%s.003/2000.02.11/"%resolution
 
 	def CustomHgtSaveDir(self, directory):
 		"""Set a custom directory to store the hgt files
@@ -53,7 +57,7 @@ class NASASRTMUtilConfigClass(object):
 		# Default value
 		self.hgtSaveDir = directory
 		self.NASAhgtIndexFileRe = os.path.join(self.hgtSaveDir,
-			"hgtIndex_%i.txt")
+			"hgtIndex_%i_v%.1f.txt")
 		self.VIEWhgtIndexFileRe = os.path.join(self.hgtSaveDir,
 			"viewfinderHgtIndex_%i.txt")
 
@@ -250,29 +254,57 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	else:
 		return prefixes
 
-def makeNasaHgtIndex(resolution):
+def makeNasaHgtIndex(resolution, srtmVersion):
 	"""generates an index file for the NASA SRTM server.
 	"""
-	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%resolution
-	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%(resolution,
+		srtmVersion)
+	if srtmVersion == 2.1:
+		hgtIndexFileOldName = hgtIndexFile[:-9] + hgtIndexFile[-4:]
+		# we know that <hgtIndexFile> does not exist because else this function would
+		# not have been called
+		# so we lokk if there is a file with the old index filename and if yes, we
+		# rename it
+		try:
+			os.stat(hgtIndexFileOldName)
+			if os.path.isfile(hgtIndexFileOldName):
+				# this is a regular file, so we rename it
+				os.rename(hgtIndexFileOldName, hgtIndexFile)
+				# we don't need to return something special
+				print("Renamed old index file '%s' to '%s'."%(
+					hgtIndexFileOldName, hgtIndexFile))
+				return
+		except:
+			# there is no old index file, so continue in this function and write a new
+			# one
+			pass
+	hgtFileServer = NASASRTMUtilConfig.getSRTMFileServer(resolution, srtmVersion)
 	print "generating index in %s ..."%hgtIndexFile, 
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
 		print ""
 		raise IOError("could not open %s for writing"%hgtIndexFile)
-	index.write("# SRTM%i index file, VERSION=%i\n"%(resolution,
-		desiredIndexVersion["srtm%i"%resolution]))
-	for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
-		index.write("[%s]\n"%continent)
-		url = "/".join([hgtFileServer, continent])
-		continentHtml = urllib.urlopen(url)
-		continentSoup = BeautifulSoup(continentHtml)
-		anchors = continentSoup.findAll("a")
-		for anchor in anchors:
-			if anchor.contents[0].endswith("hgt.zip"):
-				zipFilename = anchor.contents[0].strip()
-				index.write("%s\n"%zipFilename)
+	index.write("# SRTM%iv%.1f index file, VERSION=%i\n"%(resolution,
+		srtmVersion, desiredIndexVersion["srtm%iv%.1f"%(resolution, srtmVersion)]))
+	if srtmVersion == 2.1:
+		for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
+			index.write("[%s]\n"%continent)
+			url = "/".join([hgtFileServer, continent])
+			continentHtml = urllib.urlopen(url).read()
+			continentSoup = BeautifulSoup(continentHtml)
+			anchors = continentSoup.findAll("a")
+			for anchor in anchors:
+				if anchor.contents[0].endswith("hgt.zip"):
+					zipFilename = anchor.contents[0].strip()
+					index.write("%s\n"%zipFilename)
+	elif srtmVersion == 3.0:
+		indexHtml = urllib.urlopen(hgtFileServer).read()
+		indexSoup = BeautifulSoup(indexHtml)
+		zipFilenames = [a["href"] for a in indexSoup.findAll("a")
+			if a.contents[0].lower().endswith(".hgt.zip")]
+		for zipFilename in zipFilenames:
+			index.write("%s\n"%zipFilename)
 	print "DONE"
 
 def writeViewIndex(resolution, zipFileDict):
@@ -320,7 +352,6 @@ def makeViewHgtIndex(resolution):
 		return names
 
 	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
-	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
 	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe%resolution
 	zipFileDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
@@ -360,16 +391,27 @@ def updateViewIndex(resolution, zipFileUrl, areaList):
 		writeViewIndex(resolution, zipFileDict)
 
 def makeIndex(indexType):
-	if indexType == "srtm1":
-		makeNasaHgtIndex(1)
-	elif indexType == "srtm3":
-		makeNasaHgtIndex(3)
+	if indexType == "srtm1v2.1":
+		makeNasaHgtIndex(1, 2.1)
+	elif indexType == "srtm3v2.1":
+		makeNasaHgtIndex(3, 2.1)
+	elif indexType == "srtm1v3.0":
+		makeNasaHgtIndex(1, 3.0)
+	elif indexType == "srtm3v3.0":
+		makeNasaHgtIndex(3, 3.0)
 	elif indexType == "view1":
 		makeViewHgtIndex(1)
 	elif indexType == "view3":
 		makeViewHgtIndex(3)
 
-desiredIndexVersion = {"srtm1": 1, "srtm3": 2, "view1": 2, "view3": 4}
+desiredIndexVersion = {
+	"srtm1v2.1": 1,
+	"srtm3v2.1": 2,
+	"srtm1v3.0": 1,
+	"srtm3v3.0": 1,
+	"view1": 2,
+	"view3": 4,
+}
 
 def rewriteIndices():
 	for indexType in desiredIndexVersion.keys():
@@ -391,32 +433,44 @@ def getIndex(filename, indexType):
 	index = [l for l in index if l]
 	return index
 
-def getNASAUrl(area, resolution):
+def getNASAUrl(area, resolution, srtmVersion):
 	"""determines the NASA download url for a given area.
 	"""
-	file = "%s.hgt.zip"%area
-	fileFaulty = "%shgt.zip"%area
-	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%resolution
-	hgtFileServer = NASASRTMUtilConfig.NASAhgtFileServerRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%(resolution,
+		srtmVersion)
+	hgtFileServer = NASASRTMUtilConfig.getSRTMFileServer(resolution, srtmVersion)
 	try:
 		os.stat(hgtIndexFile)
 	except:
-		makeNasaHgtIndex(resolution)
-	index = getIndex(hgtIndexFile, "srtm%i"%resolution)
-	fileMap = {}
-	for line in index:
-		if line.startswith("["):
-			continent = line[1:-1]
+		makeNasaHgtIndex(resolution, srtmVersion)
+	# index rewriting if out of date happens in getIndex()
+	index = getIndex(hgtIndexFile, "srtm%iv%.1f"%(resolution, srtmVersion))
+	# the index is up to date now
+	if srtmVersion == 2.1:
+		file = "%s.hgt.zip"%area
+		fileFaulty = "%shgt.zip"%area
+		fileMap = {}
+		for line in index:
+			if line.startswith("["):
+				continent = line[1:-1]
+			else:
+				fileMap[line] = continent
+		if fileMap.has_key(file):
+			url = '/'.join([hgtFileServer, fileMap[file], file])
+			return url
+		elif fileMap.has_key(fileFaulty):
+			url = '/'.join([hgtFileServer, fileMap[fileFaulty], fileFaulty])
+			return url
 		else:
-			fileMap[line] = continent
-	if fileMap.has_key(file):
-		url = '/'.join([hgtFileServer, fileMap[file], file])
-		return url
-	elif fileMap.has_key(fileFaulty):
-		url = '/'.join([hgtFileServer, fileMap[fileFaulty], fileFaulty])
-		return url
-	else:
-		return None
+			return None
+	elif srtmVersion == 3.0:
+		for line in index:
+			if line.split(".")[0].lower() == area.lower():
+				url = "".join([hgtFileServer, line])
+				return url
+		else:
+			# no such area in index
+			return None
 
 def getViewUrl(area, resolution):
 	"""determines the viewfinder download url for a given area.
@@ -476,9 +530,11 @@ def mkdir(dirName):
 		os.mkdir(dirName)
 
 def getDirNames(source):
-	resolution = int(source[-1])
+	resolution = int(source[4])
 	if source.startswith("srtm"):
-		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.NASAhgtSaveSubDirRe%resolution)
+		srtmVersion = float(source[6:])
+		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
+			NASASRTMUtilConfig.NASAhgtSaveSubDirRe%(resolution, srtmVersion))
 	elif source.startswith("view"):
 		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%resolution)
 	return NASASRTMUtilConfig.hgtSaveDir, hgtSaveSubDir
@@ -486,9 +542,31 @@ def getDirNames(source):
 def initDirs(sources):
 	mkdir(NASASRTMUtilConfig.hgtSaveDir)
 	for source in sources:
-		sourceType, sourceResolution = source[:4], int(source[-1])
+		sourceType, sourceResolution = source[:4], int(source[4])
 		if sourceType == "srtm":
-			NASAhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.NASAhgtSaveSubDirRe%sourceResolution)
+			srtmVersion = float(source[6:])
+			NASAhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
+				NASASRTMUtilConfig.NASAhgtSaveSubDirRe%(sourceResolution, srtmVersion))
+			if srtmVersion == 2.1:
+				NASAhgtSaveSubDirOldName = NASAhgtSaveSubDir[:-4]
+				try:
+					# look if there is a directory with the old SRTM directory name
+					os.stat(NASAhgtSaveSubDirOldName)
+					if os.path.isdir(NASAhgtSaveSubDirOldName):
+						try:
+							# there is an old SRTM directory.  Rename it to the new name if
+							# there is no such file or directory
+							os.stat(NASAhgtSaveSubDir)
+						except:
+							# no new directory, so rename the old one to the new name
+							os.rename(NASAhgtSaveSubDirOldName, NASAhgtSaveSubDir)
+							print("Renamed the old hgt cache directory '%s' to '%s'."%(
+								NASAhgtSaveSubDirOldName, NASAhgtSaveSubDir))
+				except OSError:
+					# there is no directory with the old SRTM directory name
+					pass
+			# we can try the create the directory no matter if we already renamed
+			# an old directory to this name
 			mkdir(NASAhgtSaveSubDir)
 		elif sourceType == "view":
 			VIEWhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%sourceResolution)
@@ -496,7 +574,7 @@ def initDirs(sources):
 
 def downloadAndUnzip(url, area, source):
 	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
-	fileResolution = int(source[-1])
+	fileResolution = int(source[4])
 	saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])
 	saveFilename = os.path.join(hgtSaveSubDir, "%s.hgt"%area)
 	try:
@@ -549,9 +627,10 @@ def downloadAndUnzip(url, area, source):
 		return None
 
 def getFile(area, source):
-	fileResolution = int(source[-1])
+	fileResolution = int(source[4])
 	if source.startswith("srtm"):
-		url = getNASAUrl(area, fileResolution)
+		srtmVersion = float(source[6:])
+		url = getNASAUrl(area, fileResolution, srtmVersion)
 	elif source.startswith("view"):
 		url = getViewUrl(area, fileResolution)
 	if not url:

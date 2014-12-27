@@ -2,7 +2,7 @@
 #psyco.full()
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.50"
+__version__ = "1.60"
 __copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -15,6 +15,7 @@ from phyghtmap import hgt
 from phyghtmap import osmUtil
 from phyghtmap import NASASRTMUtil
 from phyghtmap import pbfUtil
+from phyghtmap import o5mUtil
 
 profile = False
 
@@ -40,12 +41,12 @@ def parseCommandLine():
 		"\ngood results can be achieved by specifying --source=view3.")
 	parser.add_option("-a", "--area", help="choses the area to generate osm SRTM"
 		"\ndata for by bounding box. If necessary, files are downloaded from"
-		"\nthe NASA server (%s)."
+		"\nthe NASA server. "
 		"\nSpecify as <left>:<bottom>:<right>:<top> in degrees of latitude"
 		"\nand longitude, respectively. Latitudes south of the equator and"
 		"\nlongitudes west of Greenwich may be given as negative decimal numbers."
 		"\nIf this option is given, specified hgt"
-		"\nfiles will be omitted."%NASASRTMUtil.NASASRTMUtilConfig.NASAhgtFileServerRe%"[1|3]",
+		"\nfiles will be omitted.",
 	  dest="area", metavar="LEFT:BOTTOM:RIGHT:TOP", action="store", default=None)
 	parser.add_option("--polygon", help="use polygon FILENAME as downloaded from"
 		"\nhttp://download.geofabrik.de/clipbounds/ as bounds for the output contour"
@@ -115,11 +116,24 @@ def parseCommandLine():
 		"\nwant to use the output files with are capable of pbf parsing.  The"
 		"\noutput files will have the .osm.pbf extension.", action="store_true",
 		default=False, dest="pbf")
+	parser.add_option("--o5m", help="write o5m binary files instead of OSM"
+		"\nXML.  This reduces the needed disk space. Be sure the programs you"
+		"\nwant to use the output files with are capable of o5m parsing.  The"
+		"\noutput files will have the .o5m extension.", action="store_true",
+		default=False, dest="o5m")
 	parser.add_option("--srtm", help="use SRTM resolution of SRTM-RESOLUTION"
-		"\narc seconds.  Note that the finer 1 arc second grid is only available"
-		"\nin the USA.  Possible values are 1 and 3, the default value is 3.",
-		metavar="SRTM-RESOLUTION", dest="srtmResolution", action="store",
+		"\narc seconds.  Possible values are 1 and 3, the default value is 3. "
+		"\nFor different SRTM data versions and map coverage, see the --srtm-version"
+		"\noption.",  metavar="SRTM-RESOLUTION", dest="srtmResolution", action="store",
 		type="int", default=3)
+	parser.add_option("--srtm-version", help="use this VERSION of SRTM data."
+		"\nSupported SRTM versions are 2.1 and 3.  Version 2.1 has voids which"
+		"\nwere filled in version 3 using ASTER GDEM and other data.  In version"
+		"\n2.1, only the US territory is included in the 1 arc second dataset.  In"
+		"\nversion 3, nearly the whole world is covered.  The default for this"
+		"\noption is 3.  If you want the old version, say --srtm-version=2.1 here",
+		dest="srtmVersion", action="store", metavar="VERSION", default=3.0,
+		type="float")
 	parser.add_option("--viewfinder-mask", help="if specified, NASA SRTM data"
  		"\nare masked with data from www.viewfinderpanoramas.org.  Possible values"
 		"\nare 1 and 3 (for explanation, see the --srtm option).",
@@ -130,7 +144,8 @@ def parseCommandLine():
 		"\n'srtm1', 'srtm3', 'view1' and 'view3'.  If specified, the data source"
 		"\nwill be selected using this option as preference list.  Specifying"
 		"\n--source=view3,srtm3 for example will prefer viewfinder 3 arc second"
-		"\ndata to NASA SRTM 3 arc second data.", metavar="DATA-SOURCE",
+		"\ndata to NASA SRTM 3 arc second data.  Also see the --srtm-version"
+		"\noption for different versions of SRTM data.", metavar="DATA-SOURCE",
 		action="store", default=None, dest="dataSource")
 	parser.add_option("--corrx", help="correct x offset of contour lines."
 		"\n A setting of --corrx=0.0005 was reported to give good results."
@@ -176,6 +191,21 @@ def parseCommandLine():
 	if opts.pbf and opts.gzip:
 		sys.stderr.write("You can't combine the --gzip and --pbf options.\n")
 		sys.exit(1)
+	if opts.o5m and opts.gzip:
+		sys.stderr.write("You can't combine the --gzip and --o5m options.\n")
+		sys.exit(1)
+	if opts.o5m and opts.pbf:
+		sys.stderr.write("You can't combine the --pbf and --o5m options.\n")
+		sys.exit(1)
+	for supportedVersion in [2.1, 3]:
+		if opts.srtmVersion == supportedVersion:
+			break
+	else:
+		# unsupported SRTM data version
+		sys.stderr.write("Unsupported SRTM data version '%.1f'.  See the"
+			" --srtm-version option for details.\n\n"%opts.srtmVersion)
+		parser.print_help()
+		sys.exit(1)
 	if opts.srtmResolution not in [1, 3]:
 		sys.stderr.write("The --srtm option can only take '1' or '3' as values."
 			"  Defaulting to 3.\n")
@@ -185,16 +215,22 @@ def parseCommandLine():
 			"  Won't use viewfinder data.\n")
 		opts.viewfinder = 0
 	if opts.dataSource:
-		opts.dataSource = opts.dataSource.lower().split(",")
+		opts.dataSource = [el.strip() for el in
+			opts.dataSource.lower().split(",")]
 		for s in opts.dataSource:
-			if not s in ["view1", "view3", "srtm1", "srtm3"]:
+			if not s[:5] in ["view1", "view3", "srtm1", "srtm3"]:
 				print "Unknown data source: %s"%s
 				sys.exit(1)
+			elif s in ["srtm1", "srtm3"]:
+				while s in opts.dataSource:
+					opts.dataSource[opts.dataSource.index(s)] = "%sv%.1f"%(
+						s, opts.srtmVersion)
 	else:
 		opts.dataSource = []
 		if opts.viewfinder != 0:
 			opts.dataSource.append("view%i"%opts.viewfinder)
-		opts.dataSource.append("srtm%i"%opts.srtmResolution)
+		opts.dataSource.append("srtm%iv%.1f"%(opts.srtmResolution,
+			opts.srtmVersion))
 		if not opts.area and not opts.polygon:
 			# this is a hint for makeOsmFilename() that files are specified on the
 			# command line
@@ -226,7 +262,7 @@ def makeOsmFilename(borders, opts, srcNames):
 	srcNameMiddles = [os.path.split(os.path.split(srcName)[0])[1].lower() for srcName in
 		srcNames]
 	for srcNameMiddle in set(srcNameMiddles):
-		if srcNameMiddle.lower() in ["srtm1", "srtm3", "view1", "view3"]:
+		if srcNameMiddle.lower()[:5] in ["srtm1", "srtm3", "view1", "view3"]:
 			continue
 		elif not opts.dataSource:
 			# files from the command line, this could be something custom
@@ -244,28 +280,36 @@ def makeOsmFilename(borders, opts, srcNames):
 		osmName += ".gz"
 	elif opts.pbf:
 		osmName += ".pbf"
+	elif opts.o5m:
+		osmName = osmName[:-4]+".o5m"
 	return osmName
 
 def getOutput(opts, srcNames, bounds):
 	outputFilename = makeOsmFilename(bounds, opts, srcNames)
 	elevClassifier=osmUtil.makeElevClassifier(*[int(h) for h in
 		opts.lineCats.split(",")])
-	if not opts.pbf:
+	if opts.pbf:
+		output = pbfUtil.Output(outputFilename, opts.osmVersion, __version__,
+			bounds, elevClassifier)
+	elif opts.o5m:
+		output = o5mUtil.Output(outputFilename, opts.osmVersion, __version__,
+			bounds, elevClassifier)
+	else:
+		# standard XML output, possibly gzipped
 		output = osmUtil.Output(outputFilename,
 			osmVersion=opts.osmVersion, phyghtmapVersion=__version__,
 			boundsTag=hgt.makeBoundsString(bounds), gzip=opts.gzip,
 			elevClassifier=elevClassifier, timestamp=opts.writeTimestamp)
-	else:
-		output = pbfUtil.Output(outputFilename, opts.osmVersion, __version__,
-			bounds, elevClassifier)
 	return output
 
 def writeNodes(*args, **kwargs):
 	opts = args[-1]
-	if not opts.pbf:
-		return osmUtil.writeXML(*args, **kwargs)
-	else:
+	if opts.pbf:
 		return pbfUtil.writeNodes(*args, **kwargs)
+	elif opts.o5m:
+		return o5mUtil.writeNodes(*args, **kwargs)
+	else:
+		return osmUtil.writeXML(*args, **kwargs)
 
 def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 	timestampString="", checkPoly=False):
