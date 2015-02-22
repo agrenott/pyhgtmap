@@ -1,3 +1,12 @@
+phyghtmap (1.61) stable; urgency=low
+
+  * Added --download-only option.
+  * Added timestamp (and changeset/uid) writing functionality for o5m output,
+    switchable via the --write-timestamp option.
+  * Restructured code to be mostly compatible with python3.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Fri, 02 Jan 2015 23:10:00 +0100
+
 phyghtmap (1.60) stable; urgency=low
 
   * Added o5m binary output format (via the --o5m option).

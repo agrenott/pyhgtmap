@@ -1,6 +1,6 @@
 The installation requires a working python setuptools installation; 
 setuptools is included in python >=2.5, otherwise say XXX  The
-program itself should run with python >= 2.4.  The setup will use ez_setup which
+program itself should run with python >= 2.6.  The setup will use ez_setup which
 is included within this distribution.
 
 Some additional requirements have to be installed on your system in order to run

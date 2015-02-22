@@ -1,6 +1,8 @@
+from __future__ import print_function
+
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import urllib
@@ -13,6 +15,7 @@ if mplversion < "1.3.0":
 else:
 	from matplotlib.path import Path as PolygonPath
 import numpy
+
 
 class NASASRTMUtilConfigClass(object):
 	"""The config is stored in a class, to be configurable from outside
@@ -32,19 +35,19 @@ class NASASRTMUtilConfigClass(object):
 		############################################################
 		self.NASAhgtFileDirs = {3: ["Africa", "Australia", "Eurasia", "Islands",
 			"North_America", "South_America"],
-			1: ["Region_0%i"%i for i in range(1, 8)]}
-		self.NASAhgtSaveSubDirRe = "SRTM%iv%.1f"
+			1: ["Region_0{0:d}".format(i) for i in range(1, 8)]}
+		self.NASAhgtSaveSubDirRe = "SRTM{0:d}v{1:.1f}"
 		############################################################
 		### www.vierfinderpanoramas.org specific variables #########
 		############################################################
-		self.VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%%20map%%20viewfinderpanoramas_org%i.htm"
-		self.VIEWhgtSaveSubDirRe = "VIEW%i"
+		self.VIEWfileDictPageRe = "http://www.viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org{0:d}.htm"
+		self.VIEWhgtSaveSubDirRe = "VIEW{0:d}"
 
 	def getSRTMFileServer(self, resolution, srtmVersion):
 		if srtmVersion == 2.1:
-			return "http://dds.cr.usgs.gov/srtm/version2_1/SRTM%s"%resolution
+			return "http://dds.cr.usgs.gov/srtm/version2_1/SRTM{0:d}".format(resolution)
 		elif srtmVersion == 3.0:
-			return "http://e4ftl01.cr.usgs.gov/SRTM/SRTMGL%s.003/2000.02.11/"%resolution
+			return "http://e4ftl01.cr.usgs.gov/SRTM/SRTMGL{0:d}.003/2000.02.11/".format(resolution)
 
 	def CustomHgtSaveDir(self, directory):
 		"""Set a custom directory to store the hgt files
@@ -57,9 +60,9 @@ class NASASRTMUtilConfigClass(object):
 		# Default value
 		self.hgtSaveDir = directory
 		self.NASAhgtIndexFileRe = os.path.join(self.hgtSaveDir,
-			"hgtIndex_%i_v%.1f.txt")
+			"hgtIndex_{0:d}_v{1:.1f}.txt")
 		self.VIEWhgtIndexFileRe = os.path.join(self.hgtSaveDir,
-			"viewfinderHgtIndex_%i.txt")
+			"viewfinderHgtIndex_{0:d}.txt")
 
 # Create the config object
 NASASRTMUtilConfig = NASASRTMUtilConfigClass()
@@ -103,7 +106,7 @@ def calcBbox(area, corrx=0.0, corry=0.0):
 
 """
 def writeTex(milo, mila, malo, mala, color):
-	texAreas.append("%s/%.2f/%-2f/%.2f/%.2f"%(
+	texAreas.append("{0:s}/{1:.2f}/{2:.2f}/{3:.2f}/{4:.2f}".format(
 		color, milo, mila, malo, mala))
 """
 
@@ -177,11 +180,11 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 	MaxLon += corrx
 	MinLat += corry
 	MaxLat += corry
-	print "checking if area %s intersects with polygon ..."%(
-		makeFileNamePrefix(lon, lat)),
+	print("checking if area {0:s} intersects with polygon ...".format(
+		makeFileNamePrefix(lon, lat)), end=" ")
 	if minLon==MinLon and minLat==MinLat and maxLon==MaxLon and maxLat==MaxLat:
 		# the polygon is completely inside the bounding box
-		print "yes"
+		print("yes")
 		#writeTex(lon, lat, lon+1, lat+1, "green")
 		return True, True
 	# the area is not or completely inside one of the polygons passed to
@@ -198,19 +201,19 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
 			inside += PolygonPath(p).contains_points(points)
 	if numpy.all(inside):
 		# area ist completely inside
-		print "yes"
+		print("yes")
 		#writeTex(lon, lat, lon+1, lat+1, "green")
 		return True, False
 	elif not numpy.any(inside):
 		# area is completely outside
-		print "no"
+		print("no")
 		#writeTex(lon, lat, lon+1, lat+1, "red")
 		return False, False
 	else:
 		# This only happens it a polygon vertex is on the tile border.
 		# Because in this case points_inside_poly() returns unpredictable
 		# results, we better return True here.
-		print "maybe"
+		print("maybe")
 		#writeTex(lon, lat, lon+1, lat+1, "pink")
 		return True, True
 
@@ -223,8 +226,8 @@ def makeFileNamePrefix(lon, lat):
 		latSwitch = "S"
 	else:
 		latSwitch = "N"
-	return "%s%s%s%s"%(latSwitch, str(abs(lat)).rjust(2, '0'),
-		lonSwitch, str(abs(lon)).rjust(3, '0'))
+	return "{0:s}{1:0>2d}{2:s}{3:0>3d}".format(latSwitch, abs(lat),
+		lonSwitch, abs(lon))
 
 def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	"""generates a list of filename prefixes of the files containing data within the
@@ -257,7 +260,7 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 def makeNasaHgtIndex(resolution, srtmVersion):
 	"""generates an index file for the NASA SRTM server.
 	"""
-	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%(resolution,
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe.format(resolution,
 		srtmVersion)
 	if srtmVersion == 2.1:
 		hgtIndexFileOldName = hgtIndexFile[:-9] + hgtIndexFile[-4:]
@@ -271,7 +274,7 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 				# this is a regular file, so we rename it
 				os.rename(hgtIndexFileOldName, hgtIndexFile)
 				# we don't need to return something special
-				print("Renamed old index file '%s' to '%s'."%(
+				print("Renamed old index file '{0:s}' to '{0:s}'.".format(
 					hgtIndexFileOldName, hgtIndexFile))
 				return
 		except:
@@ -279,17 +282,17 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 			# one
 			pass
 	hgtFileServer = NASASRTMUtilConfig.getSRTMFileServer(resolution, srtmVersion)
-	print "generating index in %s ..."%hgtIndexFile, 
+	print("generating index in {0:s} ...".format(hgtIndexFile), end=" ")
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
-		print ""
-		raise IOError("could not open %s for writing"%hgtIndexFile)
-	index.write("# SRTM%iv%.1f index file, VERSION=%i\n"%(resolution,
-		srtmVersion, desiredIndexVersion["srtm%iv%.1f"%(resolution, srtmVersion)]))
+		print()
+		raise IOError("could not open {0:s} for writing".format(hgtIndexFile))
+	index.write("# SRTM{0:d}v{1:.1f} index file, VERSION={2:d}\n".format(resolution,
+		srtmVersion, desiredIndexVersion["srtm{0:d}v{1:.1f}".format(resolution, srtmVersion)]))
 	if srtmVersion == 2.1:
 		for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
-			index.write("[%s]\n"%continent)
+			index.write("[{0:s}]\n".format(continent))
 			url = "/".join([hgtFileServer, continent])
 			continentHtml = urllib.urlopen(url).read()
 			continentSoup = BeautifulSoup(continentHtml)
@@ -297,31 +300,31 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 			for anchor in anchors:
 				if anchor.contents[0].endswith("hgt.zip"):
 					zipFilename = anchor.contents[0].strip()
-					index.write("%s\n"%zipFilename)
+					index.write("{0:s}\n".format(zipFilename))
 	elif srtmVersion == 3.0:
 		indexHtml = urllib.urlopen(hgtFileServer).read()
 		indexSoup = BeautifulSoup(indexHtml)
 		zipFilenames = [a["href"] for a in indexSoup.findAll("a")
 			if a.contents[0].lower().endswith(".hgt.zip")]
 		for zipFilename in zipFilenames:
-			index.write("%s\n"%zipFilename)
-	print "DONE"
+			index.write("{0:s}\n".format(zipFilename))
+	print("DONE")
 
 def writeViewIndex(resolution, zipFileDict):
-	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
 	try:
 		index = open(hgtIndexFile, 'w')
 	except:
-		print ""
-		raise IOError("could not open %s for writing"%hgtIndexFile)
-	index.write("# VIEW%i index file, VERSION=%i\n"%(resolution,
-		desiredIndexVersion["view%i"%resolution]))
+		print()
+		raise IOError("could not open {0:s} for writing".format(hgtIndexFile))
+	index.write("# VIEW{0:d} index file, VERSION={1:d}\n".format(resolution,
+		desiredIndexVersion["view{0:d}".format(resolution)]))
 	for zipFileUrl in sorted(zipFileDict):
-		index.write("[%s]\n"%zipFileUrl)
+		index.write("[{0:s}]\n".format(zipFileUrl))
 		for areaName in zipFileDict[zipFileUrl]:
 			index.write(areaName + "\n")
 	index.close()
-	print "DONE"
+	print("DONE")
 
 def makeViewHgtIndex(resolution):
 	"""generates an index file for the viewfinder hgt files.
@@ -340,54 +343,54 @@ def makeViewHgtIndex(resolution):
 		for lon in range(w, e):
 			for lat in range(s, n):
 				if lon < 0:
-					lonName = "W%s"%(str(-lon).rjust(3, "0"))
+					lonName = "W{0:0>3d}".format(-lon)
 				else:
-					lonName = "E%s"%(str(lon).rjust(3, "0"))
+					lonName = "E{0:0>3d}".format(lon)
 				if s < 0:
-					latName = "S%s"%(str(-lat).rjust(2, "0"))
+					latName = "S{0:0>2d}".format(-lat)
 				else:
-					latName = "N%s"%(str(lat).rjust(2, "0"))
+					latName = "N{0:0>2d}".format(lat)
 				name = "".join([latName, lonName])
 				names.append(name)
 		return names
 
-	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
-	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
+	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe.format(resolution)
 	zipFileDict = {}
 	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
 		areaNames = calcAreaNames(a["coords"], resolution)
 		zipFileUrl = a["href"].strip()
-		if not zipFileDict.has_key(zipFileUrl):
+		if not zipFileUrl in zipFileDict:
 			zipFileDict[zipFileUrl] = []
 		zipFileDict[zipFileUrl].extend(sorted([aName.upper() for aName in
 			areaNames]))
-	print "generating index in %s ..."%hgtIndexFile,
+	print("generating index in {0:s} ...".format(hgtIndexFile), end=" ")
 	writeViewIndex(resolution, zipFileDict)
 
 def updateViewIndex(resolution, zipFileUrl, areaList):
 	"""cleans up the viewfinder index.
 	"""
-	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
 	try:
 		os.stat(hgtIndexFile)
 	except:
-		print "Cannot update index file %s because it's not there."%hgtIndexFile
+		print("Cannot update index file {0:s} because it's not there.".format(hgtIndexFile))
 		return
-	index = getIndex(hgtIndexFile, "view%i"%resolution)
+	index = getIndex(hgtIndexFile, "view{0:d}".format(resolution))
 	zipFileDict = {}
 	for line in index:
 		if line.startswith("["):
 			url = line[1:-1]
-			if not zipFileDict.has_key(url):
+			if not url in zipFileDict:
 				zipFileDict[url] = []
 		else:
 			zipFileDict[url].append(line)
-	if not zipFileDict.has_key(zipFileUrl):
-		print "No such url in zipFileDict: %s"%zipFileUrl
+	if not zipFileUrl in zipFileDict:
+		print("No such url in zipFileDict: {0:s}".format(zipFileUrl))
 		return
 	if sorted(zipFileDict[zipFileUrl]) != sorted(areaList):
 		zipFileDict[zipFileUrl] = sorted(areaList)
-		print "updating index in %s ..."%hgtIndexFile
+		print("updating index in {0:s} ...".format(hgtIndexFile))
 		writeViewIndex(resolution, zipFileDict)
 
 def makeIndex(indexType):
@@ -427,7 +430,7 @@ def getIndex(filename, indexType):
 	else:
 		indexVersion = 1
 	if indexVersion != desiredIndexVersion[indexType]:
-		print "Creating new version of index file for source %s."%indexType
+		print("Creating new version of index file for source {0:s}.".format(indexType))
 		makeIndex(indexType)
 	index = [l.strip() for l in open(filename, 'r').readlines() if not l.startswith("#")]
 	index = [l for l in index if l]
@@ -436,7 +439,7 @@ def getIndex(filename, indexType):
 def getNASAUrl(area, resolution, srtmVersion):
 	"""determines the NASA download url for a given area.
 	"""
-	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe%(resolution,
+	hgtIndexFile = NASASRTMUtilConfig.NASAhgtIndexFileRe.format(resolution,
 		srtmVersion)
 	hgtFileServer = NASASRTMUtilConfig.getSRTMFileServer(resolution, srtmVersion)
 	try:
@@ -444,21 +447,21 @@ def getNASAUrl(area, resolution, srtmVersion):
 	except:
 		makeNasaHgtIndex(resolution, srtmVersion)
 	# index rewriting if out of date happens in getIndex()
-	index = getIndex(hgtIndexFile, "srtm%iv%.1f"%(resolution, srtmVersion))
+	index = getIndex(hgtIndexFile, "srtm{0:d}v{1:.1f}".format(resolution, srtmVersion))
 	# the index is up to date now
 	if srtmVersion == 2.1:
-		file = "%s.hgt.zip"%area
-		fileFaulty = "%shgt.zip"%area
+		file = "{0:s}.hgt.zip".format(area)
+		fileFaulty = "{0:s}hgt.zip".format(area)
 		fileMap = {}
 		for line in index:
 			if line.startswith("["):
 				continent = line[1:-1]
 			else:
 				fileMap[line] = continent
-		if fileMap.has_key(file):
+		if file in fileMap:
 			url = '/'.join([hgtFileServer, fileMap[file], file])
 			return url
-		elif fileMap.has_key(fileFaulty):
+		elif fileFaulty in fileMap:
 			url = '/'.join([hgtFileServer, fileMap[fileFaulty], fileFaulty])
 			return url
 		else:
@@ -475,12 +478,12 @@ def getNASAUrl(area, resolution, srtmVersion):
 def getViewUrl(area, resolution):
 	"""determines the viewfinder download url for a given area.
 	"""
-	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe%resolution
+	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
 	try:
 		os.stat(hgtIndexFile)
 	except:
 		makeViewHgtIndex(resolution)
-	index = getIndex(hgtIndexFile, "view%i"%resolution)
+	index = getIndex(hgtIndexFile, "view{0:d}".format(resolution))
 	for line in index:
 		if line.startswith("[") and line.endswith("]"):
 			url = line[1:-1]
@@ -491,7 +494,7 @@ def getViewUrl(area, resolution):
 def unzipFile(saveZipFilename, area):
 	"""unzip a zip file.
 	"""
-	print "%s: unzipping file %s ..."%(area, saveZipFilename)
+	print("{0:s}: unzipping file {1:s} ...".format(area, saveZipFilename))
 	zipFile = zipfile.ZipFile(saveZipFilename)
 	areaNames = []
 	for name in zipFile.namelist():
@@ -509,7 +512,7 @@ def unzipFile(saveZipFilename, area):
 	# destruct zipFile before removing it.  removing otherwise fails under windows
 	zipFile.__del__()
 	os.remove(saveZipFilename)
-	#print "DONE"
+	#print("DONE")
 	return areaNames
 
 """
@@ -518,8 +521,8 @@ def makePolygonCoords(polygonList):
 	for polygon in polygonList:
 		coords = []
 		for lon, lat in polygon:
-			coords.append("(%.7f, %.7f)"%(lon, lat))
-		pathList.append("\\draw[line width=2pt] plot coordinates{%s} --cycle;"%(" ".join(coords)))
+			coords.append("({0:.7f}, {1:.7f})".format(lon, lat))
+		pathList.append("\\draw[line width=2pt] plot coordinates{{{0:s}}} --cycle;".format(" ".join(coords)))
 	return "\n\t".join(pathList)
 """
 
@@ -534,9 +537,10 @@ def getDirNames(source):
 	if source.startswith("srtm"):
 		srtmVersion = float(source[6:])
 		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
-			NASASRTMUtilConfig.NASAhgtSaveSubDirRe%(resolution, srtmVersion))
+			NASASRTMUtilConfig.NASAhgtSaveSubDirRe.format(resolution, srtmVersion))
 	elif source.startswith("view"):
-		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%resolution)
+		hgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
+			NASASRTMUtilConfig.VIEWhgtSaveSubDirRe.format(resolution))
 	return NASASRTMUtilConfig.hgtSaveDir, hgtSaveSubDir
 
 def initDirs(sources):
@@ -546,7 +550,7 @@ def initDirs(sources):
 		if sourceType == "srtm":
 			srtmVersion = float(source[6:])
 			NASAhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
-				NASASRTMUtilConfig.NASAhgtSaveSubDirRe%(sourceResolution, srtmVersion))
+				NASASRTMUtilConfig.NASAhgtSaveSubDirRe.format(sourceResolution, srtmVersion))
 			if srtmVersion == 2.1:
 				NASAhgtSaveSubDirOldName = NASAhgtSaveSubDir[:-4]
 				try:
@@ -560,7 +564,7 @@ def initDirs(sources):
 						except:
 							# no new directory, so rename the old one to the new name
 							os.rename(NASAhgtSaveSubDirOldName, NASAhgtSaveSubDir)
-							print("Renamed the old hgt cache directory '%s' to '%s'."%(
+							print("Renamed the old hgt cache directory '{0:s}' to '{1:s}'.".format(
 								NASAhgtSaveSubDirOldName, NASAhgtSaveSubDir))
 				except OSError:
 					# there is no directory with the old SRTM directory name
@@ -569,21 +573,22 @@ def initDirs(sources):
 			# an old directory to this name
 			mkdir(NASAhgtSaveSubDir)
 		elif sourceType == "view":
-			VIEWhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir, NASASRTMUtilConfig.VIEWhgtSaveSubDirRe%sourceResolution)
+			VIEWhgtSaveSubDir = os.path.join(NASASRTMUtilConfig.hgtSaveDir,
+				NASASRTMUtilConfig.VIEWhgtSaveSubDirRe.format(sourceResolution))
 			mkdir(VIEWhgtSaveSubDir)
 
 def downloadAndUnzip(url, area, source):
 	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
 	fileResolution = int(source[4])
 	saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])
-	saveFilename = os.path.join(hgtSaveSubDir, "%s.hgt"%area)
+	saveFilename = os.path.join(hgtSaveSubDir, "{0:s}.hgt".format(area))
 	try:
 		os.stat(saveFilename)
-		wantedSize = 2 * (3600/fileResolution + 1)**2
+		wantedSize = 2 * (3600//fileResolution + 1)**2
 		foundSize = os.path.getsize(saveFilename)
 		if foundSize != wantedSize:
-			raise IOError("Wrong size: Expected %i, found %i"%(wantedSize,foundSize))
-		print "%s: using existing file %s."%(area, saveFilename)
+			raise IOError("Wrong size: Expected {0:d}, found {1:d}".format(wantedSize,foundSize))
+		print("{0:s}: using existing file {1:s}.".format(area, saveFilename))
 		return saveFilename
 	except:
 		try:
@@ -595,10 +600,10 @@ def downloadAndUnzip(url, area, source):
 				if not viewUrl:
 					return None
 				elif not viewUrl==url:
-					print "Got the wrong zip file (area found multiple times in index file)."
+					print("Got the wrong zip file (area found multiple times in index file).")
 					return downloadAndUnzip(viewUrl, area, source)
 		except:
-			print "%s: downloading file %s to %s ..."%(area, url, saveZipFilename)
+			print("{0:s}: downloading file {1:s} to {2:s} ...".format(area, url, saveZipFilename))
 			urllib.urlretrieve(url, filename=saveZipFilename)
 			try:
 				areaNames = unzipFile(saveZipFilename, area)
@@ -608,22 +613,22 @@ def downloadAndUnzip(url, area, source):
 					if not viewUrl:
 						return None
 					elif not viewUrl==url:
-						print "Got the wrong zip file (area found multiple times in index file)."
+						print("Got the wrong zip file (area found multiple times in index file).")
 						return downloadAndUnzip(viewUrl, area, source)
 			except Exception, msg:
-				print msg
-				print "%s: file %s from %s is not a zip file"%(area, saveZipFilename, url)
+				print(msg)
+				print("{0:s}: file {1:s} from {2:s} is not a zip file".format(area, saveZipFilename, url))
 	try:
 		os.stat(saveFilename)
-		wantedSize = 2 * (3600/fileResolution + 1)**2
+		wantedSize = 2 * (3600//fileResolution + 1)**2
 		foundSize = os.path.getsize(saveFilename)
 		if foundSize != wantedSize:
-			raise IOError("%s: wrong size: Expected %i, found %i"%(area,
+			raise IOError("{0:s}: wrong size: Expected {1:d}, found {2:d}".format(area,
 				wantedSize,foundSize))
-		print "%s: using file %s."%(area, saveFilename)
+		print("{0:s}: using file {1:s}.".format(area, saveFilename))
 		return saveFilename
 	except Exception, msg:
-		print msg
+		print(msg)
 		return None
 
 def getFile(area, source):
@@ -645,13 +650,13 @@ def getFiles(area, polygon, corrx, corry, sources):
 	files = []
 	for area, checkPoly in areaPrefixes:
 		for source in sources:
-			print "%s: trying %s ..."%(area, source)
+			print("{0:s}: trying {1:s} ...".format(area, source))
 			saveFilename = getFile(area, source)
 			if saveFilename:
 				files.append((saveFilename, checkPoly))
 				break
 		else:
-			print "%s: no file found on server."%area
+			print("{0:s}: no file found on server.".format(area))
 			continue
 	return files
 

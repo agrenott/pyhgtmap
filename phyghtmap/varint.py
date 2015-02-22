@@ -1,10 +1,7 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
-
-def bits(n):
-	return bin(n)[2:]
 
 def int2str(n):
 	b = n&127
@@ -27,6 +24,16 @@ def sint2str(n):
 	n = ((-n-1)<<1)|1
 	return int2str(n)
 
-def n2n(s):
-	return s
+def writableInt(integer):
+	return chr(integer)
+
+def writableString(string):
+	return string
+
+def join(sequence):
+	"""takes a sequence of string-like objects and returns them as joined string
+	"""
+	return "".join(sequence)
+
+bboxStringtypes = (type(str()), type(unicode()))
 

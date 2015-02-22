@@ -1,9 +1,11 @@
 #import psyco
 #psyco.full()
 
+from __future__ import print_function
+
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import sys
@@ -53,6 +55,9 @@ def parseCommandLine():
 		"\ndata.  The computation time will be somewhat higher then.  If specified,"
 		"\na bounding box passed to the --area option will be ignored.",
 		dest="polygon", action="store", metavar="FILENAME", default=None)
+	parser.add_option("--download-only", help="only download needed files,"
+		"\ndon't write contour data.", action="store_true", default=False,
+		dest="downloadOnly")
 	parser.add_option("-s", "--step", help="specify contour line step size in"
 		"\nmeters. The default value is 20.", dest="contourStepSize",
 		metavar="STEP", action="store", default='20')
@@ -80,8 +85,9 @@ def parseCommandLine():
 		metavar="OSM-VERSION", dest="osmVersion", action="store", default=0.6,
 		type="float")
 	parser.add_option("--write-timestamp", help="write the timestamp attribute of"
-		"\noutput OSM XML node and way elements.  This might be needed by some"
-		"\ninterpreters.", dest="writeTimestamp", action="store_true",
+		"\nnode and way elements in OSM XML and o5m output.  This might be needed by some"
+		"\ninterpreters.  In o5m output, this also triggers writing of changeset and"
+		"\nuser information.", dest="writeTimestamp", action="store_true",
 		default=False)
 	parser.add_option("--start-node-id", help="specify an integer as id of"
 		"\nthe first written node in the output OSM xml.  It defaults to 10000000"
@@ -181,7 +187,7 @@ def parseCommandLine():
 		dest="version", action="store_true", default=False)
 	opts, args = parser.parse_args()
 	if opts.version:
-		print "phyghtmap %s"%__version__
+		print("phyghtmap {0:s}".format(__version__))
 		sys.exit(0)
 	if opts.hgtdir:  # Set custom ./hgt/ directory
 		NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
@@ -202,8 +208,8 @@ def parseCommandLine():
 			break
 	else:
 		# unsupported SRTM data version
-		sys.stderr.write("Unsupported SRTM data version '%.1f'.  See the"
-			" --srtm-version option for details.\n\n"%opts.srtmVersion)
+		sys.stderr.write("Unsupported SRTM data version '{0:.1f}'.  See the"
+			" --srtm-version option for details.\n\n".format(opts.srtmVersion))
 		parser.print_help()
 		sys.exit(1)
 	if opts.srtmResolution not in [1, 3]:
@@ -219,17 +225,17 @@ def parseCommandLine():
 			opts.dataSource.lower().split(",")]
 		for s in opts.dataSource:
 			if not s[:5] in ["view1", "view3", "srtm1", "srtm3"]:
-				print "Unknown data source: %s"%s
+				print("Unknown data source: {0:s}".format(s))
 				sys.exit(1)
 			elif s in ["srtm1", "srtm3"]:
 				while s in opts.dataSource:
-					opts.dataSource[opts.dataSource.index(s)] = "%sv%.1f"%(
+					opts.dataSource[opts.dataSource.index(s)] = "{0:s}v{1:.1f}".format(
 						s, opts.srtmVersion)
 	else:
 		opts.dataSource = []
 		if opts.viewfinder != 0:
-			opts.dataSource.append("view%i"%opts.viewfinder)
-		opts.dataSource.append("srtm%iv%.1f"%(opts.srtmResolution,
+			opts.dataSource.append("view{0:d}".format(opts.viewfinder))
+		opts.dataSource.append("srtm{0:d}v{1:.1f}".format(opts.srtmResolution,
 			opts.srtmVersion))
 		if not opts.area and not opts.polygon:
 			# this is a hint for makeOsmFilename() that files are specified on the
@@ -242,12 +248,17 @@ def parseCommandLine():
 		try:
 			os.stat(opts.polygon)
 		except OSError:
-			print "Couldn't find polygon file: %s"%opts.polygon
+			print("Couldn't find polygon file: {0:s}".format(opts.polygon))
 			sys.exit(1)
 		if not os.path.isfile(opts.polygon):
-			print "Polygon file '%s' is not a regular file"%opts.polygon
+			print("Polygon file '{0:s}' is not a regular file".format(opts.polygon))
 			sys.exit(1)
 		opts.area, opts.polygon = hgt.parsePolygon(opts.polygon)
+	elif opts.downloadOnly and not opts.area:
+		# no area, no polygon, so nothing to download
+		sys.stderr.write("Nothing to download.  Combine the --download-only option with"
+			"\neither one of the --area and --polygon options.\n")
+		sys.exit(1)
 	return opts, args
 
 def makeOsmFilename(borders, opts, srcNames):
@@ -256,7 +267,7 @@ def makeOsmFilename(borders, opts, srcNames):
 	"""
 	minLon, minLat, maxLon, maxLat = borders
 	if opts.outputPrefix:
-		prefix = "%s_"%opts.outputPrefix
+		prefix = "{0:s}_".format(opts.outputPrefix)
 	else:
 		prefix = ""
 	srcNameMiddles = [os.path.split(os.path.split(srcName)[0])[1].lower() for srcName in
@@ -267,15 +278,15 @@ def makeOsmFilename(borders, opts, srcNames):
 		elif not opts.dataSource:
 			# files from the command line, this could be something custom
 			srcTag = ",".join(set(srcNameMiddles))
-			osmName = hgt.makeBBoxString(borders)%prefix + "_%s.osm"%(srcTag)
+			osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(srcTag)
 			break
 		else:
-			osmName = hgt.makeBBoxString(borders)%prefix + ".osm"
+			osmName = hgt.makeBBoxString(borders).format(prefix) + ".osm"
 			break
 	else:
 		srcTag = ",".join([s for s in opts.dataSource if s in
 			set(srcNameMiddles)])
-		osmName = hgt.makeBBoxString(borders)%prefix + "_%s.osm"%(srcTag)
+		osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(srcTag)
 	if opts.gzip:
 		osmName += ".gz"
 	elif opts.pbf:
@@ -293,7 +304,7 @@ def getOutput(opts, srcNames, bounds):
 			bounds, elevClassifier)
 	elif opts.o5m:
 		output = o5mUtil.Output(outputFilename, opts.osmVersion, __version__,
-			bounds, elevClassifier)
+			bounds, elevClassifier, writeTimestamp=opts.writeTimestamp)
 	else:
 		# standard XML output, possibly gzipped
 		output = osmUtil.Output(outputFilename,
@@ -425,7 +436,7 @@ class ProcessQueue(object):
 		pid = os.fork()
 		srcName, checkPoly = self.fileList.pop()
 		if pid==0:
-			print "Computing %s"%srcName
+			print("Computing {0:s}".format(srcName))
 			os.close(statsR)
 			statsWPipe = os.fdopen(statsW, "w")
 			os.close(nodeR)
@@ -477,7 +488,7 @@ class ProcessQueue(object):
 						self.ways.extend(eval(s))
 				pid, res = os.wait()
 				if res:
-					print "Panic: Didn't work:", self.children[pid][0]
+					print("Panic: Didn't work:", self.children[pid][0])
 				self.Poll.unregister(self.children[pid][1])
 				self.children[pid][1].close()
 				self.children[pid][2].close()
@@ -490,7 +501,7 @@ class ProcessQueue(object):
 		pid = os.fork()
 		srcName, checkPoly = self.fileList.pop()
 		if pid==0:
-			print "Computing %s"%srcName
+			print("Computing {0:s}".format(srcName))
 			os.close(statsR)
 			statsWPipe = os.fdopen(statsW, "w")
 			processHgtFile(srcName, self.opts, None, None, statsWPipe,
@@ -516,7 +527,7 @@ class ProcessQueue(object):
 			if self.children:
 				pid, res = os.wait()
 				if res:
-					print "Panic: Didn't work:", self.children[pid][0]
+					print("Panic: Didn't work:", self.children[pid][0])
 				del self.children[pid]
 
 	def process(self):
@@ -532,7 +543,12 @@ def main():
 		hgtDataFiles = NASASRTMUtil.getFiles(opts.area, opts.polygon,
 			opts.srtmCorrx, opts.srtmCorry, opts.dataSource)
 		if len(hgtDataFiles) == 0:
-			print "No files for this area %s from desired source."%opts.area
+			if len(opts.dataSource) == 1:
+				print("No files for this area {0:s} from desired source.".format(opts.area))
+			else:
+				print("No files for this area {0:s} from desired sources.".format(opts.area))
+			sys.exit(0)
+		elif opts.downloadOnly:
 			sys.exit(0)
 	else:
 		hgtDataFiles = [(arg, False) for arg in args if arg.endswith(".hgt")]

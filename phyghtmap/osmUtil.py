@@ -1,12 +1,14 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import numpy
 from matplotlib import __version__ as mplversion
 import time
 import datetime
+
+from phyghtmap.varint import writableString
 
 def makeElevClassifier(majorDivisor, mediumDivisor):
 	"""returns a function taking an elevation and returning a
@@ -53,16 +55,16 @@ class Output(object):
 		elevClassifier=None, timestamp=False):
 		if 0 < gzip < 10:
 			import gzip as Gzip
-			self.outF = Gzip.open(fName, "w", gzip)
+			self.outF = Gzip.open(fName, "wb", gzip)
 		else:
-			self.outF = open(fName, "w")
-		self.osmVersion = "%.1f"%osmVersion
+			self.outF = open(fName, "wb")
+		self.osmVersion = "{0:.1f}".format(osmVersion)
 		if osmVersion > 0.5:
 			self.versionString = ' version="1"'
 		else:
 			self.versionString = ""
 		if timestamp:
-			self.timestampString = ' timestamp="%s"'%makeUtcTimestamp()
+			self.timestampString = ' timestamp="{0:s}"'.format(makeUtcTimestamp())
 		else:
 			self.timestampString = ""
 		self.elevClassifier = elevClassifier
@@ -71,18 +73,19 @@ class Output(object):
 		self._writePreamble()
 
 	def _writePreamble(self):
-		self.outF.write('<?xml version="1.0" encoding="utf-8"?>\n')
-		self.outF.write('<osm version="%s" generator="phyghtmap %s">\n'%(
+		self.write('<?xml version="1.0" encoding="utf-8"?>\n')
+		self.write(
+			'<osm version="{0:s}" generator="phyghtmap {1:s}">\n'.format(
 			self.osmVersion, self.phyghtmapVersion))
-		self.outF.write(self.boundsTag+"\n")
+		self.write(self.boundsTag+"\n")
 	
 	def done(self):
-		self.outF.write("</osm>\n")
+		self.write("</osm>\n")
 		self.outF.close()
 		return 0
 
 	def write(self, output):
-		self.outF.write(output)
+		self.outF.write(writableString(output))
 
 	def flush(self):
 		self.outF.flush()
@@ -91,15 +94,15 @@ class Output(object):
 		IDCounter = Id(startWayId)
 		for startNodeId, length, isCycle, elevation in ways:
 			IDCounter.curId += 1
-			nodeIds = range(startNodeId, startNodeId+length)
+			nodeIds = list(range(startNodeId, startNodeId+length))
 			if isCycle:
 				nodeIds.append(nodeIds[0])
-			nodeRefs = ('<nd ref="%d"/>\n'*len(nodeIds))%tuple(nodeIds)
-			self.write('<way id="%d"%s%s>%s'
-				'<tag k="ele" v="%d"/>'
+			nodeRefs = ('<nd ref="{:d}"/>\n'*len(nodeIds)).format(*nodeIds)
+			self.write('<way id="{0:d}"{1:s}{2:s}>{3:s}'
+				'<tag k="ele" v="{4:d}"/>'
 				'<tag k="contour" v="elevation"/>'
-				'<tag k="contour_ext" v="%s"/>'
-				'</way>\n'%(
+				'<tag k="contour_ext" v="{5:s}"/>'
+				'</way>\n'.format(
 					IDCounter.curId-1,
 					self.versionString,
 					self.timestampString,
@@ -116,7 +119,7 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
 	ids, content = [], []
 	for lon, lat in path:
 		IDCounter.curId += 1
-		content.append('<node id="%d" lat="%.7f" lon="%.7f"%s%s/>'%(
+		content.append('<node id="{0:d}" lat="{1:.7f}" lon="{2:.7f}"{3:s}{4:s}/>'.format(
 			IDCounter.curId-1,
 			lat,
 			lon,
@@ -129,6 +132,7 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
 		del ids[-1]
 		ids.append(ids[0])
 		IDCounter.curId -= 1
+	# output is eventually a pipe, so we must pass a string
 	output.write("\n".join(content)+"\n")
 	return ids
 

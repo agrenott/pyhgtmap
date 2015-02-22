@@ -1,6 +1,8 @@
+from __future__ import print_function
+
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import os
@@ -11,6 +13,8 @@ if mplversion < "1.3.0":
 else:
 	from matplotlib.path import Path as PolygonPath
 import numpy
+
+from phyghtmap.varint import bboxStringtypes
 
 
 class hgtError(Exception):
@@ -31,10 +35,8 @@ def halfOf(seq):
 	return seq[:len(seq)//2]
 
 def makeBBoxString(bbox):
-	return "%%slon%.2f_%.2flat%.2f_%.2f"%(
-		bbox[0], bbox[2],
-		bbox[1], bbox[3]
-	)
+	return "{{0:s}}lon{0[0]:.2f}_{0[2]:.2f}lat{0[1]:.2f}_{0[3]:.2f}".format(
+		bbox)
 
 def parsePolygon(filename):
 	"""reads polygons from a file like one included in
@@ -73,7 +75,7 @@ def parsePolygon(filename):
 	maxLon = lonList[-1]
 	minLat = latList[0]
 	maxLat = latList[-1]
-	return "%.7f:%.7f:%.7f:%.7f"%(minLon, minLat, maxLon, maxLat), polygons
+	return "{0:.7f}:{1:.7f}:{2:.7f}:{3:.7f}".format(minLon, minLat, maxLon, maxLat), polygons
 
 def makeBoundsString(bbox):
 	"""returns an OSM XML bounds tag.
@@ -82,10 +84,10 @@ def makeBoundsString(bbox):
 	to the --area option of phyghtmap in the following order:
 	minlon, minlat, maxlon, maxlat.
 	"""
-	if type(bbox) in [type(str()), type(unicode())] and bbox.count(":")==3:
+	if type(bbox) in bboxStringtypes and bbox.count(":")==3:
 		bbox = bbox.split(":")
 	minlon, minlat, maxlon, maxlat = [float(i) for i in bbox]
-	return '<bounds minlat="%.7f" minlon="%.7f" maxlat="%.7f" maxlon="%.7f"/>'%(
+	return '<bounds minlat="{0:.7f}" minlon="{1:.7f}" maxlat="{2:.7f}" maxlon="{3:.7f}"/>'.format(
 		minlat, minlon, maxlat, maxlon)
 
 def parseHgtFilename(filename, corrx, corry):
@@ -109,7 +111,7 @@ def parseHgtFilename(filename, corrx, corry):
 		minLat = -1 * int(latValue)
 	else:
 		raise filenameError("something wrong with latitude coding in"
-			" filename %s"%filename)
+			" filename {0:s}".format(filename))
 	maxLat = minLat + 1
 	if lonSwitch == 'E' and lonValue.isdigit():
 		minLon = int(lonValue)
@@ -117,7 +119,7 @@ def parseHgtFilename(filename, corrx, corry):
 		minLon = -1 * int(lonValue)
 	else:
 		raise filenameError("something wrong with longitude coding in"
-			" filename %s"%filename)
+			" filename {0:s}".format(filename))
 	maxLon = minLon + 1
 	return minLon+corrx, minLat+corry, maxLon+corrx, maxLat+corry
 
@@ -315,9 +317,10 @@ class hgtFile:
 			xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 			yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		# some statistics
-		print 'hgt file %s: %i x %i points, bbox: (%.5f, %.5f, %.5f, %.5f)%s'%(self.fullFilename,
+		print('hgt file {0:s}: {1:d} x {2:d} points, bbox: ({3:.5f}, {4:.5f}, '
+			'{5:.5f}, {6:.5f}){7:s}'.format(self.fullFilename,
 			self.numOfCols, self.numOfRows, self.minLon, self.minLat, self.maxLon,
-			self.maxLat, {True: ", checking polygon borders", False: ""}[checkPoly])
+			self.maxLat, {True: ", checking polygon borders", False: ""}[checkPoly]))
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
@@ -522,11 +525,11 @@ class hgtTile:
 	def printStats(self):
 		"""prints some statistics about the tile.
 		"""
-		print "\ntile with %i x %i points, bbox: (%.2f, %.2f, %.2f, %.2f)"%(
+		print("\ntile with {0:d} x {1:d} points, bbox: ({2:.2f}, {3:.2f}, {4:.2f}, {5:.2f})".format(
 			self.numOfRows, self.numOfCols, self.minLon, self.minLat, self.maxLon,
-			self.maxLat)
-		print "minimum elevation: %i"%self.minEle
-		print "maximum elevation: %i"%self.maxEle
+			self.maxLat))
+		print("minimum elevation: {0:d}".format(self.minEle))
+		print("maximum elevation: {0:d}".format(self.maxEle))
 
 	def getElevRange(self):
 		"""returns minEle, maxEle of the current tile.
@@ -606,14 +609,15 @@ class hgtTile:
 	def plotData(self, plotPrefix='heightPlot'):
 		"""generates plot data in the file specified by <plotFilename>.
 		"""
-		filename = makeBBoxString(self.bbox())%(plotPrefix+"_") + ".xyz"
+		filename = makeBBoxString(self.bbox()).format(plotPrefix+"_") + ".xyz"
 		try:
 			plotFile = open(filename, 'w')
 		except:
-			raise IOError("could not open plot file %s for writing"%plotFilename)
+			raise IOError("could not open plot file {0:s} for writing".format(
+				plotFilename))
 		for latIndex, row in enumerate(self.zData):
 			lat = self.maxLat - latIndex*self.latIncrement
 			for lonIndex, height in enumerate(row):
 				lon = self.minLon + lonIndex*self.lonIncrement
-				plotFile.write("%.7f %.7f %i\n"%(lon, lat, height))
+				plotFile.write("{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height))
 

@@ -1,23 +1,23 @@
-
+; charset=UTF-8
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: December 2014<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: January 2015<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
 <B>phyghtmap</B>
-- NASA SRTM -&gt; OSM xml (.osm) or OSM pbf (.osm.pbf) translator
+- NASA SRTM -&gt; OSM xml (.osm), OSM pbf (.osm.pbf) or OSM o5m (.o5m) translator
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
 
 <B>phyghtmap</B>
 
-[<I>options</I>] [<I>&lt;hgt file&gt;</I>] [<I>&lt;hgt files&gt;</I>]
+[<I>,options/</I>] [<I>,&lt;hgt file&gt;/</I>] [<I>,&lt;hgt files&gt;/</I>]
 <A NAME="lbAD">&nbsp;</A>
 <H2>DESCRIPTION</H2>
 
@@ -36,14 +36,14 @@ yet.  There is also the possibility of masking the NASA SRTM data with
 data from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
 lacking in the NASA data set.  Since the 3 arc second data available
 from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> is now complete for the whole world,
-good results can be achieved by specifying <B>--source</B>=<I>view3</I>.
+good results can be achieved by specifying <B>--source</B>=<I>,view3/</I>.
 <A NAME="lbAE">&nbsp;</A>
 <H2>OPTIONS</H2>
 
 <DL COMPACT>
 <DT><B>-h</B>, <B>--help</B><DD>
 show this help message and exit
-<DT><B>-a</B> LEFT:BOTTOM:RIGHT:TOP, <B>--area</B>=<I>LEFT</I>:BOTTOM:RIGHT:TOP<DD>
+<DT><B>-a</B> LEFT:BOTTOM:RIGHT:TOP, <B>--area</B>=<I>,LEFT/</I>:BOTTOM:RIGHT:TOP<DD>
 choses the area to generate osm SRTM data for by
 bounding box. If necessary, files are downloaded from
 the NASA server.  Specify as
@@ -52,67 +52,70 @@ and longitude, respectively. Latitudes south of the
 equator and longitudes west of Greenwich may be given
 as negative decimal numbers. If this option is given,
 specified hgt files will be omitted.
-<DT><B>--polygon</B>=<I>FILENAME</I><DD>
+<DT><B>--polygon</B>=<I>,FILENAME/</I><DD>
 use polygon FILENAME as downloaded from
 <A HREF="http://download.geofabrik.de/clipbounds/">http://download.geofabrik.de/clipbounds/</A> as bounds for
 the output contour data.  The computation time will be
 somewhat higher then.  If specified, a bounding box
 passed to the <B>--area</B> option will be ignored.
-<DT><B>-s</B> STEP, <B>--step</B>=<I>STEP</I><DD>
+<DT><B>--download-only</B><DD>
+only download needed files, don't write contour data.
+<DT><B>-s</B> STEP, <B>--step</B>=<I>,STEP/</I><DD>
 specify contour line step size in meters. The default
 value is 20.
 <DT><B>-0</B>, <B>--no-zero-contour</B><DD>
 say this, if you don't want the sea level contour line
 (0 m) (which sometimes looks rather ugly) to appear in
 the output.
-<DT><B>-o</B> PREFIX, <B>--output-prefix</B>=<I>PREFIX</I><DD>
+<DT><B>-o</B> PREFIX, <B>--output-prefix</B>=<I>,PREFIX/</I><DD>
 specify a prefix for the filenames of the output osm
 file(s).
-<DT><B>-p</B> PLOTPREFIX, <B>--plot</B>=<I>PLOTPREFIX</I><DD>
+<DT><B>-p</B> PLOTPREFIX, <B>--plot</B>=<I>,PLOTPREFIX/</I><DD>
 specify the prefix for the files to write
 longitude/latitude/elevation data to instead of
 generating contour osm.
-<DT><B>-c</B> ELEVATION_MAJOR,ELEVATION_MEDIUM, <B>--line-cat</B>=<I>ELEVATION_MAJOR</I>,ELEVATION_MEDIUM<DD>
+<DT><B>-c</B> ELEVATION_MAJOR,ELEVATION_MEDIUM, <B>--line-cat</B>=<I>,ELEVATION_MAJOR/</I>,ELEVATION_MEDIUM<DD>
 specify a string of two comma seperated integers for
 major and medium elevation categories, e. g. '200,100'
 which is the default. This is needed for fancy
 rendering.
-<DT><B>-j</B> NJOBS, <B>--jobs</B>=<I>NJOBS</I><DD>
+<DT><B>-j</B> NJOBS, <B>--jobs</B>=<I>,NJOBS/</I><DD>
 number of jobs to be run in parallel (POSIX only)
-<DT><B>--osm-version</B>=<I>OSM-VERSION</I><DD>
+<DT><B>--osm-version</B>=<I>,OSM-VERSION/</I><DD>
 pass a number as OSM-VERSION to use for the output.
 The default value is 0.6.  If you need an older
 version, try 0.5.
 <DT><B>--write-timestamp</B><DD>
-write the timestamp attribute of output OSM XML node
-and way elements.  This might be needed by some
-interpreters.
-<DT><B>--start-node-id</B>=<I>NODE-ID</I><DD>
+write the timestamp attribute of node and way elements
+in OSM XML and o5m output.  This might be needed by
+some interpreters.  In o5m output, this also triggers
+writing of changeset and user information.
+<DT><B>--start-node-id</B>=<I>,NODE-ID/</I><DD>
 specify an integer as id of the first written node in
 the output OSM xml.  It defaults to 10000000 but some
 OSM xml mergers are running into trouble when
 encountering non unique ids.  In this case and for the
 moment, it is safe to say 10000000000 (ten billion)
 then.
-<DT><B>--start-way-id</B>=<I>WAY-ID</I><DD>
+<DT><B>--start-way-id</B>=<I>,WAY-ID/</I><DD>
 specify an integer as id of the first written way in
 the output OSM xml.  It defaults to 10000000 but some
 OSM xml mergers are running into trouble when
 encountering non unique ids.  In this case and for the
 moment, it is safe to say 10000000000 (ten billion)
 then.
-<DT><B>--max-nodes-per-tile</B>=<I>MAXNODESPERTILE</I><DD>
+<DT><B>--max-nodes-per-tile</B>=<I>,MAXNODESPERTILE/</I><DD>
 specify an integer as a maximum number of nodes per
 generated tile.  It defaults to 1000000, which is
 approximately the maximum number of nodes handled
 properly by mkgmap.  For bigger tiles, try higher
 values.  For a single file output, say 0 here.
-<DT><B>--max-nodes-per-way</B>=<I>MAXNODESPERWAY</I><DD>
+<DT><B>--max-nodes-per-way</B>=<I>,MAXNODESPERWAY/</I><DD>
 specify an integer as a maximum number of nodes per
 way.  It defaults to 2000, which is the maximum value
 for OSM api version 0.6.  Say 0 here, if you want
 unsplitted ways.
-<DT><B>--gzip</B>=<I>COMPRESSLEVEL</I><DD>
+<DT><B>--gzip</B>=<I>,COMPRESSLEVEL/</I><DD>
 turn on gzip compression of output files. This reduces
 the needed disk space but results in higher
 computation times.  Specifiy an integer between 1 and
@@ -130,43 +133,43 @@ reduces the needed disk space. Be sure the programs
 you want to use the output files with are capable of
 o5m parsing.  The output files will have the .o5m
 extension.
-<DT><B>--srtm</B>=<I>SRTM-RESOLUTION</I><DD>
+<DT><B>--srtm</B>=<I>,SRTM-RESOLUTION/</I><DD>
 use SRTM resolution of SRTM-RESOLUTION arc seconds.
 Possible values are 1 and 3, the default value is 3.
 For different SRTM data versions and map coverage, see
 the <B>--srtm-version</B> option.
-<DT><B>--srtm-version</B>=<I>VERSION</I><DD>
+<DT><B>--srtm-version</B>=<I>,VERSION/</I><DD>
 use this VERSION of SRTM data. Supported SRTM versions
 are 2.1 and 3.  Version 2.1 has voids which were
 filled in version 3 using ASTER GDEM and other data.
 In version 2.1, only the US territory is included in
 the 1 arc second dataset.  In version 3, nearly the
 whole world is covered.  The default for this option
-is 3.  If you want the old version, say <B>--srtmversion</B>=<I>2</I>.1 here
-<DT><B>--viewfinder-mask</B>=<I>VIEWFINDER-RESOLUTION</I><DD>
+is 3.  If you want the old version, say <B>--srtmversion</B>=<I>,2/</I>.1 here
+<DT><B>--viewfinder-mask</B>=<I>,VIEWFINDER-RESOLUTION/</I><DD>
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
 and 3 (for explanation, see the <B>--srtm</B> option).
-<DT><B>--source</B>=<I>DATA-SOURCE</I>, <B>--data-source</B>=<I>DATA-SOURCE</I><DD>
+<DT><B>--source</B>=<I>,DATA-SOURCE/</I>, <B>--data-source</B>=<I>,DATA-SOURCE/</I><DD>
 specify a list of sources to use as comma-seperated
 string.  Available sources are 'srtm1', 'srtm3',
 'view1' and 'view3'.  If specified, the data source
 will be selected using this option as preference list.
-Specifying <B>--source</B>=<I>view3</I>,srtm3 for example will
+Specifying <B>--source</B>=<I>,view3/</I>,srtm3 for example will
 prefer viewfinder 3 arc second data to NASA SRTM 3 arc
 second data.  Also see the <B>--srtm-version</B> option for
 different versions of SRTM data.
-<DT><B>--corrx</B>=<I>SRTM-CORRX</I><DD>
+<DT><B>--corrx</B>=<I>,SRTM-CORRX/</I><DD>
 correct x offset of contour lines.  A setting of
-<B>--corrx</B>=<I>0</I>.0005 was reported to give good results.
+<B>--corrx</B>=<I>,0/</I>.0005 was reported to give good results.
 However, the correct setting seems to depend on where
 you are, so it is may be better to start with 0 here.
-<DT><B>--corry</B>=<I>SRTM-CORRY</I><DD>
+<DT><B>--corry</B>=<I>,SRTM-CORRY/</I><DD>
 correct y offset of contour lines.  A setting of
-<B>--corry</B>=<I>0</I>.0005 was reported to give good results.
+<B>--corry</B>=<I>,0/</I>.0005 was reported to give good results.
 However, the correct setting seems to depend on where
 you are, so it may be better to start with 0 here.
-<DT><B>--hgtdir</B>=<I>DIRECTORY</I><DD>
+<DT><B>--hgtdir</B>=<I>,DIRECTORY/</I><DD>
 Cache directory for hgt files. The downloaded SRTM
 files are stored in a cache directory for later use.
 The default directory for this is ./hgt/ in the
@@ -176,7 +179,7 @@ directory with this option.
 rewrite the index files and exit.  Try this if
 phyghtmap encounters problems when trying to download
 data files.
-<DT><B>--void-range-max</B>=<I>MINIMUM_PLAUSIBLE_HEIGHT_VALUE</I><DD>
+<DT><B>--void-range-max</B>=<I>,MINIMUM_PLAUSIBLE_HEIGHT_VALUE/</I><DD>
 extend the void value range up to this height.  The
 hgt file format uses a void value which is <B>-0x8000</B> or,
 in terms of decimal numbers, <B>-32768</B>.  Some hgt files
@@ -259,7 +262,7 @@ Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adr
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2014 Adrian Dempwolff.  This code is distributed under
+Copyright (c) 2009-2015 Adrian Dempwolff.  This code is distributed under
 the GNU General Public License version 2, or, at your option, any later
 version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 <P>
@@ -280,6 +283,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 22:13:58 GMT, December 27, 2014
+Time: 02:52:59 GMT, January 09, 2015
 </BODY>
 </HTML>

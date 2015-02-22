@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.60"
-__copyright__ = "Copyright (c) 2009-2014 Adrian Dempwolff"
+__version__ = "1.61"
+__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import zlib
@@ -10,10 +10,10 @@ from struct import pack
 import time
 import numpy
 
-from phyghtmap.varint import *
+from phyghtmap.varint import int2str, sint2str, join, writableInt, writableString
 #from phyghtmap.pbfint import int2str, sint2str # same as above, C version
 
-NANO = 1000000000L
+NANO = 1000000000
 
 class Output(object):
 	def __init__(self, filename, osmVersion, phyghtmapVersion, bbox=[],
@@ -25,8 +25,8 @@ class Output(object):
 		self.elevClassifier = elevClassifier
 		self.maxNodesPerNodeBlock = 8000
 		self.maxNodesPerWayBlock = 32000
-		self.timestamp = long(time.mktime(time.localtime()))
-		self.timestampString = "" # dummy attribute, needed by main.py
+		self.timestamp = int(time.mktime(time.localtime()))
+		self.timestampString = writableString("") # dummy attribute, needed by main.py
 		self.makeHeader(osmVersion, phyghtmapVersion)
 
 	def makeVarIdent(self, vType, vId):
@@ -35,15 +35,17 @@ class Output(object):
 		varIdentNum = vTypeNum + (vId<<3)
 		return int2str(varIdentNum)
 
-	def makeVar(self, vType, vId, content, func=n2n):
+	def makeVar(self, vType, vId, content, func=None):
+		varIdent = self.makeVarIdent(vType, vId)
 		if vType == "S":
-			return "".join([
-				self.makeVarIdent(vType, vId),
+			return join([
+				varIdent,
 				int2str(len(content)),
 				content, ])
 		elif vType == "V":
-			return "".join([
-				self.makeVarIdent(vType, vId),
+			# V means varint, so content is an int.
+			return join([
+				varIdent,
 				func(content), ])
 
 	def makeHeader(self, osmVersion, phyghtmapVersion):
@@ -51,13 +53,13 @@ class Output(object):
 		# type, id=1
 		blobHeader.append(self.makeVarIdent(vType="S", vId=1))
 		# len("OSMHeader") == 9
-		blobHeader.append(chr(9))
-		blobHeader.append("OSMHeader")
+		blobHeader.append(int2str(9))
+		blobHeader.append(writableString("OSMHeader"))
 		# datasize, id=3
 		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
 		blob = self.makeHeaderBlob(osmVersion, phyghtmapVersion)
 		blobHeader.append(int2str(len(blob)))
-		blobHeader = "".join(blobHeader)
+		blobHeader = join(blobHeader)
 		self.outf.write(pack('!L', len(blobHeader)))
 		self.outf.write(blobHeader)
 		self.outf.write(blob)
@@ -71,7 +73,7 @@ class Output(object):
 		# zlib_data, id=3
 		zlib_data = zlib.compress(headerBlock)
 		blob.append(self.makeVar("S", 3, zlib_data))
-		return "".join(blob)
+		return join(blob)
 
 	def makeHeaderBlock(self, osmVersion, phyghtmapVersion):
 		headerBlock = []
@@ -79,18 +81,22 @@ class Output(object):
 		bbox = self.makeHeaderBBox()
 		headerBlock.append(self.makeVar("S", 1, bbox))
 		# required_features, id=4
-		requiredFeature = "OsmSchema-V%.1f"%osmVersion
-		headerBlock.append(self.makeVar("S", 4, "OsmSchema-V%.1f"%osmVersion))
-		headerBlock.append(self.makeVar("S", 4, "DenseNodes"))
+		requiredFeatures = [
+			writableString("OsmSchema-V{0:.1f}".format(osmVersion)),
+			writableString("DenseNodes"),
+		]
+		for requiredFeature in requiredFeatures:
+			headerBlock.append(self.makeVar("S", 4, requiredFeature))
 		# writingprogram, id=16
-		headerBlock.append(self.makeVar("S", 16,
-			"phyghtmap %s (http://wiki.openstreetmap.org/wiki/phyghtmap)"%(
-			phyghtmapVersion)))
-		return "".join(headerBlock)
+		writingprogram = writableString(
+			"phyghtmap {0:s} (http://wiki.openstreetmap.org/wiki/phyghtmap)".format(
+			phyghtmapVersion))
+		headerBlock.append(self.makeVar("S", 16, writingprogram))
+		return join(headerBlock)
 
 	def makeHeaderBBox(self):
 		bbox = []
-		left, bottom, right, top = [sint2str(long(i*NANO))
+		left, bottom, right, top = [sint2str(int(i*NANO))
 			for i in self.bbox]
 		# left, id=1
 		bbox.append(self.makeVarIdent("V", 1))
@@ -104,11 +110,11 @@ class Output(object):
 		# bottom, id=4
 		bbox.append(self.makeVarIdent("V", 4))
 		bbox.append(bottom)
-		return "".join(bbox)
+		return join(bbox)
 
 	def writeNodes(self, nodes, startNodeId):
 		"""writes nodes to self.outf.  nodeList shall be a list of
-		(<lon>, <lat>) duples of longs in nanodegrees of longitude and latitude,
+		(<lon>, <lat>) duples of ints in nanodegrees of longitude and latitude,
 		respectively.
 
 		The nodelist is split up to make sure the pbf blobs will not be too big.
@@ -119,12 +125,12 @@ class Output(object):
 	def writeNodesChunk(self, nodes, startNodeId):
 		blobHeader = []
 		# type, id=1
-		blobHeader.append(self.makeVar(vType="S", vId=1, content="OSMData"))
+		blobHeader.append(self.makeVar(vType="S", vId=1, content=writableString("OSMData")))
 		# datasize, id=3
 		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
 		blob = self.makeNodeBlob(startNodeId, nodes)
 		blobHeader.append(int2str(len(blob)))
-		blobHeader = "".join(blobHeader)
+		blobHeader = join(blobHeader)
 		self.outf.write(pack('!L', len(blobHeader)))
 		self.outf.write(blobHeader)
 		self.outf.write(blob)
@@ -138,11 +144,13 @@ class Output(object):
 		# zlib_data, id=3
 		zlib_data = zlib.compress(nodePrimitiveBlock)
 		blob.append(self.makeVar("S", 3, zlib_data))
-		return "".join(blob)
+		return join(blob)
 
 	def makeStringTable(self, stringList):
+		"""takes a list of str objects and returns a stringtable variable.
+		"""
 		# s, id=1
-		return "".join([self.makeVar("S", 1, s) for s in stringList])
+		return join([self.makeVar("S", 1, writableString(s)) for s in stringList])
 
 	def makeNodePrimitiveBlock(self, startNodeId, nodes):
 		nodePrimitiveBlock = []
@@ -161,7 +169,7 @@ class Output(object):
 		nodePrimitiveBlock.append(self.makeVar("V", 19, 0, int2str))
 		# lon_offset, id=20
 		nodePrimitiveBlock.append(self.makeVar("V", 20, 0, int2str))
-		return "".join(nodePrimitiveBlock)
+		return join(nodePrimitiveBlock)
 
 	def makeNodePrimitiveGroup(self, startNodeId, nodes):
 		denseNodes = self.makeDenseNodes(startNodeId, nodes)
@@ -185,17 +193,17 @@ class Output(object):
 		# user_sid, id=5
 		user_sid = sint2str(0)*times
 		denseInfo.append(self.makeVar("S", 5, user_sid))
-		return "".join(denseInfo)
+		return join(denseInfo)
 
 	def makeDenseNodes(self, startNodeId, nodeList):
 		dense = []
-		Lon = [nodeList[0][0]/self.granularity, ]
-		Lat = [nodeList[0][1]/self.granularity, ]
+		Lon = [nodeList[0][0]//self.granularity, ]
+		Lat = [nodeList[0][1]//self.granularity, ]
 		last_lon = Lon[0]
 		last_lat = Lat[0]
 		for lon, lat in nodeList[1:]:
-			lon = lon/self.granularity
-			lat = lat/self.granularity
+			lon = lon//self.granularity
+			lat = lat//self.granularity
 			lon_diff = lon - last_lon
 			lat_diff = lat - last_lat
 			Lon.append(lon_diff)
@@ -208,12 +216,12 @@ class Output(object):
 		# denseinfo, id=5
 		dense.append(self.makeVar("S", 5, self.makeDenseInfo(len(Lon))))
 		# lat, id=8
-		LAT = "".join([sint2str(l) for l in Lat])
+		LAT = join([sint2str(l) for l in Lat])
 		dense.append(self.makeVar("S", 8, LAT))
 		# lon, id=9
-		LON = "".join([sint2str(l) for l in Lon])
+		LON = join([sint2str(l) for l in Lon])
 		dense.append(self.makeVar("S", 9, LON))
-		return "".join(dense)
+		return join(dense)
 
 	def writeWays(self, ways, startWayId):
 		"""writes ways to self.outf.  ways shall be a list of
@@ -239,12 +247,13 @@ class Output(object):
 	def writeWaysChunk(self, ways, startWayId):
 		blobHeader = []
 		# type, id=1
-		blobHeader.append(self.makeVar(vType="S", vId=1, content="OSMData"))
+		blobHeader.append(self.makeVar(vType="S", vId=1,
+			content=writableString("OSMData")))
 		# datasize, id=3
 		blobHeader.append(self.makeVarIdent(vType="V", vId=3))
 		blob = self.makeWayBlob(startWayId, ways)
 		blobHeader.append(int2str(len(blob)))
-		blobHeader = "".join(blobHeader)
+		blobHeader = join(blobHeader)
 		self.outf.write(pack('!L', len(blobHeader)))
 		self.outf.write(blobHeader)
 		self.outf.write(blob)
@@ -258,7 +267,7 @@ class Output(object):
 		# zlib_data, id=3
 		zlib_data = zlib.compress(wayPrimitiveBlock)
 		blob.append(self.makeVar("S", 3, zlib_data))
-		return "".join(blob)
+		return join(blob)
 
 	def makeWayPrimitiveBlock(self, startWayId, ways):
 		wayPrimitiveBlock = []
@@ -278,12 +287,12 @@ class Output(object):
 		wayPrimitiveBlock.append(self.makeVar("V", 19, 0, int2str))
 		# lon_offset, id=20
 		wayPrimitiveBlock.append(self.makeVar("V", 20, 0, int2str))
-		return "".join(wayPrimitiveBlock)
+		return join(wayPrimitiveBlock)
 
 	def makeWayPrimitiveGroup(self, startWayId, ways, stringtable):
 		ways = self.makeWays(startWayId, ways, stringtable)
 		# ways, id=3
-		return "".join([self.makeVar("S", 3, w) for w in ways])
+		return join([self.makeVar("S", 3, w) for w in ways])
 
 	def makeWays(self, startWayId, wayList, strings):
 		strings.append("")                 # 0
@@ -308,10 +317,10 @@ class Output(object):
 		# id, id=1
 		way.append(self.makeVar("V", 1, wayId, int2str))
 		# keys, id=2
-		keys = "".join([int2str(el) for el in [1, 2, 4]])
+		keys = join([int2str(el) for el in [1, 2, 4]])
 		way.append(self.makeVar("S", 2, keys))
 		# ways, id=3
-		vals = "".join([int2str(el) for el in [strings.index(str(elevation)),
+		vals = join([int2str(el) for el in [strings.index(str(elevation)),
 			3, strings.index(self.elevClassifier(elevation))]])
 		way.append(self.makeVar("S", 3, vals))
 		# info, id=4
@@ -322,7 +331,7 @@ class Output(object):
 		if isCycle:
 			refs += sint2str(-(length-1))
 		way.append(self.makeVar("S", 8, refs))
-		return "".join(way)
+		return join(way)
 
 	def makeWayInfo(self):
 		info = []
@@ -336,7 +345,7 @@ class Output(object):
 		info.append(self.makeVar("V", 4, 0, int2str))
 		# user_sid, id=5
 		info.append(self.makeVar("V", 5, 0, int2str))
-		return "".join(info)
+		return join(info)
 
 	def write(self, nodeString):
 		"""wrapper imitating osmUtil.Output's write method.
@@ -371,7 +380,7 @@ def _makePoints(path, elevation, IDCounter):
 	ids, nodes = [], []
 	for lon, lat in path:
 		IDCounter.curId += 1
-		nodes.append((long(lon*NANO), long(lat*NANO)))
+		nodes.append((int(lon*NANO), int(lat*NANO)))
 		ids.append(IDCounter.curId-1)
 	if numpy.all(path[0]==path[-1]):  # close contour
 		del nodes[-1]  # remove last node
