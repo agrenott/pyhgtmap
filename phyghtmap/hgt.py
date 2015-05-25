@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.61"
+__version__ = "1.70"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -123,9 +123,90 @@ def parseHgtFilename(filename, corrx, corry):
 	maxLon = minLon + 1
 	return minLon+corrx, minLat+corry, maxLon+corrx, maxLat+corry
 
+def getTransform(o, reverse=False):
+	from osgeo import gdal, osr
+	n = osr.SpatialReference()
+	n.ImportFromEPSG(4326)
+	oAuth = o.GetAttrValue("AUTHORITY", 1)
+	nAuth = n.GetAttrValue("AUTHORITY", 1)
+	if nAuth == oAuth:
+		return None
+	else:
+		if reverse:
+			t = osr.CoordinateTransformation(n, o)
+		else:
+			t = osr.CoordinateTransformation(o, n)
+		def transform(points):
+			return [p[:2] for p in t.TransformPoints(points) if not any([el==float("inf")
+				for el in p[:2]])]
+		return transform
+
+def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
+	if transform == None:
+		return minLon, minLat, maxLon, maxLat
+	else:
+		(lon1, lat1), (lon2, lat2), (lon3, lat3), (lon4, lat4) = transform(
+			[(minLon, minLat), (maxLon, maxLat), (minLon, maxLat), (maxLon, maxLat)])
+		minLon = min([lon1, lon2, lon3, lon4])
+		maxLon = max([lon1, lon2, lon3, lon4])
+		minLat = min([lat1, lat2, lat3, lat4])
+		maxLat = max([lat1, lat2, lat3, lat4])
+		return minLon, minLat, maxLon, maxLat
+
+def parseGeotiffBbox(filename, corrx, corry, doTransform):
+	from osgeo import gdal, osr
+	try:
+		g = gdal.Open(filename)
+		geoTransform = g.GetGeoTransform()
+		if geoTransform[2] != 0 or geoTransform[4] != 0:
+			sys.stderr.write("Can't handle geotiff {!s} with geo transform {!s}\n".format(
+				filename, geoTransform))
+			raise hgtError
+		fileProj = osr.SpatialReference()
+		fileProj.ImportFromWkt(g.GetProjectionRef())
+		numOfCols = g.RasterXSize
+		numOfRows = g.RasterYSize
+	except:
+		raise hgtError("Can't handle geotiff file {!s}".format(filename))
+	lonIncrement = geoTransform[1]
+	latIncrement = geoTransform[5]
+	minLon = geoTransform[0] + 0.5*lonIncrement
+	maxLat = geoTransform[3] + 0.5*latIncrement
+	minLat = maxLat + (numOfRows-1)*latIncrement
+	maxLon = minLon + (numOfCols-1)*lonIncrement
+	# get the transformation function from fileProj to EPSG:4326 for this geotiff file
+	transform = getTransform(fileProj)
+	if doTransform:
+		# transformLonLats will return input values if transform is None
+		minLon, minLat, maxLon, maxLat = transformLonLats(
+			minLon, minLat, maxLon, maxLat, transform)
+		return minLon+corrx, minLat+corry, maxLon+corrx, maxLat+corry
+	else:
+		# we need to take care for corrx, corry values then, which are always expected
+		# to be EPSG:4326, so transform, add corrections, and transform back to
+		# input projection
+		# transformation (input projection) -> (epsg:4326)
+		minLon, minLat, maxLon, maxLat = transformLonLats(
+			minLon, minLat, maxLon, maxLat, transform)
+		minLon += corrx
+		maxLon += corrx
+		minLat += corry
+		maxLat += corry
+		reverseTransform = getTransform(fileProj, reverse=True)
+		# transformation (epsg:4326) -> (input projection)
+		minLon, minLat, maxLon, maxLat = transformLonLats(
+			minLon, minLat, maxLon, maxLat, reverseTransform)
+		return minLon, minLat, maxLon, maxLat
+
+def parseFileForBbox(fullFilename, corrx, corry, doTransform):
+	fileExt = os.path.splitext(fullFilename)[1].lower().replace(".", "")
+	if fileExt == "hgt":
+		return parseHgtFilename(os.path.split(fullFilename)[1], corrx, corry)
+	elif fileExt in ("tif", "tiff"):
+		return parseGeotiffBbox(fullFilename, corrx, corry, doTransform)
+
 def calcHgtArea(filenames, corrx, corry):
-	filenames = [os.path.split(f[0])[1] for f in filenames]
-	bboxes = [parseHgtFilename(f, corrx, corry) for f in filenames]
+	bboxes = [parseFileForBbox(f[0], corrx, corry, doTransform=True) for f in filenames]
 	minLon = sorted([b[0] for b in bboxes])[0]
 	minLat = sorted([b[1] for b in bboxes])[0]
 	maxLon = sorted([b[2] for b in bboxes])[-1]
@@ -134,10 +215,11 @@ def calcHgtArea(filenames, corrx, corry):
 
 
 class ContourObject(object):
-	def __init__(self, Cntr, maxNodesPerWay, polygon=None):
+	def __init__(self, Cntr, maxNodesPerWay, transform, polygon=None):
 		self.Cntr = Cntr
 		self.maxNodesPerWay = maxNodesPerWay
 		self.polygon = polygon
+		self.transform = transform
 
 	def _cutBeginning(self, p):
 		"""is recursively called to cut off a path's first element
@@ -158,7 +240,11 @@ class ContourObject(object):
 	def clipPath(self, path):
 		"""clips a path with self.polygon and returns a list of
 		clipped paths.  This method also removes consecutive identical nodes.
+		This method also does a potentially needed transformation of the projection.
 		"""
+		# do the transform if necessary
+		if self.transform != None:
+			path = self.transform(path)
 		if numpy.where(path!=path, 1, 0).sum() != 0:
 			pathContainsNans = True
 		else:
@@ -291,12 +377,27 @@ class hgtFile:
 		"""
 		self.fullFilename = filename
 		self.filename = os.path.split(filename)[-1]
-		# SRTM3 hgt files contain 1201x1201 points;
-		# however, we try to determine the real number of points.
-		# Height data are stored as 2-byte signed integers, the byte order is
-		# big-endian standard. The data are stored in a row major order.
-		# All height data are in meters referenced to the WGS84/EGM96 geoid as
-		# documented at http://www.nga.mil/GandG/wgsegm/.
+		self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
+		if self.fileExt == "hgt":
+			self.initAsHgt(corrx, corry, polygon, checkPoly, voidMax)
+		elif self.fileExt in ("tif", "tiff"):
+			self.initAsGeotiff(corrx, corry, voidMax)
+		# some statistics
+		minLon, minLat, maxLon, maxLat = transformLonLats(
+			self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform)
+		print('{0:s} file {1:s}: {2:d} x {3:d} points, bbox: ({4:.5f}, {5:.5f}, '
+			'{6:.5f}, {7:.5f}){8:s}'.format(self.fileExt, self.fullFilename,
+			self.numOfCols, self.numOfRows, minLon, minLat, maxLon,
+			maxLat, {True: ", checking polygon borders", False: ""}[checkPoly]))
+
+	def initAsHgt(self, corrx, corry, polygon, checkPoly, voidMax):
+		"""SRTM3 hgt files contain 1201x1201 points;
+		however, we try to determine the real number of points.
+		Height data are stored as 2-byte signed integers, the byte order is
+		big-endian standard. The data are stored in a row major order.
+		All height data are in meters referenced to the WGS84/EGM96 geoid as
+		documented at http://www.nga.mil/GandG/wgsegm/.
+		"""
 		try:
 			numOfDataPoints = os.path.getsize(self.fullFilename) / 2
 			self.numOfRows = self.numOfCols = int(numOfDataPoints ** 0.5)
@@ -316,16 +417,44 @@ class hgtFile:
 				self.polygon = None
 			xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 			yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
-		# some statistics
-		print('hgt file {0:s}: {1:d} x {2:d} points, bbox: ({3:.5f}, {4:.5f}, '
-			'{5:.5f}, {6:.5f}){7:s}'.format(self.fullFilename,
-			self.numOfCols, self.numOfRows, self.minLon, self.minLat, self.maxLon,
-			self.maxLat, {True: ", checking polygon borders", False: ""}[checkPoly]))
+			self.transform = None
+
+	def initAsGeotiff(self, corrx, corry, voidMax):
+		"""init this hgtFile instance with data from a geotiff image.
+
+		Since the file was passed on the command line, no polygon is supported yet.
+		"""
+		from osgeo import gdal, osr
+		try:
+			g = gdal.Open(self.fullFilename)
+			geoTransform = g.GetGeoTransform()
+			# we don't need to check for the geo transform, this was already done when
+			# calculating the area name from main.py
+			fileProj = osr.SpatialReference()
+			fileProj.ImportFromWkt(g.GetProjectionRef())
+			self.numOfCols = g.RasterXSize
+			self.numOfRows = g.RasterYSize
+			# init z data
+			self.zData = g.GetRasterBand(1).ReadAsArray().astype("float32")
+			if voidMax != None:
+				voidMask = numpy.asarray(numpy.where(self.zData<=voidMax, True, False))
+				self.zData = numpy.ma.array(self.zData, mask=voidMask, fill_value=float("NaN"))
+		finally:
+			# make x and y data
+			self.lonIncrement = geoTransform[1]
+			self.latIncrement = -geoTransform[5]
+			self.minLon, self.minLat, self.maxLon, self.maxLat = self.borders(corrx,
+				corry)
+			xData = numpy.arange(0, self.numOfCols, 1)*self.lonIncrement + self.minLon
+			yData = numpy.arange(0, self.numOfRows, 1)*-1*self.latIncrement + self.maxLat
+			# get the transformation function from fileProj to EPSG:4326 for this geotiff file
+			self.transform = getTransform(fileProj)
+			self.polygon = None
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
 		"""
-		return parseHgtFilename(self.filename, corrx, corry)
+		return parseFileForBbox(self.fullFilename, corrx, corry, doTransform=False)
 
 	def makeTiles(self, opts):
 		"""generate tiles from self.zData according to the given <opts>.area and
@@ -435,8 +564,8 @@ class hgtFile:
 				"""
 				"""
 				if unchoppedData.shape[0] > unchoppedData.shape[1]:
-					# number of rows > number of cols, horizontal cutting
 				"""
+				# number of rows > number of cols, horizontal cutting
 				(unchoppedBboxMinLon, unchoppedBboxMinLat, unchoppedBboxMaxLon,
 					unchoppedBboxMaxLat) = unchoppedBbox
 				unchoppedNumOfRows = unchoppedData.shape[0]
@@ -453,6 +582,8 @@ class hgtFile:
 				"""
 				else:
 					# number of cols > number of rows, vertical cutting
+					(unchoppedBboxMinLon, unchoppedBboxMinLat, unchoppedBboxMaxLon,
+						unchoppedBboxMaxLat) = unchoppedBbox
 					unchoppedNumOfCols = unchoppedData.shape[1]
 					chopLonIndex = int(unchoppedNumOfCols/2.0)
 					chopLon = unchoppedBboxMinLon + (chopLonIndex*self.lonIncrement)
@@ -494,7 +625,8 @@ class hgtFile:
 				else:
 					tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
 						"increments": (self.lonIncrement, self.latIncrement),
-						"polygon": tilePolygon, "mask": tileMask}))
+						"polygon": tilePolygon, "mask": tileMask, "transform":
+						self.transform}))
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)
@@ -518,6 +650,7 @@ class hgtTile:
 		self.lonIncrement, self.latIncrement = tile["increments"]
 		self.polygon = tile["polygon"]
 		self.mask = tile["mask"]
+		self.transform = tile["transform"]
 		self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 		self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 		self.minEle, self.maxEle = self.getElevRange()
@@ -525,9 +658,10 @@ class hgtTile:
 	def printStats(self):
 		"""prints some statistics about the tile.
 		"""
+		minLon, minLat, maxLon, maxLat = transformLonLats(
+			self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform)
 		print("\ntile with {0:d} x {1:d} points, bbox: ({2:.2f}, {3:.2f}, {4:.2f}, {5:.2f})".format(
-			self.numOfRows, self.numOfCols, self.minLon, self.minLat, self.maxLon,
-			self.maxLat))
+			self.numOfRows, self.numOfCols, minLon, minLat, maxLon, maxLat))
 		print("minimum elevation: {0:d}".format(self.minEle))
 		print("maximum elevation: {0:d}".format(self.maxEle))
 
@@ -545,10 +679,14 @@ class hgtTile:
 			minEle = maxEle
 		return minEle, maxEle
 
-	def bbox(self):
+	def bbox(self, doTransform=True):
 		"""returns the bounding box of the current tile.
 		"""
-		return  self.minLon, self.minLat, self.maxLon, self.maxLat
+		if doTransform:
+			return transformLonLats(self.minLon, self.minLat, self.maxLon,
+				self.maxLat, self.transform)
+		else:
+			return self.minLon, self.minLat, self.maxLon, self.maxLat
 
 	def contourLines(self, stepCont=20, maxNodesPerWay=0, noZero=False,
 		minCont=None, maxCont=None):
@@ -583,7 +721,7 @@ class hgtTile:
 		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"),
 			keep_mask=True)
 		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay,
-			self.polygon)
+			self.transform, self.polygon)
 		return levels, Contours
 
 	def countNodes(self, maxNodesPerWay=0, stepCont=20, minCont=None,
@@ -609,7 +747,7 @@ class hgtTile:
 	def plotData(self, plotPrefix='heightPlot'):
 		"""generates plot data in the file specified by <plotFilename>.
 		"""
-		filename = makeBBoxString(self.bbox()).format(plotPrefix+"_") + ".xyz"
+		filename = makeBBoxString(self.bbox(doTransform=True)).format(plotPrefix+"_") + ".xyz"
 		try:
 			plotFile = open(filename, 'w')
 		except:

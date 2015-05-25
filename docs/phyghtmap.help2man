@@ -1,6 +1,6 @@
 [NAME]
 \fBphyghtmap\fR
-- NASA SRTM -> OSM xml (.osm), OSM pbf (.osm.pbf) or OSM o5m (.o5m) translator
+- NASA SRTM / GeoTiff -> OSM xml (.osm), OSM pbf (.osm.pbf) or OSM o5m (.o5m) translator
 [USAGE EXAMPLES]
 Here are some usage examples
 .TP

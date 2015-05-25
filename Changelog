@@ -1,3 +1,10 @@
+phyghtmap (1.70) stable; urgency=low
+
+  * Added geotiff functionality.  geotiff files may now be passed as input data
+    to the command line.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Mon, 25 May 2015 23:15:00 +0200
+
 phyghtmap (1.61) stable; urgency=low
 
   * Added --download-only option.

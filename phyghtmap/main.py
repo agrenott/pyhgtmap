@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.61"
+__version__ = "1.70"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -24,8 +24,9 @@ profile = False
 def parseCommandLine():
 	"""parses the command line.
 	"""
-	parser = OptionParser(usage="%prog [options] [<hgt file>] [<hgt files>]"
+	parser = OptionParser(usage="%prog [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
     "\nphyghtmap generates contour lines from NASA SRTM and smiliar data"
+		"\nas well as from GeoTiff data"
 		"\nin OSM formats.  For now, there are three ways to achieve this. First,"
 		"\nit can be used to process existing source files given as arguments"
 		"\non the command line.  Note that the filenames must have the format"
@@ -278,7 +279,8 @@ def makeOsmFilename(borders, opts, srcNames):
 		elif not opts.dataSource:
 			# files from the command line, this could be something custom
 			srcTag = ",".join(set(srcNameMiddles))
-			osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(srcTag)
+			#osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(srcTag)
+			osmName = hgt.makeBBoxString(borders).format(prefix) + "_local-source.osm"
 			break
 		else:
 			osmName = hgt.makeBBoxString(borders).format(prefix) + ".osm"
@@ -551,7 +553,8 @@ def main():
 		elif opts.downloadOnly:
 			sys.exit(0)
 	else:
-		hgtDataFiles = [(arg, False) for arg in args if arg.endswith(".hgt")]
+		hgtDataFiles = [(arg, False) for arg in args if
+			os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff")]
 		opts.area = ":".join([str(i) for i in hgt.calcHgtArea(hgtDataFiles,
 			opts.srtmCorrx, opts.srtmCorry)])
 
