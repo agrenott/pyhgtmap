@@ -1,5 +1,5 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.70"
+__version__ = "1.71"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 

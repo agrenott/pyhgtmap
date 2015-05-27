@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.70"
+__version__ = "1.71"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -418,6 +418,7 @@ class hgtFile:
 			xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
 			yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
 			self.transform = None
+			self.reverseTransform = None
 
 	def initAsGeotiff(self, corrx, corry, voidMax):
 		"""init this hgtFile instance with data from a geotiff image.
@@ -449,6 +450,7 @@ class hgtFile:
 			yData = numpy.arange(0, self.numOfRows, 1)*-1*self.latIncrement + self.maxLat
 			# get the transformation function from fileProj to EPSG:4326 for this geotiff file
 			self.transform = getTransform(fileProj)
+			self.reverseTransform = getTransform(fileProj, reverse=True)
 			self.polygon = None
 
 	def borders(self, corrx=0.0, corry=0.0):
@@ -472,6 +474,10 @@ class hgtFile:
 			if area:
 				bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = (float(bound)
 					for bound in area.split(":"))
+				if self.reverseTransform is not None:
+					bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = transformLonLats(
+						bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat,
+						self.reverseTransform)
 				if bboxMinLon > bboxMaxLon:
 					# bbox covers the W180/E180 longitude
 					if self.minLon < 0 or self.minLon < bboxMaxLon:

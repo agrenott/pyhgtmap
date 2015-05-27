@@ -1,3 +1,10 @@
+phyghtmap (1.71) stable; urgency=low
+
+  * Fixed a bug concerning tiling of geotiff input data which sometimes led to
+    program aborts.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Wed, 27 May 2015 23:45:00 +0200
+
 phyghtmap (1.70) stable; urgency=low
 
   * Added geotiff functionality.  geotiff files may now be passed as input data

@@ -14,8 +14,13 @@ manpage: ../phyghtmap/main.py phyghtmap.help2man
 html: manpage
 	man2html phyghtmap.1 |sed -e s/FBPHYGHTMAPFR/PHYGHTMAP/ \
 		| sed -e s/"<A HREF.*man2html<\/A>"/man2html/ \
-		| sed -e s/"Content-type: text\/html"// \
+		| sed -e s/"<I>,"//g \
+		| sed -e s/"\/<\/I>"//g \
+		| sed -e s/"Content-type: text\/html; charset=UTF-8"// \
 		| sed -e s/"<A HREF.*Contents<\/A>"// > phyghtmap.1.html
+
+plainhtml: manpage
+	man2html phyghtmap.1 > phyghtmap.1.plain.html
 
 clean:
 	rm phyghtmap.1*
