@@ -1,3 +1,16 @@
+phyghtmap (1.72) stable; urgency=low
+
+  * Replaced determination of the minimum elevation of a tile by a simpler method.
+    The old method had problems caused exceptions in combination with some numpy
+    versions.
+  * Fixed issue with wrong node id sequences when using phyghtmap in parallel mode
+    to generate single output files.  This is done by evaluating the child
+    processes' results in the order the child processes were started.  This change
+    may cause a slight performance drop in this (parallel/single output) mode.
+  * Fixed issue with possible one-node paths. 
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Wed, 29 Jul 2015 14:15:00 +0200
+
 phyghtmap (1.71) stable; urgency=low
 
   * Fixed a bug concerning tiling of geotiff input data which sometimes led to

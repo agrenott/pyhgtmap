@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.71"
+__version__ = "1.72"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -12,6 +12,7 @@ import sys
 import os
 import select
 from optparse import OptionParser
+import time
 
 from phyghtmap import hgt
 from phyghtmap import osmUtil
@@ -462,11 +463,13 @@ class ProcessQueue(object):
 			nodeRPipe = os.fdopen(nodeR)
 			wayRPipe = os.fdopen(wayR)
 			self.children[pid] = (srcName, nodeRPipe, wayRPipe)
+			self.instancePids.append(pid)
 			self.Poll.register(nodeRPipe, select.POLLIN)
 			return numOfWays, numOfNodes
 
 	def processSingleOutput(self):
 		self.Poll = select.poll()
+		self.instancePids = []
 		self.ways = []
 		while self.fileList or self.children:
 			while len(self.children)<self.nJobs and self.fileList:
@@ -474,27 +477,65 @@ class ProcessQueue(object):
 				self.opts.startId += expectedNumOfNodes
 				#self.opts.startWayId += expectedNumOfWays
 			if self.children:
-				rDict = dict([(nodeRPipe.fileno(), nodeRPipe) for _, nodeRPipe, _ in
-					self.children.values()])
-				readyRPipes = [rDict[i] for i, _ in self.Poll.poll()]
-				for readyRPipe in readyRPipes:
-					while True:
-						line = readyRPipe.readline()
-						if len(line) == 0:
-							break
-						self.output.write(line)
-				for readyWayRPipe in select.select([child[2] for child in
-					self.children.values()], [], [])[0]:
-					s = readyWayRPipe.read()
-					if len(s):
-						self.ways.extend(eval(s))
-				pid, res = os.wait()
+				# nodes have to be written in correct sequence so we need to process
+				# them in the order the processes were forked;  for ways, we wouldn't
+				# necessarily have to care about such an issue because these get their
+				# ids later but we do for reasons of clarity
+				nextRPipe = self.children[self.instancePids[0]][1]
+				while not nextRPipe.fileno() in [i for i, _ in self.Poll.poll()]:
+					# wait for the node pipe of the desired process to become ready
+					time.sleep(.1)
+				# the node pipe is ready now
+				"""
+				sys.stdout.write("writing nodes for area {:s} ... ".format(
+					self.children[self.instancePids[0]][0]))
+				sys.stdout.flush()
+				"""
+				while True:
+					line = nextRPipe.readline()
+					if len(line) == 0:
+						break
+					self.output.write(line)
+				"""
+				sys.stdout.write("DONE\n")
+				sys.stdout.flush()
+				"""
+				# now read the way read pipe for the same process
+				readyWayRPipe = select.select([self.children[self.instancePids[0]][2], ], [], [])[0]
+				while True:
+					readyWayRPipe = select.select([self.children[self.instancePids[0]][2], ], [], [])[0]
+					if len(readyWayRPipe):
+						break
+					time.sleep(.1)
+				"""
+				sys.stdout.write("writing ways for area {:s} ... ".format(
+					self.children[self.instancePids[0]][0]))
+				sys.stdout.flush()
+				"""
+				while True:
+					s = readyWayRPipe[0].read()
+					if len(s) == 0:
+						break
+					self.ways.extend(eval(s))
+				"""
+				sys.stdout.write("DONE\n")
+				sys.stdout.flush()
+				"""
+				# wait for the evaluated (earliest-started) process to complete
+				pid, res = os.waitpid(self.instancePids[0], os.WNOHANG)
+				while True:
+					pid, res = os.waitpid(self.instancePids[0], os.WNOHANG)
+					if pid == self.instancePids[0]:
+						# process self.instancePids[0] exited
+						break
+					time.sleep(.1)
 				if res:
 					print("Panic: Didn't work:", self.children[pid][0])
 				self.Poll.unregister(self.children[pid][1])
 				self.children[pid][1].close()
 				self.children[pid][2].close()
 				del self.children[pid]
+				del self.instancePids[0]
 		self.output.writeWays(self.ways, self.opts.startWayId)
 		self.output.done()
 

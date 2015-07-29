@@ -1,11 +1,12 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.71"
+__version__ = "1.72"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import os
+import sys
 from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
 if mplversion < "1.3.0":
@@ -257,6 +258,8 @@ class ContourObject(object):
 					if numpy.all(p==op):
 						continue
 				tmpList.append(p)
+			if len(tmpList) < 2:
+				tmpList = []
 			return [tmpList, ]
 		# path contains nans (from a polygon or void area or both)
 		pathList = []
@@ -275,13 +278,17 @@ class ContourObject(object):
 				tmpList.append((x, y))
 			elif len(tmpList) > 0:
 				# (x, y) outside polygon, non-empty tmpList
-				pathList.append(tmpList)
+				if len(tmpList) > 1:
+					# if tmpList has only one node, this is not a meaningful path and we
+					# don't want to evaluate it then
+					pathList.append(tmpList)
 				tmpList = []
 			else:
 				# (x, y) outside polygon, previous (x, y) dto.
 				continue
 		else:
-			if len(tmpList) > 0:
+			if len(tmpList) > 1:
+				# only append this last piece if it has more than one node
 				pathList.append(tmpList)
 		return pathList
 
@@ -299,6 +306,7 @@ class ContourObject(object):
 		if length == 0 or len(l) <= length:
 			tmpList = [l, ]
 		else:
+			"""
 			if len(l)%(length-1) == 1:
 				# the last piece of a path should contain at least 2 nodes
 				l, endPiece = l[:-1], l[-2:]
@@ -307,6 +315,12 @@ class ContourObject(object):
 			tmpList = [l[i:i+length] for i in range(0, len(l), length-1)]
 			if endPiece != None:
 				tmpList.append(endPiece)
+			"""
+			# we don't need to do the stuff with the end piece if we stop the list
+			# comprehension at the second-last element of the list (i being at maximum
+			# len(l)-2.  This works because <length> is at least two, so we are sure
+			# to always include the last two elements.
+			tmpList = [l[i:i+length] for i in range(0, len(l)-1, length-1)]
 		pathList = []
 		numOfClosedPaths = 0
 		for path in tmpList:
@@ -673,16 +687,12 @@ class hgtTile:
 
 	def getElevRange(self):
 		"""returns minEle, maxEle of the current tile.
+
+		We don't have to care about -0x8000 values here since these are masked
+		so that self.zData's min and max methods will yield proper values.
 		"""
+		minEle = self.zData.min()
 		maxEle = self.zData.max()
-		helpData = self.zData.flatten()
-		helpData.sort()
-		for zValue in helpData:
-			if zValue != -0x8000:
-				minEle = zValue
-				break
-		else:
-			minEle = maxEle
 		return minEle, maxEle
 
 	def bbox(self, doTransform=True):
