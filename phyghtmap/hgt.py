@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.72"
+__version__ = "1.73"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -535,7 +535,7 @@ class hgtFile:
 			else:
 				return (self.minLon, self.minLat, self.maxLon, self.maxLat), inputData
 
-		def chopData(inputBbox, inputData):
+		def chopData(inputBbox, inputData, depth=0):
 			"""chops data and appends chops to tiles if small enough.
 			"""
 
@@ -552,7 +552,8 @@ class hgtFile:
 				"""
 				# get rid of the void mask values
 				# the next line is obsolete since voids are now generally masked by nans
-				helpData = numpy.where(data==-0x8000, float("NaN"), data) / step
+				#helpData = numpy.where(data==-0x8000, float("NaN"), data) / step
+				helpData = data.filled() / step
 				xHelpData = numpy.abs(helpData[:,1:]-helpData[:,:-1])
 				yHelpData = numpy.abs(helpData[1:,:]-helpData[:-1,:])
 				xHelpData = numpy.where(xHelpData!=xHelpData, 0, xHelpData).sum()
@@ -620,7 +621,7 @@ class hgtFile:
 			if tooManyNodes(inputData):
 				chops = getChops(inputData, inputBbox)
 				for choppedBbox, choppedData  in chops:
-					chopData(choppedBbox, choppedData)
+					chopData(choppedBbox, choppedData, depth+1)
 			else:
 				if self.polygon:
 					tileXData = numpy.arange(inputBbox[0],
@@ -647,6 +648,9 @@ class hgtFile:
 						"increments": (self.lonIncrement, self.latIncrement),
 						"polygon": tilePolygon, "mask": tileMask, "transform":
 						self.transform}))
+					#print("depth: {:d}".format(depth))
+					#if depth>20:
+						#os._exit(11)
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)

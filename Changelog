@@ -1,8 +1,13 @@
+phyghtmap (1.73) stable; urgency=low
+
+  * Fixed issue with recursion problem with python-numpy 1.9.2 on amd64
+    machines.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Thu, 30 Jul 2015 23:15:00 +0200
+
 phyghtmap (1.72) stable; urgency=low
 
   * Replaced determination of the minimum elevation of a tile by a simpler method.
-    The old method had problems caused exceptions in combination with some numpy
-    versions.
   * Fixed issue with wrong node id sequences when using phyghtmap in parallel mode
     to generate single output files.  This is done by evaluating the child
     processes' results in the order the child processes were started.  This change
