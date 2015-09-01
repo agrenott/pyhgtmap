@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.73"
+__version__ = "1.74"
 __copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
 __license__ = "GPLv2+"
 

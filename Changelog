@@ -1,3 +1,10 @@
+phyghtmap (1.74) stable; urgency=low
+
+  * Fixed bug causing phyghtmap crashes when writing single output files
+    using parallelization.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Tue, 01 Sep 2015 12:00:00 +0200
+
 phyghtmap (1.73) stable; urgency=low
 
   * Fixed issue with recursion problem with python-numpy 1.9.2 on amd64
