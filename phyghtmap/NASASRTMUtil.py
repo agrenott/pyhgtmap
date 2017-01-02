@@ -1,11 +1,13 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.74"
-__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
+__version__ = "1.80"
+__copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-import urllib
+import urllib2 as urllib
+import cookielib
+import base64
 import os
 from BeautifulSoup import BeautifulSoup
 import zipfile
@@ -37,6 +39,8 @@ class NASASRTMUtilConfigClass(object):
 			"North_America", "South_America"],
 			1: ["Region_0{0:d}".format(i) for i in range(1, 8)]}
 		self.NASAhgtSaveSubDirRe = "SRTM{0:d}v{1:.1f}"
+		self.earthdataUser = None
+		self.earthdataPassword = None
 		############################################################
 		### www.vierfinderpanoramas.org specific variables #########
 		############################################################
@@ -45,9 +49,9 @@ class NASASRTMUtilConfigClass(object):
 
 	def getSRTMFileServer(self, resolution, srtmVersion):
 		if srtmVersion == 2.1:
-			return "http://dds.cr.usgs.gov/srtm/version2_1/SRTM{0:d}".format(resolution)
+			return "https://dds.cr.usgs.gov/srtm/version2_1/SRTM{0:d}".format(resolution)
 		elif srtmVersion == 3.0:
-			return "http://e4ftl01.cr.usgs.gov/SRTM/SRTMGL{0:d}.003/2000.02.11/".format(resolution)
+			return "https://e4ftl01.cr.usgs.gov/SRTM/SRTMGL{0:d}.003/2000.02.11/".format(resolution)
 
 	def CustomHgtSaveDir(self, directory):
 		"""Set a custom directory to store the hgt files
@@ -63,6 +67,10 @@ class NASASRTMUtilConfigClass(object):
 			"hgtIndex_{0:d}_v{1:.1f}.txt")
 		self.VIEWhgtIndexFileRe = os.path.join(self.hgtSaveDir,
 			"viewfinderHgtIndex_{0:d}.txt")
+
+	def earthdataCredentials(self, user, password):
+		self.earthdataUser = user
+		self.earthdataPassword = password
 
 # Create the config object
 NASASRTMUtilConfig = NASASRTMUtilConfigClass()
@@ -577,6 +585,34 @@ def initDirs(sources):
 				NASASRTMUtilConfig.VIEWhgtSaveSubDirRe.format(sourceResolution))
 			mkdir(VIEWhgtSaveSubDir)
 
+def base64String(string):
+	return base64.encodestring(string)
+
+def downloadToFile_SRTMv3(url, filename):
+	user = NASASRTMUtilConfig.earthdataUser
+	password = NASASRTMUtilConfig.earthdataPassword
+	cookieJar = cookielib.CookieJar(cookielib.DefaultCookiePolicy())
+	authString = "Basic {:s}".format(
+		base64String("{:s}:{:s}".format(user, password)).replace("\n", ""))
+	opener = urllib.build_opener(urllib.HTTPCookieProcessor(cookieJar))
+	opener.addheaders = [
+		("Authorization", authString),
+	]
+	res = opener.open(url)
+	open(filename, "wb").write(res.read())
+
+def downloadToFile_Simple(url, filename):
+	res = urllib.urlopen(url)
+	open(filename, "wb").write(res.read())
+
+def downloadToFile(url, filename, source):
+	sourceType, sourceResolution = source[:4], int(source[4])
+	if sourceType == "srtm":
+		srtmVersion = float(source[6:])
+		if srtmVersion == 3.0:
+			return downloadToFile_SRTMv3(url, filename)
+	return downloadToFile_Simple(url, filename)
+
 def downloadAndUnzip(url, area, source):
 	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
 	fileResolution = int(source[4])
@@ -604,7 +640,7 @@ def downloadAndUnzip(url, area, source):
 					return downloadAndUnzip(viewUrl, area, source)
 		except:
 			print("{0:s}: downloading file {1:s} to {2:s} ...".format(area, url, saveZipFilename))
-			urllib.urlretrieve(url, filename=saveZipFilename)
+			downloadToFile(url, saveZipFilename, source)
 			try:
 				areaNames = unzipFile(saveZipFilename, area)
 				if source.startswith("view"):

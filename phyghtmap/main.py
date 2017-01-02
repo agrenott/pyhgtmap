@@ -4,8 +4,8 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.74"
-__copyright__ = "Copyright (c) 2009-2015 Adrian Dempwolff"
+__version__ = "1.80"
+__copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import sys
@@ -19,8 +19,11 @@ from phyghtmap import osmUtil
 from phyghtmap import NASASRTMUtil
 from phyghtmap import pbfUtil
 from phyghtmap import o5mUtil
+from phyghtmap import configUtil
 
 profile = False
+
+configFilename = os.path.join(os.getenv("HOME"), ".phyghtmaprc")
 
 def parseCommandLine():
 	"""parses the command line.
@@ -142,6 +145,26 @@ def parseCommandLine():
 		"\noption is 3.  If you want the old version, say --srtm-version=2.1 here",
 		dest="srtmVersion", action="store", metavar="VERSION", default=3.0,
 		type="float")
+	parser.add_option("--earthdata-user", help="the username to use for"
+		"\nearthdata login.  This is needed if you want to use NASA SRTM sources"
+		"\nin version 3.0.  If you do not yet have an earthdata login, visit"
+		"\nhttps://urs.earthdata.nasa.gov/users/new and create one.  For now, it"
+		"\nseems that the created login doesn't have to be activated in order to"
+		"\nbe used from within phyghtmap.  Once specified, phyghtmap will store"
+		"\nthe earthdata login credentials unencrypted in a file called"
+		"\n'.phyghtmaprc' in your home directory.  I. e., you only have to"
+		"\nspecify this option (and the --earthdata-password option) once. "
+		"\nIn addition, the password specified on the command line may be read"
+		"\nby every user on your system.  So, don't choose a password which you"
+		"\ndon't want to be disclosed to others.  This option should be specified"
+		"\nin combination with the --earthdata-password option.",
+		dest="earthdataUser", action="store", default=None,
+		metavar="EARTHDATA_USERNAME")
+	parser.add_option("--earthdata-password", help="the password to use for"
+		"\nearthdata login.  This option should be specified in combination with"
+		"\nthe --earthdata-user option.  For further explanation, see the help"
+		"\ngiven for the --earthdata-user option.", dest="earthdataPassword",
+		action="store", default=None, metavar="EARTHDATA_PASSWORD")
 	parser.add_option("--viewfinder-mask", help="if specified, NASA SRTM data"
  		"\nare masked with data from www.viewfinderpanoramas.org.  Possible values"
 		"\nare 1 and 3 (for explanation, see the --srtm option).",
@@ -243,6 +266,23 @@ def parseCommandLine():
 			# this is a hint for makeOsmFilename() that files are specified on the
 			# command line
 			opts.dataSource = []
+	needsEarthdataLogin = False
+	for s in opts.dataSource:
+		if s.startswith("srtm") and "v3" in s:
+			needsEarthdataLogin = True
+	if needsEarthdataLogin:
+		# we need earthdata login credentials handling then
+		earthdataUser = configUtil.Config(configFilename).setOrGet(
+			"earthdata_credentials", "user", opts.earthdataUser)
+		earthdataPassword = configUtil.Config(configFilename).setOrGet(
+			"earthdata_credentials", "password", opts.earthdataPassword)
+		if not all((earthdataUser, earthdataPassword)):
+			print("Need earthdata login credentials to continue.  See the help for the")
+			print("--earthdata-user and --earthdata-password options for details.")
+			print("-"*60)
+			parser.print_help()
+			sys.exit(1)
+		NASASRTMUtil.NASASRTMUtilConfig.earthdataCredentials(earthdataUser, earthdataPassword)
 	if len(args) == 0 and not opts.area and not opts.polygon:
 		parser.print_help()
 		sys.exit(1)

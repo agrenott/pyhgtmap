@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: September 2015<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: January 2017<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -147,6 +147,28 @@ In version 2.1, only the US territory is included in
 the 1 arc second dataset.  In version 3, nearly the
 whole world is covered.  The default for this option
 is 3.  If you want the old version, say <B>--srtmversion</B>=2.1 here
+<DT><B>--earthdata-user</B>=EARTHDATA_USERNAME<DD>
+the username to use for earthdata login.  This is
+needed if you want to use NASA SRTM sources in version
+3.0.  If you do not yet have an earthdata login, visit
+<A HREF="https://urs.earthdata.nasa.gov/users/new">https://urs.earthdata.nasa.gov/users/new</A> and create
+one.  For now, it seems that the created login doesn't
+have to be activated in order to be used from within
+phyghtmap.  Once specified, phyghtmap will store the
+earthdata login credentials unencrypted in a file
+called '.phyghtmaprc' in your home directory.  I. e.,
+you only have to specify this option (and the
+<B>--earthdata-password</B> option) once.  In addition, the
+password specified on the command line may be read by
+every user on your system.  So, don't choose a
+password which you don't want to be disclosed to
+others.  This option should be specified in
+combination with the <B>--earthdata-password</B> option.
+<DT><B>--earthdata-password</B>=EARTHDATA_PASSWORD<DD>
+the password to use for earthdata login.  This option
+should be specified in combination with the
+<B>--earthdata-user</B> option.  For further explanation, see
+the help given for the <B>--earthdata-user</B> option.
 <DT><B>--viewfinder-mask</B>=VIEWFINDER-RESOLUTION<DD>
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
@@ -263,7 +285,7 @@ Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adr
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2015 Adrian Dempwolff.  This code is distributed under
+Copyright (c) 2009-2017 Adrian Dempwolff.  This code is distributed under
 the GNU General Public License version 2, or, at your option, any later
 version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 <P>
@@ -284,6 +306,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 09:50:48 GMT, September 01, 2015
+Time: 18:59:05 GMT, January 02, 2017
 </BODY>
 </HTML>

@@ -1,3 +1,11 @@
+phyghtmap (1.80) stable; urgency=low
+
+  * Added cookie handling and authorization to NASASRTMUtil.py.
+  * Added --earthdata-user and --earthdata-password options and configuration
+    file handling.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Mon, 02 Jan 2017 19:20:00 +0100
+
 phyghtmap (1.74) stable; urgency=low
 
   * Fixed bug causing phyghtmap crashes when writing single output files
