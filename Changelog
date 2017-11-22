@@ -1,3 +1,12 @@
+phyghtmap (2.0) stable; urgency=low
+
+  * Added working default TLS policies for NASA SRTM servers.  This is needed
+    because the openssl defaults in Debian changed.
+  * Added the --feet option and related code to output contour data in feet steps.
+  * Made the python3 version the default one.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Mon, 11 Sep 2017 17:00:00 +0200
+
 phyghtmap (1.80) stable; urgency=low
 
   * Added cookie handling and authorization to NASASRTMUtil.py.

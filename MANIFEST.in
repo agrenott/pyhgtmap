@@ -3,7 +3,6 @@ include README
 include COPYRIGHT
 include LICENSE_GPL-2
 include Changelog
-include ez_setup.py
 recursive-exclude debian *
 recursive-exclude phyghtmap pbfintmodule.c
 recursive-include docs phyghtmap.1

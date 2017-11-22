@@ -1,15 +1,16 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.80"
+__version__ = "2.0"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-import urllib2 as urllib
-import cookielib
+from urllib import request as urllib
+import ssl
+from http import cookiejar as cookielib
 import base64
 import os
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import zipfile
 from matplotlib import __version__ as mplversion
 if mplversion < "1.3.0":
@@ -302,16 +303,16 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 		for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
 			index.write("[{0:s}]\n".format(continent))
 			url = "/".join([hgtFileServer, continent])
-			continentHtml = urllib.urlopen(url).read()
-			continentSoup = BeautifulSoup(continentHtml)
+			continentHtml = urllib.urlopen(url, context=ssl.SSLContext(ssl.PROTOCOL_TLS)).read()
+			continentSoup = BeautifulSoup(continentHtml, "lxml")
 			anchors = continentSoup.findAll("a")
 			for anchor in anchors:
 				if anchor.contents[0].endswith("hgt.zip"):
 					zipFilename = anchor.contents[0].strip()
 					index.write("{0:s}\n".format(zipFilename))
 	elif srtmVersion == 3.0:
-		indexHtml = urllib.urlopen(hgtFileServer).read()
-		indexSoup = BeautifulSoup(indexHtml)
+		indexHtml = urllib.urlopen(hgtFileServer, context=ssl.SSLContext(ssl.PROTOCOL_TLSv1)).read()
+		indexSoup = BeautifulSoup(indexHtml, "lxml")
 		zipFilenames = [a["href"] for a in indexSoup.findAll("a")
 			if a.contents[0].lower().endswith(".hgt.zip")]
 		for zipFilename in zipFilenames:
@@ -365,7 +366,7 @@ def makeViewHgtIndex(resolution):
 	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
 	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe.format(resolution)
 	zipFileDict = {}
-	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read()).findAll("area"):
+	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read(), "lxml").findAll("area"):
 		areaNames = calcAreaNames(a["coords"], resolution)
 		zipFileUrl = a["href"].strip()
 		if not zipFileUrl in zipFileDict:
@@ -586,7 +587,7 @@ def initDirs(sources):
 			mkdir(VIEWhgtSaveSubDir)
 
 def base64String(string):
-	return base64.encodestring(string)
+	return base64.encodestring(string.encode()).decode()
 
 def downloadToFile_SRTMv3(url, filename):
 	user = NASASRTMUtilConfig.earthdataUser
@@ -594,7 +595,8 @@ def downloadToFile_SRTMv3(url, filename):
 	cookieJar = cookielib.CookieJar(cookielib.DefaultCookiePolicy())
 	authString = "Basic {:s}".format(
 		base64String("{:s}:{:s}".format(user, password)).replace("\n", ""))
-	opener = urllib.build_opener(urllib.HTTPCookieProcessor(cookieJar))
+	opener = urllib.build_opener(urllib.HTTPCookieProcessor(cookieJar),
+		urllib.HTTPSHandler(context=ssl.SSLContext(ssl.PROTOCOL_TLSv1)))
 	opener.addheaders = [
 		("Authorization", authString),
 	]
@@ -602,7 +604,7 @@ def downloadToFile_SRTMv3(url, filename):
 	open(filename, "wb").write(res.read())
 
 def downloadToFile_Simple(url, filename):
-	res = urllib.urlopen(url)
+	res = urllib.urlopen(url, context=ssl.SSLContext(ssl.PROTOCOL_TLS))
 	open(filename, "wb").write(res.read())
 
 def downloadToFile(url, filename, source):
@@ -651,7 +653,7 @@ def downloadAndUnzip(url, area, source):
 					elif not viewUrl==url:
 						print("Got the wrong zip file (area found multiple times in index file).")
 						return downloadAndUnzip(viewUrl, area, source)
-			except Exception, msg:
+			except Exception as msg:
 				print(msg)
 				print("{0:s}: file {1:s} from {2:s} is not a zip file".format(area, saveZipFilename, url))
 	try:
@@ -663,7 +665,7 @@ def downloadAndUnzip(url, area, source):
 				wantedSize,foundSize))
 		print("{0:s}: using file {1:s}.".format(area, saveFilename))
 		return saveFilename
-	except Exception, msg:
+	except Exception as msg:
 		print(msg)
 		return None
 

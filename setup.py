@@ -1,6 +1,3 @@
-import ez_setup
-ez_setup.use_setuptools
-
 from setuptools import setup, find_packages
 #from setuptools import setup, find_packages, Extension
 import warnings
@@ -9,7 +6,7 @@ warnings.filterwarnings("ignore", "Unknown distribution option")
 #from phyghtmap import __version__
 
 setup(name="phyghtmap",
-	version="1.80",
+	version="2.0",
 	packages = find_packages(),
 	description="OSM contour lines creator.",
 	include_data_files=True,
@@ -26,5 +23,5 @@ setup(name="phyghtmap",
 			'phyghtmap = phyghtmap.main:main',
 		],
 	},
-	)
+)
 

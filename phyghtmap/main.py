@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.80"
+__version__ = "2.0"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -64,8 +64,11 @@ def parseCommandLine():
 		"\ndon't write contour data.", action="store_true", default=False,
 		dest="downloadOnly")
 	parser.add_option("-s", "--step", help="specify contour line step size in"
-		"\nmeters. The default value is 20.", dest="contourStepSize",
-		metavar="STEP", action="store", default='20')
+		"\nmeters or feet, if using the --feet option. The default value is 20.",
+		dest="contourStepSize", metavar="STEP", action="store", default='20')
+	parser.add_option("-f", "--feet", help="output contour lines in feet steps"
+		"\nrather than in meters.", action="store_true", default=False,
+		dest="contourFeet")
 	parser.add_option("-0", "--no-zero-contour", help="say this, if you don't want"
 		"\nthe sea level contour line (0 m) (which sometimes looks rather ugly) to"
 		"\nappear in the output.", action="store_true", default=False, dest="noZero")
@@ -368,7 +371,7 @@ def writeNodes(*args, **kwargs):
 def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 	timestampString="", checkPoly=False):
 	hgtFile = hgt.hgtFile(srcName, opts.srtmCorrx, opts.srtmCorry, opts.polygon,
-		checkPoly, opts.voidMax)
+		checkPoly, opts.voidMax, opts.contourFeet)
 	hgtTiles = hgtFile.makeTiles(opts)
 	if opts.plotPrefix:
 		for tile in hgtTiles:

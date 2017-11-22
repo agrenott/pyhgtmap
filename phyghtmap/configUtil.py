@@ -19,14 +19,14 @@ class Config(object):
 	def _decodeLine(self, line):
 		# this is not for obfuscation but for parsing issues
 		b64Key, b64Value = line.split(":")
-		key = base64.decodestring(b64Key)
-		value = base64.decodestring(b64Value)
+		key = base64.decodestring(b64Key.encode()).decode()
+		value = base64.decodestring(b64Value.encode()).decode()
 		return key, value
 
 	def _encodeLine(self, key, value):
 		# this is not for obfuscation but for parsing issues
-		b64Key = base64.encodestring(key).replace("\n", "")
-		b64Value = base64.encodestring(value).replace("\n", "")
+		b64Key = base64.encodestring(key.encode()).decode().replace("\n", "")
+		b64Value = base64.encodestring(value.encode()).decode().replace("\n", "")
 		return "{:s}:{:s}".format(b64Key, b64Value)
 
 	def parse(self):

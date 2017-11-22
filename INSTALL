@@ -1,18 +1,17 @@
-The installation requires a working python setuptools installation; 
-setuptools is included in python >=2.5, otherwise say XXX  The
-program itself should run with python >= 2.6.  The setup will use ez_setup which
-is included within this distribution.
+The installation requires a working python setuptools installation.
+To install it on a debian-like system say apt-get install python3-setuptools.
+The program itself should run with python >= 3.0.
 
 Some additional requirements have to be installed on your system in order to run
 phyghtmap:
 
-* python-pkg-resources (on Debian-like systems, say apt-get install
-  python-pkg-resources)
-* python-matplotlib (on Debian-like systems, say apt-get install
-	python-matplotlib)
-* python-beatifulsoup (on Debian-like systems, say apt-get install
-	python-beatifulsoup)
-* python-numpy (on Debian-like systems, say apt-get install python-numpy)
+* python3-pkg-resources (on Debian-like systems, say apt-get install
+  python3-pkg-resources)
+* python3-matplotlib (on Debian-like systems, say apt-get install
+	python3-matplotlib)
+* python3-bs4 (on Debian-like systems, say apt-get install
+	python-bs4)
+* python3-numpy (on Debian-like systems, say apt-get install python-numpy)
 
 To install phyghtmap, finally say
 

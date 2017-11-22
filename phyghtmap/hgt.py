@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "1.80"
+__version__ = "2.0"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -16,6 +16,9 @@ else:
 import numpy
 
 from phyghtmap.varint import bboxStringtypes
+
+
+meters2Feet = 1.0/0.3048
 
 
 class hgtError(Exception):
@@ -383,12 +386,13 @@ class hgtFile:
 	"""
 
 	def __init__(self, filename, corrx, corry, polygon=None, checkPoly=False,
-		voidMax=None):
+		voidMax=None, feetSteps=False):
 		"""tries to open <filename> and extracts content to self.zData.
 
 		<corrx> and <corry> are longitude and latitude corrections (floats)
 		as passed to phyghtmap on the commandline.
 		"""
+		self.feetSteps = feetSteps
 		self.fullFilename = filename
 		self.filename = os.path.split(filename)[-1]
 		self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
@@ -420,6 +424,8 @@ class hgtFile:
 			if voidMax != None:
 				voidMask = numpy.asarray(numpy.where(self.zData<=voidMax, True, False))
 				self.zData = numpy.ma.array(self.zData, mask=voidMask, fill_value=float("NaN"))
+			if self.feetSteps:
+				self.zData = self.zData * meters2Feet;
 		finally:
 			self.lonIncrement = 1.0/(self.numOfCols-1)
 			self.latIncrement = 1.0/(self.numOfRows-1)
@@ -454,6 +460,8 @@ class hgtFile:
 			if voidMax != None:
 				voidMask = numpy.asarray(numpy.where(self.zData<=voidMax, True, False))
 				self.zData = numpy.ma.array(self.zData, mask=voidMask, fill_value=float("NaN"))
+			if self.feetSteps:
+				self.zData = self.zData * meters2Feet;
 		finally:
 			# make x and y data
 			self.lonIncrement = geoTransform[1]
