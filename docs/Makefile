@@ -2,7 +2,7 @@ manpage: ../phyghtmap/main.py phyghtmap.help2man
 	mkdir build
 	echo "#!/usr/bin/python3" > build/main.py
 	for i in $$(ls ../phyghtmap/*.py); do \
-		cat $$i | sed -e s/from\ phyghtmap\ import/\#from\ phyghtmap\ import/ |\
+		cat $$i | sed -e s/from\ phyghtmap\ import/import/ |\
 			sed -e s/from\ phyghtmap.varint\ import/from\ varint\ import/ \
 			>> build/$$(basename $$i); \
 		done

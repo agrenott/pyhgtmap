@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.0"
+__version__ = "2.10"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -43,9 +43,13 @@ def parseCommandLine():
 		"\nall the needed NASA SRTM data files automatically if they are not cached"
 		"\nyet.  There is also the possibility of masking the NASA SRTM data with"
 		"\ndata from www.viewfinderpanoramas.org which fills voids and other data"
-		"\nlacking in the NASA data set.  Since the 3 arc second data available"
-		"\nfrom www.viewfinderpanoramas.org is now complete for the whole world,"
-		"\ngood results can be achieved by specifying --source=view3.")
+		"\nlacking in the original NASA data set.  Since the 3 arc second data available"
+		"\nfrom www.viewfinderpanoramas.org is complete for the whole world,"
+		"\ngood results can be achieved by specifying --source=view3.  For higher"
+		"\nresolution, the 1 arc second SRTM data in version 3.0 can be used by"
+		"\nspecifying --source=srtm1 in combination with --srtm-version=3.0. "
+		"\nSRTM 1 arc second data is, however, only available for latitudes"
+		"\nbetween 59 degrees of latitude south and 60 degrees of latitude north.")
 	parser.add_option("-a", "--area", help="choses the area to generate osm SRTM"
 		"\ndata for by bounding box. If necessary, files are downloaded from"
 		"\nthe NASA server. "
@@ -148,26 +152,24 @@ def parseCommandLine():
 		"\noption is 3.  If you want the old version, say --srtm-version=2.1 here",
 		dest="srtmVersion", action="store", metavar="VERSION", default=3.0,
 		type="float")
-	parser.add_option("--earthdata-user", help="the username to use for"
-		"\nearthdata login.  This is needed if you want to use NASA SRTM sources"
-		"\nin version 3.0.  If you do not yet have an earthdata login, visit"
-		"\nhttps://urs.earthdata.nasa.gov/users/new and create one.  For now, it"
-		"\nseems that the created login doesn't have to be activated in order to"
-		"\nbe used from within phyghtmap.  Once specified, phyghtmap will store"
-		"\nthe earthdata login credentials unencrypted in a file called"
-		"\n'.phyghtmaprc' in your home directory.  I. e., you only have to"
-		"\nspecify this option (and the --earthdata-password option) once. "
+	parser.add_option("--earthexplorer-user", help="the username to use for"
+		"\nearthexplorer login.  This is needed if you want to use NASA SRTM sources"
+		"\nin version 3.0.  If you do not yet have an earthexplorer login, visit"
+		"\nhttps://ers.cr.usgs.gov/register/ and create one.  Once specified,"
+		"\nphyghtmap will store the earthexplorer login credentials unencrypted in a"
+		"\nfile called '.phyghtmaprc' in your home directory.  I. e., you only"
+		"\nhave to specify this option (and the --earthexplorer-password option) once. "
 		"\nIn addition, the password specified on the command line may be read"
 		"\nby every user on your system.  So, don't choose a password which you"
 		"\ndon't want to be disclosed to others.  This option should be specified"
-		"\nin combination with the --earthdata-password option.",
-		dest="earthdataUser", action="store", default=None,
-		metavar="EARTHDATA_USERNAME")
-	parser.add_option("--earthdata-password", help="the password to use for"
-		"\nearthdata login.  This option should be specified in combination with"
-		"\nthe --earthdata-user option.  For further explanation, see the help"
-		"\ngiven for the --earthdata-user option.", dest="earthdataPassword",
-		action="store", default=None, metavar="EARTHDATA_PASSWORD")
+		"\nin combination with the --earthexplorer-password option.",
+		dest="earthexplorerUser", action="store", default=None,
+		metavar="EARTHEXPLORER_USERNAME")
+	parser.add_option("--earthexplorer-password", help="the password to use for"
+		"\nearthexplorer login.  This option should be specified in combination with"
+		"\nthe --earthexplorer-user option.  For further explanation, see the help"
+		"\ngiven for the --earthexplorer-user option.", dest="earthexplorerPassword",
+		action="store", default=None, metavar="EARTHEXPLORER_PASSWORD")
 	parser.add_option("--viewfinder-mask", help="if specified, NASA SRTM data"
  		"\nare masked with data from www.viewfinderpanoramas.org.  Possible values"
 		"\nare 1 and 3 (for explanation, see the --srtm option).",
@@ -269,23 +271,24 @@ def parseCommandLine():
 			# this is a hint for makeOsmFilename() that files are specified on the
 			# command line
 			opts.dataSource = []
-	needsEarthdataLogin = False
+	needsEarthexplorerLogin = False
 	for s in opts.dataSource:
 		if s.startswith("srtm") and "v3" in s:
-			needsEarthdataLogin = True
-	if needsEarthdataLogin:
-		# we need earthdata login credentials handling then
-		earthdataUser = configUtil.Config(configFilename).setOrGet(
-			"earthdata_credentials", "user", opts.earthdataUser)
-		earthdataPassword = configUtil.Config(configFilename).setOrGet(
-			"earthdata_credentials", "password", opts.earthdataPassword)
-		if not all((earthdataUser, earthdataPassword)):
-			print("Need earthdata login credentials to continue.  See the help for the")
-			print("--earthdata-user and --earthdata-password options for details.")
+			needsEarthexplorerLogin = True
+	if needsEarthexplorerLogin:
+		# we need earthexplorer login credentials handling then
+		earthexplorerUser = configUtil.Config(configFilename).setOrGet(
+			"earthexplorer_credentials", "user", opts.earthexplorerUser)
+		earthexplorerPassword = configUtil.Config(configFilename).setOrGet(
+			"earthexplorer_credentials", "password", opts.earthexplorerPassword)
+		if not all((earthexplorerUser, earthexplorerPassword)):
+			print("Need earthexplorer login credentials to continue.  See the help for the")
+			print("--earthexplorer-user and --earthexplorer-password options for details.")
 			print("-"*60)
 			parser.print_help()
 			sys.exit(1)
-		NASASRTMUtil.NASASRTMUtilConfig.earthdataCredentials(earthdataUser, earthdataPassword)
+		NASASRTMUtil.NASASRTMUtilConfig.earthexplorerCredentials(
+			earthexplorerUser, earthexplorerPassword)
 	if len(args) == 0 and not opts.area and not opts.polygon:
 		parser.print_help()
 		sys.exit(1)

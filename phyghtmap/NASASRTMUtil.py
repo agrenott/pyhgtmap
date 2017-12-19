@@ -1,12 +1,11 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.0"
+__version__ = "2.10"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-from urllib import request as urllib
-import ssl
+import urllib
 from http import cookiejar as cookielib
 import base64
 import os
@@ -40,8 +39,8 @@ class NASASRTMUtilConfigClass(object):
 			"North_America", "South_America"],
 			1: ["Region_0{0:d}".format(i) for i in range(1, 8)]}
 		self.NASAhgtSaveSubDirRe = "SRTM{0:d}v{1:.1f}"
-		self.earthdataUser = None
-		self.earthdataPassword = None
+		self.earthexplorerUser = None
+		self.earthexplorerPassword = None
 		############################################################
 		### www.vierfinderpanoramas.org specific variables #########
 		############################################################
@@ -52,7 +51,19 @@ class NASASRTMUtilConfigClass(object):
 		if srtmVersion == 2.1:
 			return "https://dds.cr.usgs.gov/srtm/version2_1/SRTM{0:d}".format(resolution)
 		elif srtmVersion == 3.0:
-			return "https://e4ftl01.cr.usgs.gov/SRTM/SRTMGL{0:d}.003/2000.02.11/".format(resolution)
+			if resolution == 1:
+				urlRe = "https://earthexplorer.usgs.gov/download/8360/SRTM1{:s}V3/GEOTIFF/EE"
+			elif resolution == 3:
+				urlRe = "https://earthexplorer.usgs.gov/download/4960/SRTM3{:s}V2/GEOTIFF3/EE"
+			return urlRe
+
+	def getSRTMIndexUrl(self, resolution, srtmVersion):
+		if srtmVersion == 2.1:
+			return self.getSRTMFileServer(resolution, srtmVersion)
+		elif srtmVersion == 3.0:
+			indexServerUrl = "https://dds.cr.usgs.gov/ee-data/coveragemaps/kml/ee/srtm_v3_srtmgl{:d}.kml".format(
+				resolution)
+			return indexServerUrl
 
 	def CustomHgtSaveDir(self, directory):
 		"""Set a custom directory to store the hgt files
@@ -69,9 +80,9 @@ class NASASRTMUtilConfigClass(object):
 		self.VIEWhgtIndexFileRe = os.path.join(self.hgtSaveDir,
 			"viewfinderHgtIndex_{0:d}.txt")
 
-	def earthdataCredentials(self, user, password):
-		self.earthdataUser = user
-		self.earthdataPassword = password
+	def earthexplorerCredentials(self, user, password):
+		self.earthexplorerUser = user
+		self.earthexplorerPassword = password
 
 # Create the config object
 NASASRTMUtilConfig = NASASRTMUtilConfigClass()
@@ -266,6 +277,47 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 	else:
 		return prefixes
 
+def parseSRTMv3CoverageKml(kmlContents):
+	polygons = []
+	polygonSoup = BeautifulSoup(kmlContents, "lxml").findAll("polygon")
+	for p in polygonSoup:
+		for c in p.findAll("coordinates"):
+			for cont in c.contents:
+				coords = [el for el in cont.split() if el.strip()]
+				polygons.append([
+					(float(coord.split(",")[0]), float(coord.split(",")[1]))
+					for coord in coords])
+	return polygons
+
+def getSRTMv3Areas(polygons):
+	rawAreas = []
+	for p in polygons:
+		lons = sorted([el[0] for el in p])
+		lats = sorted([el[1] for el in p])
+		minLon = lons[0]
+		maxLon = lons[-1]
+		minLat = lats[0]
+		maxLat = lats[-1]
+		for lon in numpy.arange(minLon+0.5, maxLon, 1.0):
+			for lat in numpy.arange(minLat+0.5, maxLat, 1.0):
+				points = [(lon, lat), ]
+				if mplversion < "1.3.0":
+					inside = points_inside_poly(points, p)
+				else:
+					inside = PolygonPath(p).contains_points(points)
+				if numpy.all(inside):
+					areaName = makeFileNamePrefix(getLowInt(lon), getLowInt(lat))
+					rawAreas.append(areaName)
+	# some tiles are located in holes and may have been wrongly identified
+	# as lying inside a polygon.  To eliminate those entries, only elements
+	# occuring an odd number of times are kept
+	areas = []
+	for area in rawAreas:
+		nOccurrences = rawAreas.count(area)
+		if nOccurrences % 2 == 1 and not area in areas:
+			areas.append(area)
+	return sorted(areas)
+	
 def makeNasaHgtIndex(resolution, srtmVersion):
 	"""generates an index file for the NASA SRTM server.
 	"""
@@ -275,7 +327,7 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 		hgtIndexFileOldName = hgtIndexFile[:-9] + hgtIndexFile[-4:]
 		# we know that <hgtIndexFile> does not exist because else this function would
 		# not have been called
-		# so we lokk if there is a file with the old index filename and if yes, we
+		# so we look if there is a file with the old index filename and if yes, we
 		# rename it
 		try:
 			os.stat(hgtIndexFileOldName)
@@ -290,7 +342,7 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 			# there is no old index file, so continue in this function and write a new
 			# one
 			pass
-	hgtFileServer = NASASRTMUtilConfig.getSRTMFileServer(resolution, srtmVersion)
+	hgtIndexUrl = NASASRTMUtilConfig.getSRTMIndexUrl(resolution, srtmVersion)
 	print("generating index in {0:s} ...".format(hgtIndexFile), end=" ")
 	try:
 		index = open(hgtIndexFile, 'w')
@@ -302,8 +354,8 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 	if srtmVersion == 2.1:
 		for continent in NASASRTMUtilConfig.NASAhgtFileDirs[resolution]:
 			index.write("[{0:s}]\n".format(continent))
-			url = "/".join([hgtFileServer, continent])
-			continentHtml = urllib.urlopen(url, context=ssl.SSLContext(ssl.PROTOCOL_TLS)).read()
+			url = "/".join([hgtIndexUrl, continent])
+			continentHtml = urllib.request.urlopen(url).read()
 			continentSoup = BeautifulSoup(continentHtml, "lxml")
 			anchors = continentSoup.findAll("a")
 			for anchor in anchors:
@@ -311,12 +363,11 @@ def makeNasaHgtIndex(resolution, srtmVersion):
 					zipFilename = anchor.contents[0].strip()
 					index.write("{0:s}\n".format(zipFilename))
 	elif srtmVersion == 3.0:
-		indexHtml = urllib.urlopen(hgtFileServer, context=ssl.SSLContext(ssl.PROTOCOL_TLSv1)).read()
-		indexSoup = BeautifulSoup(indexHtml, "lxml")
-		zipFilenames = [a["href"] for a in indexSoup.findAll("a")
-			if a.contents[0].lower().endswith(".hgt.zip")]
-		for zipFilename in zipFilenames:
-			index.write("{0:s}\n".format(zipFilename))
+		indexKml = urllib.request.urlopen(hgtIndexUrl).read()
+		polygons = parseSRTMv3CoverageKml(indexKml)
+		areas = getSRTMv3Areas(polygons)
+		for area in areas:
+			index.write("{:s}\n".format(area))
 	print("DONE")
 
 def writeViewIndex(resolution, zipFileDict):
@@ -366,7 +417,7 @@ def makeViewHgtIndex(resolution):
 	hgtIndexFile = NASASRTMUtilConfig.VIEWhgtIndexFileRe.format(resolution)
 	hgtDictUrl = NASASRTMUtilConfig.VIEWfileDictPageRe.format(resolution)
 	zipFileDict = {}
-	for a in BeautifulSoup(urllib.urlopen(hgtDictUrl).read(), "lxml").findAll("area"):
+	for a in BeautifulSoup(urllib.request.urlopen(hgtDictUrl).read(), "lxml").findAll("area"):
 		areaNames = calcAreaNames(a["coords"], resolution)
 		zipFileUrl = a["href"].strip()
 		if not zipFileUrl in zipFileDict:
@@ -419,8 +470,8 @@ def makeIndex(indexType):
 desiredIndexVersion = {
 	"srtm1v2.1": 1,
 	"srtm3v2.1": 2,
-	"srtm1v3.0": 1,
-	"srtm3v3.0": 1,
+	"srtm1v3.0": 2,
+	"srtm3v3.0": 2,
 	"view1": 2,
 	"view3": 4,
 }
@@ -478,7 +529,7 @@ def getNASAUrl(area, resolution, srtmVersion):
 	elif srtmVersion == 3.0:
 		for line in index:
 			if line.split(".")[0].lower() == area.lower():
-				url = "".join([hgtFileServer, line])
+				url = hgtFileServer.format(area)
 				return url
 		else:
 			# no such area in index
@@ -589,22 +640,31 @@ def initDirs(sources):
 def base64String(string):
 	return base64.encodestring(string.encode()).decode()
 
+def earthexplorerLogin():
+	jar = cookielib.CookieJar(cookielib.DefaultCookiePolicy())
+	opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+	opener.open("https://ers.cr.usgs.gov/") # needed for some cookies
+	postData = {
+		'username': NASASRTMUtilConfig.earthexplorerUser,
+		'password': NASASRTMUtilConfig.earthexplorerPassword,
+	}
+	req1 = urllib.request.Request("https://ers.cr.usgs.gov/login/")
+	res1 = opener.open(req1)
+	formSoup = BeautifulSoup(res1.read(), "lxml").find("form", {"id": "loginForm"})
+	for i in formSoup.findAll("input", {"type": "hidden"}):
+		postData[i.attrs["name"]] = i.attrs["value"]
+	encodedPostData = bytes(urllib.parse.urlencode(postData), "utf-8")
+	req2 = urllib.request.Request("https://ers.cr.usgs.gov/login/", data=encodedPostData, method='POST')
+	res2 = opener.open(req2)
+	return opener
+
 def downloadToFile_SRTMv3(url, filename):
-	user = NASASRTMUtilConfig.earthdataUser
-	password = NASASRTMUtilConfig.earthdataPassword
-	cookieJar = cookielib.CookieJar(cookielib.DefaultCookiePolicy())
-	authString = "Basic {:s}".format(
-		base64String("{:s}:{:s}".format(user, password)).replace("\n", ""))
-	opener = urllib.build_opener(urllib.HTTPCookieProcessor(cookieJar),
-		urllib.HTTPSHandler(context=ssl.SSLContext(ssl.PROTOCOL_TLSv1)))
-	opener.addheaders = [
-		("Authorization", authString),
-	]
+	opener = earthexplorerLogin()
 	res = opener.open(url)
 	open(filename, "wb").write(res.read())
 
 def downloadToFile_Simple(url, filename):
-	res = urllib.urlopen(url, context=ssl.SSLContext(ssl.PROTOCOL_TLS))
+	res = urllib.request.urlopen(url)
 	open(filename, "wb").write(res.read())
 
 def downloadToFile(url, filename, source):
@@ -616,6 +676,36 @@ def downloadToFile(url, filename, source):
 	return downloadToFile_Simple(url, filename)
 
 def downloadAndUnzip(url, area, source):
+	if source.lower().startswith("srtm") and "v3.0" in source.lower():
+		return downloadAndUnzip_Tif(url, area, source)
+	else:
+		return downloadAndUnzip_Zip(url, area, source)
+
+def downloadAndUnzip_Tif(url, area, source):
+	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
+	fileResolution = int(source[4])
+	oldSaveFilename = os.path.join(hgtSaveSubDir, "{0:s}.hgt".format(area))
+	saveFilename = os.path.join(hgtSaveSubDir, "{0:s}.tif".format(area))
+	try:
+		os.stat(oldSaveFilename)
+		print("{0:s}: using file {1:s}.".format(area, oldSaveFilename))
+		return oldSaveFilename
+	except:
+		pass
+	try:
+		os.stat(saveFilename)
+	except:
+		print("{0:s}: downloading file {1:s} to {2:s} ...".format(area, url, saveFilename))
+		downloadToFile(url, saveFilename, source)
+	try:
+		os.stat(saveFilename)
+		print("{0:s}: using file {1:s}.".format(area, saveFilename))
+		return saveFilename
+	except Exception as msg:
+		print(msg)
+		return None
+
+def downloadAndUnzip_Zip(url, area, source):
 	hgtSaveDir, hgtSaveSubDir = getDirNames(source)
 	fileResolution = int(source[4])
 	saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])

@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.0"
+__version__ = "2.10"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -123,6 +123,8 @@ class Output(object):
 
 		The nodelist is split up to make sure the pbf blobs will not be too big.
 		"""
+		if len(nodes) == 0:
+			return
 		# because this method is possibly used multiple times per output file,
 		# reset the delta counters each time
 		self.writeReset()
@@ -168,6 +170,8 @@ class Output(object):
 		"""writes ways to self.outf.  ways shall be a list of
 		(<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
 		"""
+		if len(ways) == 0:
+			return
 		# write a reset byte
 		self.writeReset()
 		# write the first way

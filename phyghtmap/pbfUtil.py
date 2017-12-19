@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.0"
+__version__ = "2.10"
 __copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
 __license__ = "GPLv2+"
 

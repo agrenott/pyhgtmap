@@ -1,3 +1,11 @@
+phyghtmap (2.10) stable; urgency=low
+
+  * Replaced earthdata-related code by earthexplorer login code.
+  * Fixed bug in o5mUtil.py.
+  * SSL issues solved since only servers supporting TLSv1.2 are used now.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Tue, 19 Dec 2017 16:55:00 +0200
+
 phyghtmap (2.0) stable; urgency=low
 
   * Added working default TLS policies for NASA SRTM servers.  This is needed

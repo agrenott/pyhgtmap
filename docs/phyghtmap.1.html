@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: September 2017<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: December 2017<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -35,9 +35,13 @@ no cache directory is found, it will be created.  It then downloads
 all the needed NASA SRTM data files automatically if they are not cached
 yet.  There is also the possibility of masking the NASA SRTM data with
 data from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> which fills voids and other data
-lacking in the NASA data set.  Since the 3 arc second data available
-from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> is now complete for the whole world,
-good results can be achieved by specifying <B>--source</B>=view3.
+lacking in the original NASA data set.  Since the 3 arc second data available
+from <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A> is complete for the whole world,
+good results can be achieved by specifying <B>--source</B>=view3.  For higher
+resolution, the 1 arc second SRTM data in version 3.0 can be used by
+specifying <B>--source</B>=srtm1 in combination with <B>--srtm-version</B>=3.0.
+SRTM 1 arc second data is, however, only available for latitudes
+between 59 degrees of latitude south and 60 degrees of latitude north.
 <A NAME="lbAE">&nbsp;</A>
 <H2>OPTIONS</H2>
 
@@ -150,28 +154,27 @@ In version 2.1, only the US territory is included in
 the 1 arc second dataset.  In version 3, nearly the
 whole world is covered.  The default for this option
 is 3.  If you want the old version, say <B>--srtmversion</B>=2.1 here
-<DT><B>--earthdata-user</B>=EARTHDATA_USERNAME<DD>
-the username to use for earthdata login.  This is
+<DT><B>--earthexplorer-user</B>=EARTHEXPLORER_USERNAME<DD>
+the username to use for earthexplorer login.  This is
 needed if you want to use NASA SRTM sources in version
-3.0.  If you do not yet have an earthdata login, visit
-<A HREF="https://urs.earthdata.nasa.gov/users/new">https://urs.earthdata.nasa.gov/users/new</A> and create
-one.  For now, it seems that the created login doesn't
-have to be activated in order to be used from within
-phyghtmap.  Once specified, phyghtmap will store the
-earthdata login credentials unencrypted in a file
+3.0.  If you do not yet have an earthexplorer login,
+visit <A HREF="https://ers.cr.usgs.gov/register/">https://ers.cr.usgs.gov/register/</A> and create
+one.  Once specified, phyghtmap will store the
+earthexplorer login credentials unencrypted in a file
 called '.phyghtmaprc' in your home directory.  I. e.,
 you only have to specify this option (and the
-<B>--earthdata-password</B> option) once.  In addition, the
-password specified on the command line may be read by
-every user on your system.  So, don't choose a
+<B>--earthexplorer-password</B> option) once.  In addition,
+the password specified on the command line may be read
+by every user on your system.  So, don't choose a
 password which you don't want to be disclosed to
 others.  This option should be specified in
-combination with the <B>--earthdata-password</B> option.
-<DT><B>--earthdata-password</B>=EARTHDATA_PASSWORD<DD>
-the password to use for earthdata login.  This option
-should be specified in combination with the
-<B>--earthdata-user</B> option.  For further explanation, see
-the help given for the <B>--earthdata-user</B> option.
+combination with the <B>--earthexplorer-password</B> option.
+<DT><B>--earthexplorer-password</B>=EARTHEXPLORER_PASSWORD<DD>
+the password to use for earthexplorer login.  This
+option should be specified in combination with the
+<B>--earthexplorer-user</B> option.  For further explanation,
+see the help given for the <B>--earthexplorer-user</B>
+option.
 <DT><B>--viewfinder-mask</B>=VIEWFINDER-RESOLUTION<DD>
 if specified, NASA SRTM data are masked with data from
 <A HREF="http://www.viewfinderpanoramas.org">www.viewfinderpanoramas.org</A>.  Possible values are 1
@@ -309,6 +312,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 14:47:21 GMT, September 11, 2017
+Time: 18:10:30 GMT, December 19, 2017
 </BODY>
 </HTML>
