@@ -4,8 +4,8 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.10"
-__copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
+__version__ = "2.20"
+__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import sys
@@ -123,6 +123,28 @@ def parseCommandLine():
 		"\nnumber of nodes per way.  It defaults to 2000, which is the maximum value"
 		"\nfor OSM api version 0.6.  Say 0 here, if you want unsplitted ways.",
 		dest="maxNodesPerWay", type="int", default=2000, action="store")
+	parser.add_option("--simplifyContoursEpsilon", help="simplify contour lines"
+		"\nusing the Ramer-Douglas-Peucker (RDP) algorithm with this EPSILON value. "
+		"\nThe larger the value, the more simplified the contour lines.  The"
+		"\nvalue passed will be directly used, i. e. in case of WGS84 based"
+		"\nreference systems like EPSG:4326, the passed value is interpreted as"
+		"\ndegrees of latitude and longitude, respectively.  Use a value of 0.0 to"
+		"\nremove only vertices on straight lines.  Sensible values to reduce the"
+		"\noutput file size while preserving resonable accuracy are dependent on"
+		"\nthe file resolution.  For SRTM3 data, some value between 0.0001 and"
+		"\n0.0005 seems reasonable, reducing the file size by something like one"
+		"\nor two thirds.  Note that using contour line simplification will slow"
+		"\ndown contour line generation.  The default is not to use RDP.",
+		dest="rdpEpsilon", type="float", default=None, action="store",
+		metavar="EPSILON")
+	parser.add_option("--simplifyContoursMaxDistance", help="Do not delete all"
+		"\nvertices while simplifying a contour line using RDP but only delete"
+		"\npoints within this range.  The default is to delete all dispensable"
+		"\nvertices.  Only use this option if you want to get the benefit of RDP"
+		"\nbut need somehow close-lying points because of rendering issues or so."
+		"\nUsing this option will dramatically slow down contour line generation.",
+		dest="rdpMaxVertexDistance", type="float", default=None, action="store",
+		metavar="MAX_VERTEX_DISTANCE")
 	parser.add_option("--gzip", help="turn on gzip compression of output files."
 		"\nThis reduces the needed disk space but results in higher computation"
 		"\ntimes.  Specifiy an integer between 1 and 9.  1 means low compression and"
@@ -392,11 +414,15 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 			try:
 				tile.elevations, tile.contourData = tile.contourLines(
 					stepCont=int(opts.contourStepSize),
-					maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero)
+					maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero,
+					rdpEpsilon=opts.rdpEpsilon,
+					rdpMaxVertexDistance=opts.rdpMaxVertexDistance)
 				goodTiles.append(tile)
 			except ValueError: # tiles with the same value on every element
 				continue
-			numOfPointsAdd, numOfWaysAdd = tile.countNodes(maxNodesPerWay=opts.maxNodesPerWay)
+			numOfPointsAdd, numOfWaysAdd = tile.countNodes(
+				maxNodesPerWay=opts.maxNodesPerWay, rdpEpsilon=opts.rdpEpsilon,
+				rdpMaxVertexDistance=opts.rdpMaxVertexDistance)
 			numOfPoints += numOfPointsAdd
 			numOfWays += numOfWaysAdd
 		hgtTiles = goodTiles
@@ -438,7 +464,9 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 				try:
 					elevations, contourData = tile.contourLines(
 						stepCont=int(opts.contourStepSize),
-						maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero)
+						maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero,
+						rdpEpsilon=opts.rdpEpsilon,
+						rdpMaxVertexDistance=opts.rdpMaxVertexDistance)
 				except ValueError: # tiles with the same value on every element
 					continue
 				opts.startId, ways = writeNodes(output, contourData,
@@ -451,7 +479,9 @@ def processHgtFile(srcName, opts, output=None, wayOutput=None, statsOutput=None,
 				try:
 					elevations, contourData = tile.contourLines(
 						stepCont=int(opts.contourStepSize),
-						maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero)
+						maxNodesPerWay=opts.maxNodesPerWay, noZero=opts.noZero,
+						rdpEpsilon=opts.rdpEpsilon,
+						rdpMaxVertexDistance=opts.rdpMaxVertexDistance)
 				except ValueError: # tiles with the same value on every element
 					continue
 				# we have multiple output files, so we need to count nodeIds here
@@ -640,7 +670,7 @@ def main():
 			sys.exit(0)
 	else:
 		hgtDataFiles = [(arg, False) for arg in args if
-			os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff")]
+			os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff", ".vrt")]
 		opts.area = ":".join([str(i) for i in hgt.calcHgtArea(hgtDataFiles,
 			opts.srtmCorrx, opts.srtmCorry)])
 

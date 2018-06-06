@@ -1,18 +1,21 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.10"
-__copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
+__version__ = "2.20"
+__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import os
 import sys
-from matplotlib import _cntr
 from matplotlib import __version__ as mplversion
 if mplversion < "1.3.0":
 	from matplotlib.nxutils import points_inside_poly
 else:
 	from matplotlib.path import Path as PolygonPath
+if mplversion < "2.0.0":
+	from matplotlib import _cntr
+else:
+	from matplotlib import _contour
 import numpy
 
 from phyghtmap.varint import bboxStringtypes
@@ -59,9 +62,6 @@ def parsePolygon(filename):
 			# polygon ends
 			polygons.append(curPolygon)
 			curPolygon = []
-		elif l == "end":
-			# file ends
-			break
 		elif len(l.split()) == 2:
 			lon, lat = l.split()
 			try:
@@ -145,6 +145,12 @@ def getTransform(o, reverse=False):
 				for el in p[:2]])]
 		return transform
 
+def transformPoint(lon, lat, transform):
+	if transform == None:
+		return lon, lat
+	else:
+		[(lon, lat), ] = transform([(lon, lat), ])
+
 def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
 	if transform == None:
 		return minLon, minLat, maxLon, maxLat
@@ -206,7 +212,7 @@ def parseFileForBbox(fullFilename, corrx, corry, doTransform):
 	fileExt = os.path.splitext(fullFilename)[1].lower().replace(".", "")
 	if fileExt == "hgt":
 		return parseHgtFilename(os.path.split(fullFilename)[1], corrx, corry)
-	elif fileExt in ("tif", "tiff"):
+	elif fileExt in ("tif", "tiff", "vrt"):
 		return parseGeotiffBbox(fullFilename, corrx, corry, doTransform)
 
 def calcHgtArea(filenames, corrx, corry):
@@ -219,11 +225,14 @@ def calcHgtArea(filenames, corrx, corry):
 
 
 class ContourObject(object):
-	def __init__(self, Cntr, maxNodesPerWay, transform, polygon=None):
+	def __init__(self, Cntr, maxNodesPerWay, transform, polygon=None,
+			rdpEpsilon=None, rdpMaxVertexDistance=None):
 		self.Cntr = Cntr
 		self.maxNodesPerWay = maxNodesPerWay
 		self.polygon = polygon
 		self.transform = transform
+		self.rdpEpsilon = rdpEpsilon
+		self.rdpMaxVertexDistance = rdpMaxVertexDistance
 
 	def _cutBeginning(self, p):
 		"""is recursively called to cut off a path's first element
@@ -339,36 +348,111 @@ class ContourObject(object):
 		numOfNodes = sum([len(p) for p in pathList])-numOfClosedPaths
 		return pathList, numOfNodes, numOfPaths
 
+	def simplifyPath(self, path):
+		"""simplifies a path using a modified version of the Ramer-Douglas-Peucker
+		(RDP) algorithm.
+
+		<path>: a contour line path
+
+		other variables used here:
+		self.rdpEpsilon: the epsilon value to use in RDP
+		self.rdpMaxVertexDistance: RDP is modified in a way that it preserves some
+			points if they are too far from each other, even if the point is less
+			than epsilon away from an enclosing contour line segment
+
+		A simplified path is returned as numpy array.
+		"""
+		if self.rdpEpsilon is None:
+			return path
+
+		def distance(A, B):
+			""" determines the distance between two points <A> and <B>
+			"""
+			return numpy.linalg.norm(A-B)
+
+		def perpendicularDistance(P, S, E):
+			""" determines the perpendicular distance of <P> to the <S>-<E> segment
+			"""
+			if numpy.all(numpy.equal(S, E)):
+				return distance(S, P)
+			else:
+				cp = numpy.cross(P-S, E-S)
+				return abs(cp / distance(E, S))
+
+		if self.rdpEpsilon == 0.0:
+			return path
+		if path.shape[0] <= 2:
+			return path
+		S = path[0]
+		E = path[-1]
+		maxInd = 0
+		maxDist = 0.0
+		for ind, P in enumerate(path[1:-1]):
+			dist = perpendicularDistance(P, S, E)
+			if dist > maxDist:
+				maxDist = dist
+				maxInd = ind+1
+		if (maxDist <= self.rdpEpsilon
+				and (self.rdpMaxVertexDistance is None
+				or distance(S, E) <= self.rdpMaxVertexDistance)):
+			return numpy.array([S, E])
+		elif maxDist <= self.rdpEpsilon:
+			for ind, P in enumerate(path[1:-1]):
+				if distance(S, P) > self.rdpMaxVertexDistance:
+					break
+			if ind == 0:
+				return numpy.vstack((S, path[1], self.simplifyPath(path[2:])))
+			else:
+				return numpy.vstack((S, self.simplifyPath(path[ind:])))
+		else:
+			path = numpy.vstack((
+				self.simplifyPath(path[:maxInd+1]), self.simplifyPath(path[maxInd:])[1:]))
+			return path
+
 	def trace(self, elevation, **kwargs):
 		"""this emulates matplotlib.cntr.Cntr's trace method.
 		The difference is that this method returns already split paths,
 		along with the number of nodes and paths as expected in the OSM
 		XML output.  Also, consecutive identical nodes are removed.
 		"""
-		if mplversion >= "1.0.0":
+		if mplversion >= "2.0.0":
+			rawPaths = self.Cntr.create_contour(elevation)
+		elif mplversion >= "1.0.0":
 			# matplotlib 1.0.0 and above returns vertices and segments, but we only need vertices
 			rawPaths = halfOf(self.Cntr.trace(elevation, **kwargs))
 		else:
 			rawPaths = self.Cntr.trace(elevation, **kwargs)
 		numOfPaths, numOfNodes = 0, 0
+		intermediatePaths = []
+		if mplversion >= "2.0.0":
+			# matplotlib 2.0.0 and higher handles masks itself, so no clipping is
+			# needed here
+			intermediatePaths = rawPaths
+		else:
+			for path in rawPaths:
+				intermediatePaths.extend(self.clipPath(path))
 		resultPaths = []
-		for path in rawPaths:
-			for clippedPath in self.clipPath(path):
-				splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(clippedPath)
-				resultPaths.extend(splitPaths)
-				numOfPaths += numOfPathsAdd
-				numOfNodes += numOfNodesAdd
+		for path in intermediatePaths:
+			path = self.simplifyPath(path)
+			splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
+			resultPaths.extend(splitPaths)
+			numOfPaths += numOfPathsAdd
+			numOfNodes += numOfNodesAdd
 		return resultPaths, numOfNodes, numOfPaths
 
-def polygonMask(xData, yData, polygon):
+def polygonMask(xData, yData, polygon, transform):
 	"""return a mask on self.zData corresponding to all polygons in self.polygon.
 	<xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
 	latitude values.  An array usable as mask for the corresponding zData
 	2-D array is returned.
+	<transform> may be transform function from the file's projection to EPSG:4326,
+	which is the projection used within polygon files.
 	"""
 	X, Y = numpy.meshgrid(xData, yData)
 	xyPoints = numpy.vstack(([X.T],
 		[Y.T])).T.reshape(len(xData)*len(yData), 2)
+	if transform is not None:
+		xyPoints = transform(xyPoints)
 	maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
 	for p in polygon:
 		# run through all polygons and combine masks
@@ -398,8 +482,8 @@ class hgtFile:
 		self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
 		if self.fileExt == "hgt":
 			self.initAsHgt(corrx, corry, polygon, checkPoly, voidMax)
-		elif self.fileExt in ("tif", "tiff"):
-			self.initAsGeotiff(corrx, corry, voidMax)
+		elif self.fileExt in ("tif", "tiff", "vrt"):
+			self.initAsGeotiff(corrx, corry, polygon, checkPoly, voidMax)
 		# some statistics
 		minLon, minLat, maxLon, maxLat = transformLonLats(
 			self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform)
@@ -440,10 +524,8 @@ class hgtFile:
 			self.transform = None
 			self.reverseTransform = None
 
-	def initAsGeotiff(self, corrx, corry, voidMax):
+	def initAsGeotiff(self, corrx, corry, polygon, checkPoly, voidMax):
 		"""init this hgtFile instance with data from a geotiff image.
-
-		Since the file was passed on the command line, no polygon is supported yet.
 		"""
 		from osgeo import gdal, osr
 		try:
@@ -473,7 +555,10 @@ class hgtFile:
 			# get the transformation function from fileProj to EPSG:4326 for this geotiff file
 			self.transform = getTransform(fileProj)
 			self.reverseTransform = getTransform(fileProj, reverse=True)
-			self.polygon = None
+			if checkPoly:
+				self.polygon = polygon
+			else:
+				self.polygon = None
 
 	def borders(self, corrx=0.0, corry=0.0):
 		"""determines the bounding box of self.filename using parseHgtFilename().
@@ -636,7 +721,8 @@ class hgtFile:
 						inputBbox[2]+self.lonIncrement/2.0, self.lonIncrement)
 					tileYData = numpy.arange(inputBbox[3],
 						inputBbox[1]-self.latIncrement/2.0, -self.latIncrement)
-					tileMask = polygonMask(tileXData, tileYData, self.polygon)
+					tileMask = polygonMask(tileXData, tileYData, self.polygon,
+						self.transform)
 					tilePolygon = self.polygon
 					if not numpy.any(tileMask):
 						# all points are inside the polygon
@@ -717,7 +803,7 @@ class hgtTile:
 			return self.minLon, self.minLat, self.maxLon, self.maxLat
 
 	def contourLines(self, stepCont=20, maxNodesPerWay=0, noZero=False,
-		minCont=None, maxCont=None):
+		minCont=None, maxCont=None, rdpEpsilon=None, rdpMaxVertexDistance=None):
 		"""generates contour lines using matplotlib.
 
 		<stepCont> is height difference of contiguous contour lines in meters
@@ -725,6 +811,8 @@ class hgtTile:
 		<noZero>:  if True, the 0 m contour line is discarded
 		<minCont>:  lower limit of the range to generate contour lines for
 		<maxCont>:  upper limit of the range to generate contour lines for
+		<rdpEpsilon>: epsilon to use in RDP contour line simplification
+		<rdpMaxVertexDistance>: maximal vertex distance in RDP simplification
 
 		A list of elevations and a ContourObject is returned.
 		"""
@@ -748,12 +836,21 @@ class hgtTile:
 		# z data is a masked array filled with nan.
 		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"),
 			keep_mask=True)
-		Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None), maxNodesPerWay,
-			self.transform, self.polygon)
+		if mplversion < "2.0.0":
+			Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None),
+				maxNodesPerWay, self.transform, self.polygon,
+				rdpEpsilon, rdpMaxVertexDistance)
+		else:
+			corner_mask = True
+			nchunk = 0
+			Contours = ContourObject(
+				_contour.QuadContourGenerator(x, y, z.filled(), self.mask, corner_mask, nchunk),
+				maxNodesPerWay, self.transform, self.polygon,
+				rdpEpsilon, rdpMaxVertexDistance)
 		return levels, Contours
 
 	def countNodes(self, maxNodesPerWay=0, stepCont=20, minCont=None,
-		maxCont=None):
+		maxCont=None, rdpEpsilon=None, rdpMaxVertexDistance=None):
 		"""counts the total number of nodes and paths in the current tile
 		as written to output.
 
@@ -761,10 +858,12 @@ class hgtTile:
 		<stepCont> is height difference of contiguous contour lines in meters
 		<minCont>:  lower limit of the range to generate contour lines for
 		<maxCont>:  upper limit of the range to generate contour lines for
+		<rdpEpsilon>: epsilon to use in RDP contour line simplification
+		<rdpMaxVertexDistance>: maximal vertex distance in RDP simplification
 		"""
 		if not (self.elevations and self.contourData):
 			elevations, contourData = self.contourLines(stepCont, maxNodesPerWay,
-				minCont, maxCont)
+				minCont, maxCont, rdpEpsilon, rdpMaxVertexDistance)
 		else:
 			elevations, contourData = self.elevations, self.contourData
 		numOfNodesWays = [contourData.trace(e)[1:] for e in elevations]

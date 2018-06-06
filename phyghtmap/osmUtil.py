@@ -1,6 +1,6 @@
 __author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.10"
-__copyright__ = "Copyright (c) 2009-2017 Adrian Dempwolff"
+__version__ = "2.20"
+__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import numpy

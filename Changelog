@@ -1,3 +1,16 @@
+phyghtmap (2.20) stable; urgency=low
+
+  * Added support for matplotlib version 2.2.0 (and later).
+  * Fixed issue with polygon parsing when there is more than one segment in the file.
+  * Added a patch which adds support for gdal VRT format.
+  * Fixed bug which prevented polygon evaluation for newer SRTM (i. e.
+    GeoTiff) data.
+  * Added the --simplifyContoursEpsilon and --simplifyContoursMaxDistance
+    options and related code to simplify generated coutour lines using the
+    Ramer-Douglas-Peucker (RDP) algorithm.
+
+ -- Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>  Tue, 05 Jun 2018 23:50:00 +0200
+
 phyghtmap (2.10) stable; urgency=low
 
   * Replaced earthdata-related code by earthexplorer login code.

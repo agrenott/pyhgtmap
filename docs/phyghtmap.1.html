@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: December 2017<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: June 2018<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -123,6 +123,30 @@ specify an integer as a maximum number of nodes per
 way.  It defaults to 2000, which is the maximum value
 for OSM api version 0.6.  Say 0 here, if you want
 unsplitted ways.
+<DT><B>--simplifyContoursEpsilon</B>=EPSILON<DD>
+simplify contour lines using the Ramer-Douglas-Peucker
+(RDP) algorithm with this EPSILON value.  The larger
+the value, the more simplified the contour lines.  The
+value passed will be directly used, i. e. in case of
+WGS84 based reference systems like EPSG:4326, the
+passed value is interpreted as degrees of latitude and
+longitude, respectively.  Use a value of 0.0 to remove
+only vertices on straight lines.  Sensible values to
+reduce the output file size while preserving resonable
+accuracy are dependent on the file resolution.  For
+SRTM3 data, some value between 0.0001 and 0.0005 seems
+reasonable, reducing the file size by something like
+one or two thirds.  Note that using contour line
+simplification will slow down contour line generation.
+The default is not to use RDP.
+<DT><B>--simplifyContoursMaxDistance</B>=MAX_VERTEX_DISTANCE<DD>
+Do not delete all vertices while simplifying a contour
+line using RDP but only delete points within this
+range.  The default is to delete all dispensable
+vertices.  Only use this option if you want to get the
+benefit of RDP but need somehow close-lying points
+because of rendering issues or so. Using this option
+will dramatically slow down contour line generation.
 <DT><B>--gzip</B>=COMPRESSLEVEL<DD>
 turn on gzip compression of output files. This reduces
 the needed disk space but results in higher
@@ -291,7 +315,7 @@ Adrian Dempwolff &lt;<A HREF="mailto:adrian.dempwolff@urz.uni-heidelberg.de">adr
 <A NAME="lbAI">&nbsp;</A>
 <H2>COPYRIGHT</H2>
 
-Copyright (c) 2009-2017 Adrian Dempwolff.  This code is distributed under
+Copyright (c) 2009-2018 Adrian Dempwolff.  This code is distributed under
 the GNU General Public License version 2, or, at your option, any later
 version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/gpl.html</A>&gt;.
 <P>
@@ -312,6 +336,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 18:10:30 GMT, December 19, 2017
+Time: 17:38:38 GMT, June 06, 2018
 </BODY>
 </HTML>
