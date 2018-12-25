@@ -1,3 +1,12 @@
+phyghtmap (2.21) stable; urgency=low
+
+  * Integrated patch supplied by Stefan Renatscher, fixing an issue with
+    program aborts after ancountering HTTP 500 errors when downloading some
+    SRTMv3 files from earthexplorer servers.
+  * Fixed a bug triggered when handling tiles containing void data.
+
+ -- Adrian Dempwolff <phyghtmap@aldw.de>  Tue, 25 Dec 2018 20:20:00 +0100
+
 phyghtmap (2.20) stable; urgency=low
 
   * Added support for matplotlib version 2.2.0 (and later).

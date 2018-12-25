@@ -1,10 +1,11 @@
 from __future__ import print_function
 
-__author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.20"
+__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
+__version__ = "2.21"
 __copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
+import sys
 import urllib
 from http import cookiejar as cookielib
 import base64
@@ -660,7 +661,14 @@ def earthexplorerLogin():
 
 def downloadToFile_SRTMv3(url, filename):
 	opener = earthexplorerLogin()
-	res = opener.open(url)
+	# earthexplorer servers yield HTTP error 500 for some specific files like,
+	# e.g.,  https://earthexplorer.usgs.gov/download/4960/SRTM3S11W139V2/GEOTIFF3/EE
+	try:
+		res = opener.open(url)
+	except urllib.error.HTTPError as e:
+		sys.stderr.write("\t: Error downloading file {0:s}, reason: {1:s}.\n".format(
+			os.path.split(filename)[1], e.reason))
+		return False
 	open(filename, "wb").write(res.read())
 
 def downloadToFile_Simple(url, filename):

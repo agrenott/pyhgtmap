@@ -71,9 +71,9 @@ specified area.  For bigger areas, you will probably get more than one output
 file.
 [BUGS]
 If you find a bug, please report it to
-<adrian.dempwolff@urz.uni-heidelberg.de>.
+<phyghtmap@aldw.de>.
 [AUTHOR]
-Adrian Dempwolff <adrian.dempwolff@urz.uni-heidelberg.de>
+Adrian Dempwolff <phyghtmap@aldw.de>
 [COPYRIGHT]
 Copyright (c) 2009-2018 Adrian Dempwolff.  This code is distributed under
 the GNU General Public License version 2, or, at your option, any later

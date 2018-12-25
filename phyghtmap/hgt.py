@@ -1,7 +1,7 @@
 from __future__ import print_function
 
-__author__ = "Adrian Dempwolff (adrian.dempwolff@urz.uni-heidelberg.de)"
-__version__ = "2.20"
+__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
+__version__ = "2.21"
 __copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -257,7 +257,7 @@ class ContourObject(object):
 		"""
 		# do the transform if necessary
 		if self.transform != None:
-			path = self.transform(path)
+			path = numpy.array(self.transform(path))
 		if numpy.where(path!=path, 1, 0).sum() != 0:
 			pathContainsNans = True
 		else:
@@ -425,9 +425,14 @@ class ContourObject(object):
 		numOfPaths, numOfNodes = 0, 0
 		intermediatePaths = []
 		if mplversion >= "2.0.0":
-			# matplotlib 2.0.0 and higher handles masks itself, so no clipping is
-			# needed here
-			intermediatePaths = rawPaths
+			# matplotlib 2.0.0 or higher should actually handle masks correctly.
+			# However, for some reason not yet investigated further, masked values
+			# are handled anyways.  The otherwise applicable code would have been
+			#intermediatePaths = rawPaths
+			# As a workaround, we stick to the old behaviour which handles masked
+			# values explicitly in the generated contour data
+			for path in rawPaths:
+				intermediatePaths.extend(self.clipPath(path))
 		else:
 			for path in rawPaths:
 				intermediatePaths.extend(self.clipPath(path))

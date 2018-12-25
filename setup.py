@@ -6,12 +6,12 @@ warnings.filterwarnings("ignore", "Unknown distribution option")
 #from phyghtmap import __version__
 
 setup(name="phyghtmap",
-	version="2.20",
+	version="2.21",
 	packages = find_packages(),
 	description="OSM contour lines creator.",
 	include_data_files=True,
 	author="Adrian Dempwolff",
-	author_email="adrian.dempwolff@urz.uni-heidelberg.de",
+	author_email="phyghtmap@aldw.de",
 	url="http://katze.tfiu.de/projects/phyghtmap/",
 	long_description="""phyghtmap creates openstreetmap suitable contour lines from NASA SRTM data.""",
 	license="GPLv2+",
