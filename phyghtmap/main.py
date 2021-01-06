@@ -4,8 +4,8 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.21"
-__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
+__version__ = "2.22"
+__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import sys
@@ -23,7 +23,7 @@ from phyghtmap import configUtil
 
 profile = False
 
-configFilename = os.path.join(os.getenv("HOME"), ".phyghtmaprc")
+configFilename = os.path.join(os.path.expanduser("~"), ".phyghtmaprc")
 
 def parseCommandLine():
 	"""parses the command line.

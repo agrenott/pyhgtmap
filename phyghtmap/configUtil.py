@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.21"
-__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
+__version__ = "2.22"
+__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import base64
@@ -19,14 +19,14 @@ class Config(object):
 	def _decodeLine(self, line):
 		# this is not for obfuscation but for parsing issues
 		b64Key, b64Value = line.split(":")
-		key = base64.decodestring(b64Key.encode()).decode()
-		value = base64.decodestring(b64Value.encode()).decode()
+		key = base64.decodebytes(b64Key.encode()).decode()
+		value = base64.decodebytes(b64Value.encode()).decode()
 		return key, value
 
 	def _encodeLine(self, key, value):
 		# this is not for obfuscation but for parsing issues
-		b64Key = base64.encodestring(key.encode()).decode().replace("\n", "")
-		b64Value = base64.encodestring(value.encode()).decode().replace("\n", "")
+		b64Key = base64.encodebytes(key.encode()).decode().replace("\n", "")
+		b64Value = base64.encodebytes(value.encode()).decode().replace("\n", "")
 		return "{:s}:{:s}".format(b64Key, b64Value)
 
 	def parse(self):

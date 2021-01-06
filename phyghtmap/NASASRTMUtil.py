@@ -1,8 +1,8 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.21"
-__copyright__ = "Copyright (c) 2009-2018 Adrian Dempwolff"
+__version__ = "2.22"
+__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import sys
@@ -53,9 +53,9 @@ class NASASRTMUtilConfigClass(object):
 			return "https://dds.cr.usgs.gov/srtm/version2_1/SRTM{0:d}".format(resolution)
 		elif srtmVersion == 3.0:
 			if resolution == 1:
-				urlRe = "https://earthexplorer.usgs.gov/download/8360/SRTM1{:s}V3/GEOTIFF/EE"
+				urlRe = "https://earthexplorer.usgs.gov/download/5e83a3efe0103743/SRTM1{:s}V3/EE"
 			elif resolution == 3:
-				urlRe = "https://earthexplorer.usgs.gov/download/4960/SRTM3{:s}V2/GEOTIFF3/EE"
+				urlRe = "https://earthexplorer.usgs.gov/download/5e83a43cb348f8ec/SRTM3{:s}V2/EE"
 			return urlRe
 
 	def getSRTMIndexUrl(self, resolution, srtmVersion):
@@ -144,6 +144,16 @@ def getHighInt(n):
 		return int(n)
 	else:
 		return int(n)+1
+
+def getCloseInt(n):
+	a = getHighInt(n)
+	b = getLowInt(n)
+	da = abs(n - a)
+	db = abs(n - b)
+	if da < db:
+		return a
+	else:
+		return b
 
 def getRange(a, b):
 	a, b = sorted([a, b])
@@ -295,10 +305,14 @@ def getSRTMv3Areas(polygons):
 	for p in polygons:
 		lons = sorted([el[0] for el in p])
 		lats = sorted([el[1] for el in p])
-		minLon = lons[0]
-		maxLon = lons[-1]
-		minLat = lats[0]
-		maxLat = lats[-1]
+		minLonRaw = lons[0]
+		maxLonRaw = lons[-1]
+		minLatRaw = lats[0]
+		maxLatRaw = lats[-1]
+		minLon = getCloseInt(minLonRaw)
+		maxLon = getCloseInt(maxLonRaw)
+		minLat = getCloseInt(minLatRaw)
+		maxLat = getCloseInt(maxLatRaw)
 		for lon in numpy.arange(minLon+0.5, maxLon, 1.0):
 			for lat in numpy.arange(minLat+0.5, maxLat, 1.0):
 				points = [(lon, lat), ]
