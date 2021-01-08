@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.22"
+__version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
@@ -272,7 +272,7 @@ class ContourObject(object):
 				tmpList.append(p)
 			if len(tmpList) < 2:
 				tmpList = []
-			return [tmpList, ]
+			return [numpy.array(tmpList), ]
 		# path contains nans (from a polygon or void area or both)
 		pathList = []
 		tmpList = []
@@ -293,7 +293,7 @@ class ContourObject(object):
 				if len(tmpList) > 1:
 					# if tmpList has only one node, this is not a meaningful path and we
 					# don't want to evaluate it then
-					pathList.append(tmpList)
+					pathList.append(numpy.array(tmpList))
 				tmpList = []
 			else:
 				# (x, y) outside polygon, previous (x, y) dto.
@@ -301,7 +301,7 @@ class ContourObject(object):
 		else:
 			if len(tmpList) > 1:
 				# only append this last piece if it has more than one node
-				pathList.append(tmpList)
+				pathList.append(numpy.array(tmpList))
 		return pathList
 
 	def splitList(self, l):
