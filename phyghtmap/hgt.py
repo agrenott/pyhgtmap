@@ -7,15 +7,8 @@ __license__ = "GPLv2+"
 
 import os
 import sys
-from matplotlib import __version__ as mplversion
-if mplversion < "1.3.0":
-	from matplotlib.nxutils import points_inside_poly
-else:
-	from matplotlib.path import Path as PolygonPath
-if mplversion < "2.0.0":
-	from matplotlib import _cntr
-else:
-	from matplotlib import _contour
+from matplotlib.path import Path as PolygonPath
+from matplotlib import _contour
 import numpy
 
 from phyghtmap.varint import bboxStringtypes
@@ -415,27 +408,17 @@ class ContourObject(object):
 		along with the number of nodes and paths as expected in the OSM
 		XML output.  Also, consecutive identical nodes are removed.
 		"""
-		if mplversion >= "2.0.0":
-			rawPaths = self.Cntr.create_contour(elevation)
-		elif mplversion >= "1.0.0":
-			# matplotlib 1.0.0 and above returns vertices and segments, but we only need vertices
-			rawPaths = halfOf(self.Cntr.trace(elevation, **kwargs))
-		else:
-			rawPaths = self.Cntr.trace(elevation, **kwargs)
+		rawPaths = self.Cntr.create_contour(elevation)
 		numOfPaths, numOfNodes = 0, 0
 		intermediatePaths = []
-		if mplversion >= "2.0.0":
-			# matplotlib 2.0.0 or higher should actually handle masks correctly.
-			# However, for some reason not yet investigated further, masked values
-			# are handled anyways.  The otherwise applicable code would have been
-			#intermediatePaths = rawPaths
-			# As a workaround, we stick to the old behaviour which handles masked
-			# values explicitly in the generated contour data
-			for path in rawPaths:
-				intermediatePaths.extend(self.clipPath(path))
-		else:
-			for path in rawPaths:
-				intermediatePaths.extend(self.clipPath(path))
+		# matplotlib 2.0.0 or higher should actually handle masks correctly.
+		# However, for some reason not yet investigated further, masked values
+		# are handled anyways.  The otherwise applicable code would have been
+		#intermediatePaths = rawPaths
+		# As a workaround, we stick to the old behaviour which handles masked
+		# values explicitly in the generated contour data
+		for path in rawPaths:
+			intermediatePaths.extend(self.clipPath(path))
 		resultPaths = []
 		for path in intermediatePaths:
 			path = self.simplifyPath(path)
@@ -461,10 +444,7 @@ def polygonMask(xData, yData, polygon, transform):
 	maskArray = numpy.ma.array(numpy.empty((len(xData)*len(yData), 1)))
 	for p in polygon:
 		# run through all polygons and combine masks
-		if mplversion < "1.3.0":
-			mask = points_inside_poly(xyPoints, p)
-		else:
-			mask = PolygonPath(p).contains_points(xyPoints)
+		mask = PolygonPath(p).contains_points(xyPoints)
 		maskArray = numpy.ma.array(maskArray,
 			mask=mask, keep_mask=True)
 	return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
@@ -651,6 +631,7 @@ class hgtFile:
 				# get rid of the void mask values
 				# the next line is obsolete since voids are now generally masked by nans
 				#helpData = numpy.where(data==-0x8000, float("NaN"), data) / step
+				# TODO: ndarray has no filled() method (anymore?!) - did this ever worked?
 				helpData = data.filled() / step
 				xHelpData = numpy.abs(helpData[:,1:]-helpData[:,:-1])
 				yHelpData = numpy.abs(helpData[1:,:]-helpData[:-1,:])
@@ -738,18 +719,18 @@ class hgtFile:
 				else:
 					tilePolygon = None
 					tileMask = None
-				voidMaskValues = numpy.unique(inputData.mask)
-				if len(voidMaskValues)==1 and voidMaskValues[0]==True:
+				if isinstance(inputData, numpy.ma.masked_array):
+					voidMaskValues = numpy.unique(inputData.mask)
+					if len(voidMaskValues)==1 and voidMaskValues[0]==True:
 					# this tile is full of void values, so discard this tile
-					return
-				else:
-					tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
-						"increments": (self.lonIncrement, self.latIncrement),
-						"polygon": tilePolygon, "mask": tileMask, "transform":
-						self.transform}))
-					#print("depth: {:d}".format(depth))
-					#if depth>20:
-						#os._exit(11)
+						return
+				tiles.append(hgtTile({"bbox": inputBbox, "data": inputData,
+					"increments": (self.lonIncrement, self.latIncrement),
+					"polygon": tilePolygon, "mask": tileMask, "transform":
+					self.transform}))
+				#print("depth: {:d}".format(depth))
+				#if depth>20:
+					#os._exit(11)
 					
 		tiles = []
 		bbox, truncatedData = truncateData(area, self.zData)
@@ -840,18 +821,13 @@ class hgtTile:
 		x, y = numpy.meshgrid(self.xData, self.yData)
 		# z data is a masked array filled with nan.
 		z = numpy.ma.array(self.zData, mask=self.mask, fill_value=float("NaN"),
-			keep_mask=True)
-		if mplversion < "2.0.0":
-			Contours = ContourObject(_cntr.Cntr(x, y, z.filled(), None),
-				maxNodesPerWay, self.transform, self.polygon,
-				rdpEpsilon, rdpMaxVertexDistance)
-		else:
-			corner_mask = True
-			nchunk = 0
-			Contours = ContourObject(
-				_contour.QuadContourGenerator(x, y, z.filled(), self.mask, corner_mask, nchunk),
-				maxNodesPerWay, self.transform, self.polygon,
-				rdpEpsilon, rdpMaxVertexDistance)
+		keep_mask=True)
+		corner_mask = True
+		nchunk = 0
+		Contours = ContourObject(
+			_contour.QuadContourGenerator(x, y, z.filled(), self.mask, corner_mask, nchunk),
+			maxNodesPerWay, self.transform, self.polygon,
+			rdpEpsilon, rdpMaxVertexDistance)
 		return levels, Contours
 
 	def countNodes(self, maxNodesPerWay=0, stepCont=20, minCont=None,

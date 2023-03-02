@@ -10,6 +10,8 @@ from struct import pack
 import time
 import numpy
 
+from typing import List
+
 from phyghtmap.varint import int2str, sint2str, join, writableInt, writableString
 #from phyghtmap.pbfint import int2str, sint2str # same as above, C version
 
@@ -389,7 +391,7 @@ def _makePoints(path, elevation, IDCounter):
 		IDCounter.curId -= 1
 	return nodes, ids
 
-def _makeNodesWays(contourList, elevation, IDCounter):
+def _makeNodesWays(contourList: List, elevation: int, IDCounter):
 	ways = []
 	nodes = []
 	for path in contourList:
