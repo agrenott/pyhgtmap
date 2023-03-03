@@ -1,5 +1,6 @@
 # Force old version of matplotlib, as _contour behavior changed in incompatible way in 3.5.x
 matplotlib==3.4.3
+contourpy~=1.0.7
 bs4==0.0.1
 numpy==1.24.2
 # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)

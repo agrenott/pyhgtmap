@@ -1,4 +1,5 @@
 from __future__ import print_function
+from typing import List
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
 __version__ = "2.23"
@@ -8,8 +9,9 @@ __license__ = "GPLv2+"
 import os
 import sys
 from matplotlib.path import Path as PolygonPath
-from matplotlib import _contour
+import contourpy
 import numpy
+import numpy.typing
 
 from phyghtmap.varint import bboxStringtypes
 
@@ -258,14 +260,14 @@ def calcHgtArea(filenames, corrx, corry):
 class ContourObject(object):
     def __init__(
         self,
-        Cntr,
+        Cntr: contourpy.ContourGenerator,
         maxNodesPerWay,
         transform,
         polygon=None,
         rdpEpsilon=None,
         rdpMaxVertexDistance=None,
     ):
-        self.Cntr = Cntr
+        self.Cntr: contourpy.ContourGenerator = Cntr
         self.maxNodesPerWay = maxNodesPerWay
         self.polygon = polygon
         self.transform = transform
@@ -288,7 +290,7 @@ class ContourObject(object):
         else:
             return self._cutBeginning(p[1:])
 
-    def clipPath(self, path):
+    def clipPath(self, path: List[numpy.typing.ArrayLike]):
         """clips a path with self.polygon and returns a list of
         clipped paths.  This method also removes consecutive identical nodes.
         This method also does a potentially needed transformation of the projection.
@@ -460,7 +462,8 @@ class ContourObject(object):
         along with the number of nodes and paths as expected in the OSM
         XML output.  Also, consecutive identical nodes are removed.
         """
-        rawPaths = self.Cntr.create_contour(elevation)
+        # Keep only the first element of the tuple, ignoring matplot line code
+        rawPaths: List[numpy.typing.ArrayLike] = self.Cntr.create_contour(elevation)[0]
         numOfPaths, numOfNodes = 0, 0
         intermediatePaths = []
         # matplotlib 2.0.0 or higher should actually handle masks correctly.
@@ -940,18 +943,17 @@ class hgtTile:
         A list of elevations and a ContourObject is returned.
         """
 
-        def getContLimit(ele, step):
+        def getContLimit(ele: int, step: int) -> int:
             """returns a proper value for the lower or upper limit to generate contour
             lines for.
             """
             if ele % step == 0:
                 return ele
-            corrEle = ele + step - ele % step
+            corrEle: int = ele + step - ele % step
             return corrEle
 
         minCont = minCont or getContLimit(self.minEle, stepCont)
         maxCont = maxCont or getContLimit(self.maxEle, stepCont)
-        contourSet = []
         if noZero:
             levels = [l for l in range(int(minCont), int(maxCont), stepCont) if l != 0]
         else:
@@ -961,11 +963,20 @@ class hgtTile:
         z = numpy.ma.array(
             self.zData, mask=self.mask, fill_value=float("NaN"), keep_mask=True
         )
-        corner_mask = True
-        nchunk = 0
-        Contours = ContourObject(
-            _contour.QuadContourGenerator(
-                x, y, z.filled(), self.mask, corner_mask, nchunk
+
+        corner_mask: bool = True
+        nchunk: int = 0
+        Contours: ContourObject = ContourObject(
+            contourpy.contour_generator(
+                x,
+                y,
+                z,
+                # TODO: try using newer "serial" algorithm
+                name="mpl2014",
+                corner_mask=corner_mask,
+                chunk_size=nchunk,
+                line_type=contourpy.LineType.SeparateCode,
+                fill_type=contourpy.FillType.OuterCode,
             ),
             maxNodesPerWay,
             self.transform,
