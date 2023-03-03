@@ -29,9 +29,9 @@ setup(
     install_requires=[
 		# Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
         "GDAL",
-        "matplotlib==3.4.3",
-        "contourpy~=1.0.7",
-        "bs4==0.0.1",
-        "numpy==1.24.2",
+        "matplotlib>=3.4.3",
+        "contourpy>=1.0.7",
+        "bs4>=0.0.1",
+        "numpy>=1.24.2",
     ],
 )
