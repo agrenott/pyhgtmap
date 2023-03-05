@@ -290,62 +290,6 @@ class ContourObject(object):
         else:
             return self._cutBeginning(p[1:])
 
-    def clipPath(self, path: List[numpy.typing.ArrayLike]):
-        """clips a path with self.polygon and returns a list of
-        clipped paths.  This method also removes consecutive identical nodes.
-        This method also does a potentially needed transformation of the projection.
-        """
-        # do the transform if necessary
-        if self.transform != None:
-            path = numpy.array(self.transform(path))
-        if numpy.where(path != path, 1, 0).sum() != 0:
-            pathContainsNans = True
-        else:
-            pathContainsNans = False
-        if not pathContainsNans:
-            tmpList = []
-            for ind, p in enumerate(path):
-                if ind != 0:
-                    op = path[ind - 1]
-                    if numpy.all(p == op):
-                        continue
-                tmpList.append(p)
-            if len(tmpList) < 2:
-                tmpList = []
-            return [
-                numpy.array(tmpList),
-            ]
-        # path contains nans (from a polygon or void area or both)
-        pathList = []
-        tmpList = []
-        for ind, p in enumerate(path):
-            if ind != 0:
-                op = path[ind - 1]
-                if numpy.all(p == op):
-                    # skip the rest if there are two consecutive identical nodes
-                    continue
-            x, y = p
-            if not False in [x == x, y == y]:
-                # (x, y) inside polygon.  We know this because x or y would else be
-                # nan since data outside the polygon is masked and filled with nans
-                # and the resulting nodes' coordinates are (nan, nan).
-                tmpList.append((x, y))
-            elif len(tmpList) > 0:
-                # (x, y) outside polygon, non-empty tmpList
-                if len(tmpList) > 1:
-                    # if tmpList has only one node, this is not a meaningful path and we
-                    # don't want to evaluate it then
-                    pathList.append(numpy.array(tmpList))
-                tmpList = []
-            else:
-                # (x, y) outside polygon, previous (x, y) dto.
-                continue
-        else:
-            if len(tmpList) > 1:
-                # only append this last piece if it has more than one node
-                pathList.append(numpy.array(tmpList))
-        return pathList
-
     def splitList(self, l):
         """splits a path to contain not more than self.maxNodesPerWay nodes.
 
@@ -465,17 +409,8 @@ class ContourObject(object):
         # Keep only the first element of the tuple, ignoring matplot line code
         rawPaths: List[numpy.typing.ArrayLike] = self.Cntr.create_contour(elevation)[0]
         numOfPaths, numOfNodes = 0, 0
-        intermediatePaths = []
-        # matplotlib 2.0.0 or higher should actually handle masks correctly.
-        # However, for some reason not yet investigated further, masked values
-        # are handled anyways.  The otherwise applicable code would have been
-        # intermediatePaths = rawPaths
-        # As a workaround, we stick to the old behaviour which handles masked
-        # values explicitly in the generated contour data
-        for path in rawPaths:
-            intermediatePaths.extend(self.clipPath(path))
         resultPaths = []
-        for path in intermediatePaths:
+        for path in rawPaths:
             path = self.simplifyPath(path)
             splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
             resultPaths.extend(splitPaths)
@@ -971,8 +906,6 @@ class hgtTile:
                 x,
                 y,
                 z,
-                # TODO: try using newer "serial" algorithm
-                name="mpl2014",
                 corner_mask=corner_mask,
                 chunk_size=nchunk,
                 line_type=contourpy.LineType.SeparateCode,

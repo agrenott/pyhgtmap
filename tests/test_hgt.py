@@ -8,6 +8,7 @@ from typing import List
 from phyghtmap import hgt
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.relpath(__file__)), "data")
+HGT_SIZE: int = 1201
 
 
 @pytest.fixture
@@ -29,8 +30,8 @@ class TestTile:
         assert contour_data
         # Get the countours for 20m elevation
         contour_list_20 = contour_data.trace(20)[0]
-        assert len(contour_list_20) == 102
-        assert len(contour_list_20[0]) == 6618
+        assert len(contour_list_20) == 145
+        assert len(contour_list_20[0]) == 5
 
         # Get the countours for 1920m elevation
         contour_list_1920 = contour_data.trace(1920)[0]
@@ -40,13 +41,13 @@ class TestTile:
             contour_list_1920[0],
             numpy.array(
                 [
+                    [6.63732143, 43.89583333],
                     [6.6375, 43.89591954],
                     [6.63833333, 43.89583333],
                     [6.63777778, 43.895],
                     [6.6375, 43.8948913],
                     [6.63714286, 43.895],
                     [6.63732143, 43.89583333],
-                    [6.6375, 43.89591954],
                 ]
             ),
         )
@@ -59,7 +60,10 @@ class TestTile:
         To compare output, run `pytest --mpl`
         """
         elevations, contour_data = toulon_tiles[0].contourLines()
-        fig = plt.figure()
+        dpi = 100
+        # Add some space for axises, while trying to get graph space close to original data size
+        out_size = HGT_SIZE + 300
+        fig = plt.figure(figsize=(out_size / dpi, out_size / dpi), dpi=dpi)
         for elev in range(0, 500, 100):
             for contour in contour_data.trace(elev)[0]:
                 x, y = zip(*contour)
