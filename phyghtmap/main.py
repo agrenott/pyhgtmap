@@ -2,12 +2,15 @@
 # psyco.full()
 
 from __future__ import print_function
+from io import TextIOWrapper
+from typing import Optional
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
 __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
+import logging
 import sys
 import os
 import select
@@ -20,10 +23,13 @@ from phyghtmap import NASASRTMUtil
 from phyghtmap import pbfUtil
 from phyghtmap import o5mUtil
 from phyghtmap import configUtil
+from phyghtmap.logger import configure_logging
 
 profile = False
 
 configFilename = os.path.join(os.path.expanduser("~"), ".phyghtmaprc")
+
+logger = logging.getLogger(__name__)
 
 
 def parseCommandLine():
@@ -437,6 +443,14 @@ def parseCommandLine():
         action="store_true",
         default=False,
     )
+    parser.add_option(
+        "-l",
+        "--log",
+        dest="logLevel",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="WARNING",
+        help="Set this tool's debug logging level",
+    )
     opts, args = parser.parse_args()
     if opts.version:
         print("phyghtmap {0:s}".format(__version__))
@@ -633,7 +647,7 @@ def processHgtFile(
     opts,
     output=None,
     wayOutput=None,
-    statsOutput=None,
+    statsOutput: Optional[TextIOWrapper] = None,
     timestampString="",
     checkPoly=False,
 ):
@@ -646,7 +660,9 @@ def processHgtFile(
         opts.voidMax,
         opts.contourFeet,
     )
+    logger.debug(f"processHgtFile {srcName}")
     hgtTiles = hgtFile.makeTiles(opts)
+    logger.debug(f"Tiles built")
     if opts.plotPrefix:
         for tile in hgtTiles:
             tile.plotData(opts.plotPrefix)
@@ -660,6 +676,7 @@ def processHgtFile(
         numOfPoints, numOfWays = 0, 0
         goodTiles = []
         for tile in hgtTiles:
+            logger.debug(f"Forked, 1st step - Processing tile {tile}")
             try:
                 tile.elevations, tile.contourData = tile.contourLines(
                     stepCont=int(opts.contourStepSize),
@@ -679,6 +696,7 @@ def processHgtFile(
             numOfPoints += numOfPointsAdd
             numOfWays += numOfWaysAdd
         hgtTiles = goodTiles
+        assert statsOutput
         statsOutput.write(str(numOfWays) + ":" + str(numOfPoints))
         statsOutput.close()
         if singleOutput:
@@ -686,18 +704,23 @@ def processHgtFile(
             # output = output
             ways = []
             for tile in hgtTiles:
+                logger.debug(f"Forked, single, 2nd step - Processing tile {tile}")
                 # there is only one tile
                 elevations, contourData = tile.elevations, tile.contourData
+                logger.debug(f"writeNodes")
                 _, ways = writeNodes(
                     output, contourData, elevations, timestampString, opts
                 )
+            assert output and wayOutput
             output.close()  # close the output pipe
             wayOutput.write(str(ways))
             wayOutput.close()
+            logger.debug(f"done")
             return  # we don't need to return something special
         else:
             # forked, multi output
             for tile in hgtTiles:
+                logger.debug(f"Forked, multi, 2nd step - Processing tile {tile}")
                 output = getOutput(
                     opts,
                     [
@@ -707,12 +730,15 @@ def processHgtFile(
                 )
                 elevations, contourData = tile.elevations, tile.contourData
                 # we have multiple output files, so we need to count nodeIds here
+                logger.debug(f"writeNodes")
                 opts.startId, ways = writeNodes(
                     output, contourData, elevations, output.timestampString, opts
                 )
+                logger.debug(f"writeWays")
                 output.writeWays(ways, opts.startWayId)
                 # we have multiple output files, so we need to count wayIds here
                 opts.startWayId += len(ways)
+                logger.debug(f"done")
                 output.done()
             return  # we don't need to return something special
     else:
@@ -721,6 +747,7 @@ def processHgtFile(
             # output = output
             ways = []
             for tile in hgtTiles:
+                logger.debug(f"NOT forked, single - Processing tile {tile}")
                 # there is only one tile
                 try:
                     elevations, contourData = tile.contourLines(
@@ -732,13 +759,16 @@ def processHgtFile(
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue
+                logger.debug(f"writeNodes")
                 opts.startId, ways = writeNodes(
                     output, contourData, elevations, timestampString, opts
                 )
+                logger.debug(f"done")
             return ways  # needed to complete file later
         else:
             # not forked, multi output
             for tile in hgtTiles:
+                logger.debug(f"NOT forked, multi - Processing tile {tile}")
                 output = getOutput(
                     opts,
                     [
@@ -747,6 +777,7 @@ def processHgtFile(
                     tile.bbox(),
                 )
                 try:
+                    logger.debug(f"contourLines")
                     elevations, contourData = tile.contourLines(
                         stepCont=int(opts.contourStepSize),
                         maxNodesPerWay=opts.maxNodesPerWay,
@@ -757,12 +788,15 @@ def processHgtFile(
                 except ValueError:  # tiles with the same value on every element
                     continue
                 # we have multiple output files, so we need to count nodeIds here
+                logger.debug(f"writeNodes")
                 opts.startId, ways = writeNodes(
                     output, contourData, elevations, output.timestampString, opts
                 )
+                logger.debug(f"writeWays")
                 output.writeWays(ways, opts.startWayId)
                 # we have multiple output files, so we need to count wayIds here
                 opts.startWayId += len(ways)
+                logger.debug(f"done")
                 output.done()
             return []  # don't need to return ways, since output is already complete
 
@@ -849,19 +883,19 @@ class ProcessQueue(object):
                     time.sleep(0.1)
                 # the node pipe is ready now
                 """
-				sys.stdout.write("writing nodes for area {:s} ... ".format(
-					self.children[self.instancePids[0]][0]))
-				sys.stdout.flush()
-				"""
+                sys.stdout.write("writing nodes for area {:s} ... ".format(
+                    self.children[self.instancePids[0]][0]))
+                sys.stdout.flush()
+                """
                 while True:
                     line = nextRPipe.readline()
                     if len(line) == 0:
                         break
                     self.output.write(line)
                 """
-				sys.stdout.write("DONE\n")
-				sys.stdout.flush()
-				"""
+                sys.stdout.write("DONE\n")
+                sys.stdout.flush()
+                """
                 # now read the way read pipe for the same process
                 readyWayRPipe = select.select(
                     [
@@ -882,19 +916,19 @@ class ProcessQueue(object):
                         break
                     time.sleep(0.1)
                 """
-				sys.stdout.write("writing ways for area {:s} ... ".format(
-					self.children[self.instancePids[0]][0]))
-				sys.stdout.flush()
-				"""
+                sys.stdout.write("writing ways for area {:s} ... ".format(
+                    self.children[self.instancePids[0]][0]))
+                sys.stdout.flush()
+                """
                 while True:
                     s = readyWayRPipe[0].read()
                     if len(s) == 0:
                         break
                     self.ways.extend(eval(s))
                 """
-				sys.stdout.write("DONE\n")
-				sys.stdout.flush()
-				"""
+                sys.stdout.write("DONE\n")
+                sys.stdout.flush()
+                """
                 # wait for the evaluated (earliest-started) process to complete
                 while True:
                     pid, res = os.waitpid(self.instancePids[0], os.WNOHANG)
@@ -962,7 +996,9 @@ class ProcessQueue(object):
 
 def main():
     opts, args = parseCommandLine()
+    configure_logging(opts.logLevel)
     if opts.area:
+        logger.debug(f"Downloading HGT files for area {opts.area}")
         hgtDataFiles = NASASRTMUtil.getFiles(
             opts.area, opts.polygon, opts.srtmCorrx, opts.srtmCorry, opts.dataSource
         )
@@ -996,10 +1032,12 @@ def main():
         )
 
     if hasattr(os, "fork") and opts.nJobs != 1:
+        logger.debug(f"Forking process")
         opts.doFork = True
         queue = ProcessQueue(opts.nJobs, hgtDataFiles, opts=opts)
         queue.process()
     else:
+        logger.debug(f"NOT forking process")
         opts.doFork = False
         if opts.maxNodesPerTile == 0:
             bounds = [float(b) for b in opts.area.split(":")]

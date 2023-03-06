@@ -5,6 +5,7 @@ __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
+import logging
 import zlib
 from struct import pack
 import time
@@ -17,6 +18,8 @@ from phyghtmap.varint import int2str, sint2str, join, writableInt, writableStrin
 # from phyghtmap.pbfint import int2str, sint2str # same as above, C version
 
 NANO = 1000000000
+
+logger = logging.getLogger(__name__)
 
 
 class Output(object):
@@ -435,12 +438,16 @@ def _makeNodesWays(contourList: List, elevation: int, IDCounter):
     return nodes, ways
 
 
-def writeNodes(output, contourData, elevations, timestampString, opts):  # dummy option
+def writeNodes(
+    output: Output, contourData, elevations, timestampString, opts
+):  # dummy option
     IDCounter = Id(opts.startId)
+    logger.debug(f"writeNodes - startId: {opts.startId}")
     ways = []
     nodes = []
     startId = opts.startId
     for elevation in elevations:
+        # logger.debug(f"writeNodes - elevation: {elevation}")
         contourList = contourData.trace(elevation)[0]
         if not contourList:
             continue
@@ -448,6 +455,7 @@ def writeNodes(output, contourData, elevations, timestampString, opts):  # dummy
         ways.extend(newWays)
         nodes.extend(newNodes)
         if len(nodes) > 32000:
+            # logger.debug(f"writeNodes - writing 32000 nodes bunch")
             output.write(str((startId, nodes)) + "\n")
             output.flush()
             startId = IDCounter.curId
@@ -457,4 +465,5 @@ def writeNodes(output, contourData, elevations, timestampString, opts):  # dummy
     if len(nodes) > 0:
         output.write(str((startId, nodes)) + "\n")
         output.flush()
+    logger.debug(f"writeNodes - newId: {newId}")
     return newId, ways

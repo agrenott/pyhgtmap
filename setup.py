@@ -33,5 +33,6 @@ setup(
         "contourpy>=1.0.7",
         "bs4>=0.0.1",
         "numpy>=1.24.2",
+        "colorlog>=6.7.0"
     ],
 )
