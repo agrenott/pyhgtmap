@@ -31,4 +31,6 @@ jobs:
       run: |
         black --check phyghtmap tests
         mypy
-        pytest --mpl
+        coverage run -m pytest --mpl
+        coverage report
+

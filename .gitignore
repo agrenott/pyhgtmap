@@ -9,3 +9,4 @@ build/
 *.osm
 *.osm.pbf
 *.o5m
+.coverage*
