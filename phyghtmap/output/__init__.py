@@ -1,11 +1,19 @@
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Iterable, List, NamedTuple, Tuple
 
 import numpy
 
 from phyghtmap import contour
 
 # First node ID, number of nodes, closed loop, elevation
-WayType = Tuple[int, int, bool, int]
+WayType = NamedTuple(
+    "WayType",
+    [
+        ("first_node_id", int),
+        ("nb_nodes", int),
+        ("closed_loop", bool),
+        ("elevation", int),
+    ],
+)
 
 NodeType = Tuple[int, int]
 
@@ -97,7 +105,7 @@ def make_nodes_ways(
         newNodes, nodeRefs = _makePoints(path, IDCounter, precision)
         nodes.extend(newNodes)
         if nodeRefs[0] == nodeRefs[-1]:
-            ways.append((nodeRefs[0], len(nodeRefs) - 1, True, elevation))
+            ways.append(WayType(nodeRefs[0], len(nodeRefs) - 1, True, elevation))
         else:
-            ways.append((nodeRefs[0], len(nodeRefs), False, elevation))
+            ways.append(WayType(nodeRefs[0], len(nodeRefs), False, elevation))
     return nodes, ways

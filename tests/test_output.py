@@ -25,7 +25,10 @@ class OSMDecoder(osmium.SimpleHandler):
         self.ways: Dict[int, Any] = {}
 
     def node(self, n: osmium.osm.Node) -> None:
-        self.nodes[n.id] = (n.location.lat, n.location.lon)
+        try:
+            self.nodes[n.id] = (n.location.lat, n.location.lon)
+        except:
+            pass
 
     def way(self, w: osmium.osm.Way) -> None:
         self.ways[w.id] = ([node.ref for node in w.nodes], [tag for tag in w.tags])
@@ -35,7 +38,9 @@ def build_fake_contour_data(
     coordinates_lists: List[List[Tuple[int, int]]]
 ) -> Tuple[List[numpy.typing.NDArray], int, int]:
     contours: List[numpy.typing.NDArray] = [
-        numpy.array([numpy.array(coordinates) for coordinates in way])
+        numpy.array(
+            [numpy.array(coordinates, dtype=numpy.float64) for coordinates in way]
+        )
         for way in coordinates_lists
     ]
     nb_nodes: int = sum((len(way) for way in contours))
@@ -90,9 +95,12 @@ def check_osmium_result(osm_file_name: str) -> None:
     osm_decoder = OSMDecoder()
     reader = osmium.io.Reader(osm_file_name)
     header = reader.header()
-    # Check bounds
+    # Check header attributes
     assert header.box().bottom_left == osmium.osm.Location(1, 1)
     assert header.box().top_right == osmium.osm.Location(4, 2)
+    if osm_file_name[-4:] != ".o5m":
+        # Not implemented for o5m format
+        assert header.get("generator") == "phyghtmap 123"
     osm_decoder.apply_file(osm_file_name)
 
     # Check nodes
