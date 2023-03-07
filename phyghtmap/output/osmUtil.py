@@ -3,28 +3,16 @@ __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-import numpy
-from matplotlib import __version__ as mplversion
-import time
 import datetime
+import time
+from io import IOBase
+from typing import Callable, Iterable, List, Tuple
 
+import numpy
+
+import phyghtmap.output
+from phyghtmap import contour
 from phyghtmap.varint import writableString
-
-
-def makeElevClassifier(majorDivisor, mediumDivisor):
-    """returns a function taking an elevation and returning a
-    category specifying whether it's a major, medium or minor contour.
-    """
-
-    def classify(height):
-        if height % majorDivisor == 0:
-            return "elevation_major"
-        elif height % mediumDivisor == 0:
-            return "elevation_medium"
-        else:
-            return "elevation_minor"
-
-    return classify
 
 
 def makeUtcTimestamp():
@@ -34,21 +22,7 @@ def makeUtcTimestamp():
     )
 
 
-class Id(object):
-    """a counter, constructed with the first number to return.
-
-    Count using the getId method.
-    """
-
-    def __init__(self, offset):
-        self.curId = offset
-
-    def getId(self):
-        self.curId += 1
-        return self.curId - 1
-
-
-class Output(object):
+class Output(phyghtmap.output.Output):
     """An OSM output.
 
     It is constructed with a destination name, the desired OSM API version,
@@ -61,14 +35,15 @@ class Output(object):
 
     def __init__(
         self,
-        fName,
-        osmVersion,
-        phyghtmapVersion,
-        boundsTag,
-        gzip=0,
-        elevClassifier=None,
+        fName: str,
+        osmVersion: float,
+        phyghtmapVersion: str,
+        boundsTag: str,
+        gzip: int,
+        elevClassifier: Callable[[int], str],
         timestamp=False,
-    ):
+    ) -> None:
+        self.outF: IOBase
         if 0 < gzip < 10:
             import gzip as Gzip
 
@@ -98,19 +73,18 @@ class Output(object):
         )
         self.write(self.boundsTag + "\n")
 
-    def done(self):
+    def done(self) -> None:
         self.write("</osm>\n")
         self.outF.close()
-        return 0
 
     def write(self, output):
         self.outF.write(writableString(output))
 
-    def flush(self):
+    def flush(self) -> None:
         self.outF.flush()
 
     def writeWays(self, ways, startWayId):
-        IDCounter = Id(startWayId)
+        IDCounter = phyghtmap.output.Id(startWayId)
         for startNodeId, length, isCycle, elevation in ways:
             IDCounter.curId += 1
             nodeIds = list(range(startNodeId, startNodeId + length))
@@ -131,6 +105,18 @@ class Output(object):
                     self.elevClassifier(elevation),
                 )
             )
+
+    def writeNodes(
+        self,
+        contour_data: contour.ContourObject,
+        elevations: Iterable[int],
+        timestamp_string: str,
+        start_node_id: int,
+        osm_version: float,
+    ) -> Tuple[int, List[phyghtmap.output.WayType]]:
+        return writeXML(
+            self, contour_data, elevations, timestamp_string, start_node_id, osm_version
+        )
 
 
 def _makePoints(output, path, IDCounter, versionString, timestampString):
@@ -179,7 +165,9 @@ def _writeContourNodes(
     return ways
 
 
-def writeXML(output, contourData, elevations, timestampString, opts):
+def writeXML(
+    output, contourData, elevations, timestampString, start_node_id, osm_version
+):
     """emits node OSM XML to <output> and collects path information.
 
     <output> may be anything having a write method.  For now, its used with
@@ -190,8 +178,8 @@ def writeXML(output, contourData, elevations, timestampString, opts):
 
     <opts> are the options coming from phyghtmap.
     """
-    IDCounter = Id(opts.startId)
-    if opts.osmVersion > 0.5:
+    IDCounter = phyghtmap.output.Id(start_node_id)
+    if osm_version > 0.5:
         versionString = ' version="1"'
     else:
         versionString = ""

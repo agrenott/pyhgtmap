@@ -5,11 +5,12 @@ __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-from struct import pack
 import time
-import numpy
+from typing import Iterable, List, Tuple
 
-from phyghtmap.varint import int2str, sint2str, join, writableInt, writableString
+import phyghtmap.output
+from phyghtmap import contour, output
+from phyghtmap.varint import int2str, join, sint2str, writableInt, writableString
 
 # from phyghtmap.pbfint import int2str, sint2str # same as above, C version
 
@@ -37,13 +38,13 @@ class StringTable(object):
         self.table = []
 
 
-class Output(object):
+class Output(output.Output):
     def __init__(
         self,
         filename,
         osmVersion,
         phyghtmapVersion,
-        bbox=[],
+        bbox: List[float],
         elevClassifier=None,
         writeTimestamp=False,
     ):
@@ -126,7 +127,7 @@ class Output(object):
             data.append(self.stringTable.stringOrIndex(writableInt(0x00) * 3))
         return join(data)
 
-    def writeNodes(self, nodes, startNodeId):
+    def writeNodesO5m(self, nodes, startNodeId):
         """writes nodes to self.outf.  nodeList shall be a list of
         (<lon>, <lat>) duples of ints in nanodegrees of longitude and latitude,
         respectively.
@@ -247,70 +248,49 @@ class Output(object):
     def write(self, nodeString):
         """wrapper imitating osmUtil.Output's write method."""
         startNodeId, nodes = eval(nodeString.strip())
-        self.writeNodes(nodes, startNodeId)
+        self.writeNodesO5m(nodes, startNodeId)
 
-    def flush(self):
+    def flush(self) -> None:
         self.outf.flush()
 
-    def done(self):
+    def done(self) -> None:
         self.outf.write(writableInt(0xFE))
         self.__del__()
 
     def __del__(self):
         self.outf.close()
 
-
-class Id(object):
-    """a counter, constructed with the first number to return.
-
-    Count using the getId method.
-    """
-
-    def __init__(self, offset):
-        self.curId = offset
-
-    def getId(self):
-        self.curId += 1
-        return self.curId - 1
+    def writeNodes(
+        self,
+        contour_data: contour.ContourObject,
+        elevations: Iterable[int],
+        timestamp_string: str,
+        start_node_id: int,
+        osm_version: float,
+    ) -> Tuple[int, List[output.WayType]]:
+        return writeNodes(
+            self, contour_data, elevations, timestamp_string, start_node_id
+        )
 
 
-def _makePoints(path, elevation, IDCounter):
-    ids, nodes = [], []
-    for lon, lat in path:
-        IDCounter.curId += 1
-        nodes.append((int(lon * HUNDREDNANO), int(lat * HUNDREDNANO)))
-        ids.append(IDCounter.curId - 1)
-    if numpy.all(path[0] == path[-1]):  # close contour
-        del nodes[-1]  # remove last node
-        del ids[-1]
-        ids.append(ids[0])
-        IDCounter.curId -= 1
-    return nodes, ids
-
-
-def _makeNodesWays(contourList, elevation, IDCounter):
+def writeNodes(
+    output: Output,
+    contourData: contour.ContourObject,
+    elevations,
+    timestampString,
+    start_node_id,
+):  # dummy option
+    IDCounter = phyghtmap.output.Id(start_node_id)
     ways = []
     nodes = []
-    for path in contourList:
-        newNodes, nodeRefs = _makePoints(path, elevation, IDCounter)
-        nodes.extend(newNodes)
-        if nodeRefs[0] == nodeRefs[-1]:
-            ways.append((nodeRefs[0], len(nodeRefs) - 1, True, elevation))
-        else:
-            ways.append((nodeRefs[0], len(nodeRefs), False, elevation))
-    return nodes, ways
-
-
-def writeNodes(output, contourData, elevations, timestampString, opts):  # dummy option
-    IDCounter = Id(opts.startId)
-    ways = []
-    nodes = []
-    startId = opts.startId
+    startId = start_node_id
     for elevation in elevations:
         contourList = contourData.trace(elevation)[0]
         if not contourList:
             continue
-        newNodes, newWays = _makeNodesWays(contourList, elevation, IDCounter)
+        newNodes, newWays = phyghtmap.output.make_nodes_ways(
+            contourList, elevation, IDCounter, HUNDREDNANO
+        )
         ways.extend(newWays)
         nodes.extend(newNodes)
         if len(nodes) > 32000:
@@ -318,7 +298,6 @@ def writeNodes(output, contourData, elevations, timestampString, opts):  # dummy
             output.flush()
             startId = IDCounter.curId
             nodes = []
-    # newId = opts.startId + len(nodes)#sum([length for _, length, _, _ in ways])
     newId = IDCounter.getId()
     if len(nodes) > 0:
         output.write(str((startId, nodes)) + "\n")

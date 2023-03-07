@@ -1,9 +1,10 @@
 import os
+from types import SimpleNamespace
+from typing import List
+
 import matplotlib.pyplot as plt
 import numpy
 import pytest
-from types import SimpleNamespace
-from typing import List
 
 from phyghtmap import hgt
 

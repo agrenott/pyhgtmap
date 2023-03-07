@@ -3,7 +3,11 @@
 
 from __future__ import print_function
 from io import TextIOWrapper
-from typing import Optional
+from typing import Iterable, List, Optional, Tuple
+
+from phyghtmap import output
+import phyghtmap
+from phyghtmap.contour import ContourObject
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
 __version__ = "2.23"
@@ -17,11 +21,10 @@ import select
 from optparse import OptionParser
 import time
 
+import phyghtmap.output
 from phyghtmap import hgt
-from phyghtmap import osmUtil
+from phyghtmap.output import Output, o5mUtil, osmUtil, pbfUtil
 from phyghtmap import NASASRTMUtil
-from phyghtmap import pbfUtil
-from phyghtmap import o5mUtil
 from phyghtmap import configUtil
 from phyghtmap.logger import configure_logging
 
@@ -562,7 +565,7 @@ def parseCommandLine():
     return opts, args
 
 
-def makeOsmFilename(borders, opts, srcNames):
+def makeOsmFilename(borders, opts, srcNames) -> str:
     """generate a filename for the output osm file. This is done using the bbox
     of the current hgt file.
     """
@@ -600,11 +603,12 @@ def makeOsmFilename(borders, opts, srcNames):
     return osmName
 
 
-def getOutput(opts, srcNames, bounds):
+def getOutput(opts, srcNames, bounds: List[float]) -> phyghtmap.output.Output:
     outputFilename = makeOsmFilename(bounds, opts, srcNames)
-    elevClassifier = osmUtil.makeElevClassifier(
+    elevClassifier = phyghtmap.output.make_elev_classifier(
         *[int(h) for h in opts.lineCats.split(",")]
     )
+    output: Output
     if opts.pbf:
         output = pbfUtil.Output(
             outputFilename, opts.osmVersion, __version__, bounds, elevClassifier
@@ -632,25 +636,27 @@ def getOutput(opts, srcNames, bounds):
     return output
 
 
-def writeNodes(*args, **kwargs):
-    opts = args[-1]
-    if opts.pbf:
-        return pbfUtil.writeNodes(*args, **kwargs)
-    elif opts.o5m:
-        return o5mUtil.writeNodes(*args, **kwargs)
-    else:
-        return osmUtil.writeXML(*args, **kwargs)
+def writeNodes(
+    output: output.Output,
+    contourData: ContourObject,
+    elevations: Iterable[int],
+    timestampString: str,
+    opts,
+) -> Tuple[int, List[Tuple[int, int, bool, int]]]:
+    return output.writeNodes(
+        contourData, elevations, timestampString, opts.startId, opts.osmVersion
+    )
 
 
 def processHgtFile(
-    srcName,
+    srcName: str,
     opts,
-    output=None,
+    output: Optional[Output] = None,
     wayOutput=None,
     statsOutput: Optional[TextIOWrapper] = None,
-    timestampString="",
+    timestampString: str = "",
     checkPoly=False,
-):
+) -> Optional[List[Tuple[int, int, bool, int]]]:
     hgtFile = hgt.hgtFile(
         srcName,
         opts.srtmCorrx,
@@ -674,7 +680,7 @@ def processHgtFile(
     if opts.doFork:
         # called from processQueue
         numOfPoints, numOfWays = 0, 0
-        goodTiles = []
+        goodTiles: List[hgt.hgtTile] = []
         for tile in hgtTiles:
             logger.debug(f"Forked, 1st step - Processing tile {tile}")
             try:
@@ -1039,12 +1045,11 @@ def main():
     else:
         logger.debug(f"NOT forking process")
         opts.doFork = False
+        output: Optional[phyghtmap.output.Output] = None
         if opts.maxNodesPerTile == 0:
             bounds = [float(b) for b in opts.area.split(":")]
             srcNames = [s[0] for s in hgtDataFiles]
             output = getOutput(opts, srcNames, bounds)
-        else:
-            output = None
         ways = []
         for hgtDataFileName, checkPoly in hgtDataFiles:
             if output:
