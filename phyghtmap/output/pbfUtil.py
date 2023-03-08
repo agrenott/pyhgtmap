@@ -8,20 +8,22 @@ __license__ = "GPLv2+"
 import logging
 import os
 import time
-
 from typing import Iterable, List, Tuple
 
+import numpy
+import numpy.typing
 import osmium
-import osmium.osm
 import osmium.io
+import osmium.osm
 import osmium.osm.mutable
+
 import phyghtmap.output
 from phyghtmap import contour
 from phyghtmap.varint import writableString
 
 logger = logging.getLogger(__name__)
 
-BUFFER_SIZE = 4096 * 1024
+BUFFER_SIZE: int = 4096 * 1024
 
 
 class Output(phyghtmap.output.Output):
@@ -98,51 +100,6 @@ class Output(phyghtmap.output.Output):
     def done(self) -> None:
         self.osm_writer.close()
 
-    def build_osm_ways(
-        self,
-        contour_data: contour.ContourObject,
-        elevations: Iterable[int],
-        start_node_id: int,
-    ) -> Tuple[
-        List[List[osmium.osm.mutable.Node]], List[phyghtmap.output.WayType], int
-    ]:
-        ways: List[phyghtmap.output.WayType] = []
-        all_nodes: List[List[osmium.osm.mutable.Node]] = []
-        next_node_id: int = start_node_id
-        for elevation in elevations:
-            # logger.debug(f"writeNodes - elevation: {elevation}")
-            contour_list = contour_data.trace(elevation)[0]
-            if not contour_list:
-                continue
-            for contour in contour_list:
-                nodes = [
-                    osmium.osm.mutable.Node(
-                        id=node_id,
-                        location=osmium.osm.Location(location[0], location[1]),
-                    )
-                    for node_id, location in zip(
-                        range(next_node_id, next_node_id + len(contour)), contour
-                    )
-                ]
-                closed_way_ids: List[int] = []
-                closed_way: bool = False
-                assert nodes[0].id
-                if nodes[0].location == nodes[-1].location:
-                    # Close way by re-using first node instead of a new one
-                    # closed_way_ids = [nodes[0].id]
-                    closed_way = True
-                    del nodes[-1]
-                # way = osmium.osm.mutable.Way(id=nodes[0].id, nodes=[node.id for node in nodes if node.id]+closed_way_ids)
-                ways.append(
-                    phyghtmap.output.WayType(
-                        nodes[0].id, len(nodes), closed_way, elevation
-                    )
-                )
-                # Bump ID for next iteration
-                next_node_id += len(nodes)
-                all_nodes.append(nodes)
-        return all_nodes, ways, next_node_id
-
     def writeNodes(
         self,
         contour_data: contour.ContourObject,
@@ -151,13 +108,39 @@ class Output(phyghtmap.output.Output):
         start_node_id: int,
         osm_version: float,
     ) -> Tuple[int, List[phyghtmap.output.WayType]]:
-        IDCounter = phyghtmap.output.Id(start_node_id)
         logger.debug(f"writeNodes - startId: {start_node_id}")
-        all_nodes, ways, newId = self.build_osm_ways(
-            contour_data, elevations, start_node_id
-        )
-        for nodes in all_nodes:
-            for node in nodes:
-                self.osm_writer.add_node(node)
-        logger.debug(f"writeNodes - newId: {newId}")
-        return newId, ways
+
+        ways: List[phyghtmap.output.WayType] = []
+        next_node_id: int = start_node_id
+        for elevation in elevations:
+            # logger.debug(f"writeNodes - elevation: {elevation}")
+            # Get all the contours for a given elevation
+            contour_list = contour_data.trace(elevation)[0]
+            if not contour_list:
+                continue
+            for contour in contour_list:
+                # Add the points corresponding to the individual contour, and prepare the way for later step
+                is_closed_way: bool = bool(numpy.all(contour[0] == contour[-1]))
+                if is_closed_way:
+                    # Close way by re-using first node instead of a new one; last node is not needed
+                    contour = contour[:-1]
+                for node_id, location in zip(
+                    range(next_node_id, next_node_id + len(contour)), contour
+                ):
+                    self.osm_writer.add_node(
+                        osmium.osm.mutable.Node(
+                            id=node_id,
+                            location=(location[0], location[1]),
+                        )
+                    )
+
+                ways.append(
+                    phyghtmap.output.WayType(
+                        next_node_id, len(contour), is_closed_way, elevation
+                    )
+                )
+                # Bump ID for next iteration
+                next_node_id += len(contour)
+
+        logger.debug(f"writeNodes - next_node_id: {next_node_id}")
+        return next_node_id, ways
