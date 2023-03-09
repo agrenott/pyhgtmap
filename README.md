@@ -14,12 +14,23 @@ simple form of parallelization and the advance will be dramatical.
 Note that the intended use is not to upload generated contour OSM data to the
 OSM servers but to use it for fancy maps.
 
-Usage
-=====
+# Usage
 
 For a detailed help, run
 
+```bash
 phyghtmap --help
+```
 
 on the console.
 
+# Development
+
+## Profiling
+
+```bash
+pip install yappi
+python -m yappi -f callgrind -o yappi_ex1.out ../../phyghtmap/main.py --pbf --log=DEBUG N43E006.hgt
+```
+
+Then open `yappi_ex1.out` with some callgrind viewer (eg. QCacheGrind).

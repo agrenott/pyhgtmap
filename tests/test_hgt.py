@@ -71,3 +71,82 @@ class TestTile:
                 plt.plot(x, y, color="black")
         # plt.savefig(os.path.join(TEST_DATA_PATH, "toulon_out.png"))
         return fig
+
+
+def test_polygon_mask() -> None:
+    x_data = numpy.array([0, 1, 2, 3, 4, 5])
+    y_data = numpy.array([0, 1, 2, 3, 4, 5])
+
+    # Mask matching exactly the border of the data
+    # Result is a bit strange as the behabior on boundary is unpredictable
+    polygon_full = [(0, 0), (0, 5), (5, 5), (5, 0), (0, 0)]
+    mask_full = hgt.polygon_mask(x_data, y_data, [polygon_full], None)
+    numpy.testing.assert_array_equal(
+        mask_full,
+        numpy.array(
+            [
+                [True, True, True, True, True, True],
+                [True, False, False, False, False, True],
+                [True, False, False, False, False, True],
+                [True, False, False, False, False, True],
+                [True, False, False, False, False, True],
+                [True, False, False, False, False, True],
+            ]
+        ),
+    )
+
+    # Polygon bigger than data
+    polygon_bigger = [(-1, -1), (-1, 6), (6, 6), (6, -1), (-1, -1)]
+    mask_bigger = hgt.polygon_mask(x_data, y_data, [polygon_bigger], None)
+    numpy.testing.assert_array_equal(
+        mask_bigger, numpy.full((x_data.size, y_data.size), False)
+    )
+
+    # Polygon splitting data
+    polygon_split = [(-1, -1), (-1, 6), (2, 6), (5, -1), (-1, -1)]
+    mask_split = hgt.polygon_mask(x_data, y_data, [polygon_split], None)
+    numpy.testing.assert_array_equal(
+        mask_split,
+        numpy.array(
+            [
+                [False, False, False, False, False, True],
+                [False, False, False, False, False, True],
+                [False, False, False, False, True, True],
+                [False, False, False, False, True, True],
+                [False, False, False, True, True, True],
+                [False, False, False, True, True, True],
+            ]
+        ),
+    )
+
+    # Polygon resulting in several intersection polygons
+    polygon_multi = [
+        (-1, -1),
+        (-1, 2.5),
+        (2.5, 2.5),
+        (2.5, -1),
+        (4.5, -1),
+        (4.5, 6),
+        (6, 6),
+        (6, -1),
+        (-1, -1),
+    ]
+    mask_multi = hgt.polygon_mask(x_data, y_data, [polygon_multi], None)
+    numpy.testing.assert_array_equal(
+        mask_multi,
+        numpy.array(
+            [
+                [False, False, False, True, True, False],
+                [False, False, False, True, True, False],
+                [False, False, False, True, True, False],
+                [True, True, True, True, True, False],
+                [True, True, True, True, True, False],
+                [True, True, True, True, True, False],
+            ]
+        ),
+    )
+
+    # Polygon not intersecting data
+    polygon_out = [(-1, -1), (-1, -2), (6, -2), (6, -1), (-1, -1)]
+    mask_out = hgt.polygon_mask(x_data, y_data, [polygon_out], None)
+    numpy.testing.assert_array_equal(mask_out, numpy.full((1), True))

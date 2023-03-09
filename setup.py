@@ -34,6 +34,7 @@ setup(
         "bs4>=0.0.1",
         "numpy>=1.24.2",
         "colorlog>=6.7.0",
-        "osmium>=3.6.0"
+        "osmium>=3.6.0",
+        "shapely>=2.0.1"
     ],
 )

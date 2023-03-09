@@ -1,22 +1,27 @@
 from __future__ import print_function
-from typing import Iterable, List, Optional, Tuple
+
+from typing import Callable, Iterable, List, Optional, Tuple
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
 __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
+import logging
 import os
 import sys
-from matplotlib.path import Path as PolygonPath
+
 import numpy
 import numpy.typing
+import shapely
+from matplotlib.path import Path as PolygonPath
 
-from phyghtmap.varint import bboxStringtypes
 from phyghtmap.contour import ContourObject, build_contours
-
+from phyghtmap.varint import bboxStringtypes
 
 meters2Feet = 1.0 / 0.3048
+
+logger = logging.getLogger(__name__)
 
 
 class hgtError(Exception):
@@ -135,7 +140,10 @@ def parseHgtFilename(filename, corrx, corry) -> Tuple[int, int, int, int]:
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
 
 
-def getTransform(o, reverse=False):
+TransformFunType = Callable[[List[Tuple[float, float]]], List[Tuple[float, float]]]
+
+
+def getTransform(o, reverse=False) -> Optional[TransformFunType]:
     from osgeo import gdal, osr
 
     n = osr.SpatialReference()
@@ -150,7 +158,7 @@ def getTransform(o, reverse=False):
         else:
             t = osr.CoordinateTransformation(o, n)
 
-        def transform(points):
+        def transform(points: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
             return [
                 p[:2]
                 for p in t.TransformPoints(points)
@@ -158,19 +166,6 @@ def getTransform(o, reverse=False):
             ]
 
         return transform
-
-
-def transformPoint(lon, lat, transform):
-    if transform == None:
-        return lon, lat
-    else:
-        [
-            (lon, lat),
-        ] = transform(
-            [
-                (lon, lat),
-            ]
-        )
 
 
 def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
@@ -215,7 +210,7 @@ def parseGeotiffBbox(
     minLat = maxLat + (numOfRows - 1) * latIncrement
     maxLon = minLon + (numOfCols - 1) * lonIncrement
     # get the transformation function from fileProj to EPSG:4326 for this geotiff file
-    transform = getTransform(fileProj)
+    transform: Optional[TransformFunType] = getTransform(fileProj)
     if doTransform:
         # transformLonLats will return input values if transform is None
         minLon, minLat, maxLon, maxLat = transformLonLats(
@@ -234,7 +229,9 @@ def parseGeotiffBbox(
         maxLon += corrx
         minLat += corry
         maxLat += corry
-        reverseTransform = getTransform(fileProj, reverse=True)
+        reverseTransform: Optional[TransformFunType] = getTransform(
+            fileProj, reverse=True
+        )
         # transformation (epsg:4326) -> (input projection)
         minLon, minLat, maxLon, maxLat = transformLonLats(
             minLon, minLat, maxLon, maxLat, reverseTransform
@@ -264,24 +261,62 @@ def calcHgtArea(
     return minLon, minLat, maxLon, maxLat
 
 
-def polygonMask(xData, yData, polygon, transform):
-    """return a mask on self.zData corresponding to all polygons in self.polygon.
+BBOX_EXPAND_EPSILON = 0.1
+
+
+def polygon_mask(
+    x_data: numpy.ndarray,
+    y_data: numpy.ndarray,
+    polygons: List[List[Tuple[float, float]]],
+    transform,
+) -> numpy.ndarray:
+    """return a mask on self.zData corresponding to all polygons in self.polygons.
     <xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
     latitude values.  An array usable as mask for the corresponding zData
     2-D array is returned.
     <transform> may be transform function from the file's projection to EPSG:4326,
     which is the projection used within polygon files.
     """
-    X, Y = numpy.meshgrid(xData, yData)
-    xyPoints = numpy.vstack(([X.T], [Y.T])).T.reshape(len(xData) * len(yData), 2)
+    X, Y = numpy.meshgrid(x_data, y_data)
+    xyPoints = numpy.vstack(([X.T], [Y.T])).T.reshape(len(x_data) * len(y_data), 2)
+
+    # To improve performances, clip original polygons to current data boundaries.
+    # Slightly expand the bounding box, as PolygonPath.contains_points result is undefined for points on boundary
+    # https://matplotlib.org/stable/api/path_api.html#matplotlib.path.Path.contains_point
+    bbox_points: List[Tuple[float, float]] = [
+        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
+        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),
+        (x_data.max() + BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),
+        (x_data.max() + BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
+        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
+    ]
     if transform is not None:
         xyPoints = transform(xyPoints)
-    maskArray = numpy.ma.array(numpy.empty((len(xData) * len(yData), 1)))
-    for p in polygon:
+        bbox_points = transform(bbox_points)
+    bbox_shape = shapely.Polygon(bbox_points)
+    clipped_polygons = []
+    for p in polygons:
+        clipped_p = shapely.intersection(shapely.Polygon(p), bbox_shape)
+        if isinstance(clipped_p, shapely.MultiPolygon):
+            clipped_polygons += [
+                [(x, y) for x, y in poly.exterior.coords]
+                for poly in clipped_p.geoms
+                if not poly.is_empty
+            ]
+        elif not clipped_p.is_empty:
+            clipped_polygons.append([(x, y) for x, y in clipped_p.exterior.coords])
+
+    if not clipped_polygons:
+        # Empty intersection: data is fully masked
+        # Simply return a 1x1 True mask
+        return numpy.array([True])
+
+    maskArray = numpy.ma.array(numpy.empty((len(x_data) * len(y_data), 1)))
+    for p in clipped_polygons:
         # run through all polygons and combine masks
         mask = PolygonPath(p).contains_points(xyPoints)
         maskArray = numpy.ma.array(maskArray, mask=mask, keep_mask=True)
-    return numpy.invert(maskArray.mask.reshape(len(yData), len(xData)))
+    return numpy.invert(maskArray.mask.reshape(len(y_data), len(x_data)))
 
 
 class hgtFile:
@@ -292,7 +327,7 @@ class hgtFile:
         filename,
         corrx,
         corry,
-        polygon=None,
+        polygons: Optional[List[List[Tuple[float, float]]]] = None,
         checkPoly=False,
         voidMax=None,
         feetSteps=False,
@@ -306,10 +341,12 @@ class hgtFile:
         self.fullFilename = filename
         self.filename = os.path.split(filename)[-1]
         self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
+        # Assigned by initAsXxx
+        self.polygons: Optional[List[List[Tuple[float, float]]]]
         if self.fileExt == "hgt":
-            self.initAsHgt(corrx, corry, polygon, checkPoly, voidMax)
+            self.initAsHgt(corrx, corry, polygons, checkPoly, voidMax)
         elif self.fileExt in ("tif", "tiff", "vrt"):
-            self.initAsGeotiff(corrx, corry, polygon, checkPoly, voidMax)
+            self.initAsGeotiff(corrx, corry, polygons, checkPoly, voidMax)
         # some statistics
         minLon, minLat, maxLon, maxLat = transformLonLats(
             self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
@@ -328,12 +365,15 @@ class hgtFile:
                 {True: ", checking polygon borders", False: ""}[checkPoly],
             )
         )
+        # Used only when initialized from GeoTIFF
+        self.transform: Optional[TransformFunType]
+        self.reverseTransform: Optional[TransformFunType]
 
     def initAsHgt(
         self,
         corrx: float,
         corry: float,
-        polygon: Optional[List[Tuple[float, float]]],
+        polygons: Optional[List[List[Tuple[float, float]]]],
         checkPoly: bool,
         voidMax: Optional[int],
     ) -> None:
@@ -368,9 +408,9 @@ class hgtFile:
                 corrx, corry
             )
             if checkPoly:
-                self.polygon = polygon
+                self.polygons = polygons
             else:
-                self.polygon = None
+                self.polygons = None
             xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
             yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
             self.transform = None
@@ -416,9 +456,9 @@ class hgtFile:
             self.reverseTransform = getTransform(fileProj, reverse=True)
         finally:
             if checkPoly:
-                self.polygon = polygon
+                self.polygons = polygon
             else:
-                self.polygon = None
+                self.polygons = None
 
     def borders(self, corrx=0.0, corry=0.0):
         """determines the bounding box of self.filename using parseHgtFilename()."""
@@ -599,12 +639,19 @@ class hgtFile:
 						rightChopData)
 				"""
 
+            # Discard quickly fully void tiles (eg. middle of the sea)
+            if isinstance(inputData, numpy.ma.masked_array):
+                voidMaskValues = numpy.unique(inputData.mask)
+                if len(voidMaskValues) == 1 and voidMaskValues[0] == True:
+                    # this tile is full of void values, so discard this tile
+                    return
+
             if tooManyNodes(inputData):
                 chops = getChops(inputData, inputBbox)
                 for choppedBbox, choppedData in chops:
                     chopData(choppedBbox, choppedData, depth + 1)
             else:
-                if self.polygon:
+                if self.polygons:
                     tileXData = numpy.arange(
                         inputBbox[0],
                         inputBbox[2] + self.lonIncrement / 2.0,
@@ -615,24 +662,19 @@ class hgtFile:
                         inputBbox[1] - self.latIncrement / 2.0,
                         -self.latIncrement,
                     )
-                    tileMask = polygonMask(
-                        tileXData, tileYData, self.polygon, self.transform
+                    tileMask = polygon_mask(
+                        tileXData, tileYData, self.polygons, self.transform
                     )
-                    tilePolygon = self.polygon
+                    tilePolygon = self.polygons
                     if not numpy.any(tileMask):
                         # all points are inside the polygon
                         tilePolygon = None
                     elif numpy.all(tileMask):
-                        # all elements are masked -> tile is outside of self.polygon
+                        # all elements are masked -> tile is outside of self.polygons
                         return
                 else:
                     tilePolygon = None
                     tileMask = None
-                if isinstance(inputData, numpy.ma.masked_array):
-                    voidMaskValues = numpy.unique(inputData.mask)
-                    if len(voidMaskValues) == 1 and voidMaskValues[0] == True:
-                        # this tile is full of void values, so discard this tile
-                        return
                 tiles.append(
                     hgtTile(
                         {
@@ -668,7 +710,7 @@ class hgtTile:
         self.numOfRows = self.zData.shape[0]
         self.numOfCols = self.zData.shape[1]
         self.lonIncrement, self.latIncrement = tile["increments"]
-        self.polygon = tile["polygon"]
+        self.polygons = tile["polygon"]
         self.mask = tile["mask"]
         self.transform = tile["transform"]
         self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
@@ -760,7 +802,7 @@ class hgtTile:
             z,
             maxNodesPerWay,
             self.transform,
-            self.polygon,
+            self.polygons,
             rdpEpsilon,
             rdpMaxVertexDistance,
         )

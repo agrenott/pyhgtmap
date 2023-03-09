@@ -668,7 +668,11 @@ def processHgtFile(
     )
     logger.debug(f"processHgtFile {srcName}")
     hgtTiles = hgtFile.makeTiles(opts)
-    logger.debug(f"Tiles built")
+    logger.debug(f"Tiles built; nb tiles: {len(hgtTiles)}")
+    for tile in hgtTiles:
+        logger.debug(
+            f"  tile with {tile.numOfRows} x {tile.numOfCols} points, bbox: ({tile.minLon:.2f}, {tile.minLat:.2f}, {tile.maxLon:.2f}, {tile.maxLat:.2f})"
+        )
     if opts.plotPrefix:
         for tile in hgtTiles:
             tile.plotData(opts.plotPrefix)
@@ -954,6 +958,7 @@ class ProcessQueue(object):
 
     def _forkOneMultiOutput(self):
         statsR, statsW = os.pipe()
+        logger.debug("Forking new child...")
         pid = os.fork()
         srcName, checkPoly = self.fileList.pop()
         if pid == 0:
@@ -975,6 +980,7 @@ class ProcessQueue(object):
                 [],
                 [],
             )
+            logger.debug("Waiting for stats pipe from child...")
             stats = statsRList[0].read()
             statsRPipe.close()
             numOfWays, numOfNodes = [int(el) for el in stats.split(":")]
