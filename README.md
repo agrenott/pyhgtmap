@@ -1,4 +1,4 @@
-[![Python: 33.9, 3.10](https://img.shields.io/badge/python-3.9%20%7C%203.10-blue)](https://www.python.org)
+[![Python: 3.9, 3.10](https://img.shields.io/badge/python-3.9%20%7C%203.10-blue)](https://www.python.org)
 ![GitHub](https://img.shields.io/github/license/agrenott/phyghtmap)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/phyghtmap/pythonpackage.yaml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -38,15 +38,29 @@ pip install git+https://github.com/agrenott/phyghtmap.git
 
 # Usage
 
-For a detailed help, run
+For a detailed help, run `phyghtmap --help` on the console.
 
-```bash
-phyghtmap --help
-```
+## A word on contour simplification
 
-on the console.
+phyghtmap now uses very efficient [pybind11-rdp](https://github.com/cubao/pybind11-rdp) Ramer-Douglas-Peucker Algorithm library for contour simplification. This makes RDP activation the best solution in most cases, as the slight overhead in computing performance is compensated by the reduced number of points to write (which is now the most time consuming part). It also reduces the final file size.
+
+Epsilon value must be chosen with care to get the proper tradeoff between efficiency and quality.
+
+Here is an example originating from a "view1" source with 10m step (lon6.00_7.00lat43.00_43.25_view1.osm.pbf):
+
+|         RDP Epsilon values          | Disabled |   0    |                                      0.00001                                       |                                      0.0001                                       |
+| :---------------------------------: | :------: | :----: | :--------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------: |
+|           Visual details            |          |        |        ![Comparison between RDP 0 and 0.00001 results](doc/rdp_0_00001.png)        | ![Comparison between RDP 0, 0.0001 and 0.00001 results](doc/rdp_0_0001_00001.png) |
+|                                     |          |        | Blue lines (Epsilon=0.00001) are almost indistinguishable from red ones (Epsilon=0) |            Clear difference appears for green lines (Epsilon = 0.0001)            |
+| File size (1 tile, PBF format, KiB) |   1840   |  1717  |                                        1424                                        |                                        716                                        |
+|      Number of nodes (1 tile)       |  869685  | 761085 |                                       559678                                       |                                      210744                                       |
 
 # Development
+
+The one-liner for local validation:
+```bash
+black tests/ phyghtmap tools && mypy && coverage run -m pytest --mpl && coverage html
+```
 
 ## Profiling
 

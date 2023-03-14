@@ -243,27 +243,19 @@ def parseCommandLine():
         "\noutput file size while preserving resonable accuracy are dependent on"
         "\nthe file resolution.  For SRTM3 data, some value between 0.0001 and"
         "\n0.0005 seems reasonable, reducing the file size by something like one"
-        "\nor two thirds.  Note that using contour line simplification will slow"
-        "\ndown contour line generation.  The default is not to use RDP.",
+        "\nor two thirds. The default is 0.0 value to remove dupe points and optimize"
+        "\nstraight lines.",
         dest="rdpEpsilon",
         type="float",
-        default=None,
+        default=0.0,
         action="store",
         metavar="EPSILON",
     )
     parser.add_option(
-        "--simplifyContoursMaxDistance",
-        help="Do not delete all"
-        "\nvertices while simplifying a contour line using RDP but only delete"
-        "\npoints within this range.  The default is to delete all dispensable"
-        "\nvertices.  Only use this option if you want to get the benefit of RDP"
-        "\nbut need somehow close-lying points because of rendering issues or so."
-        "\nUsing this option will dramatically slow down contour line generation.",
-        dest="rdpMaxVertexDistance",
-        type="float",
-        default=None,
-        action="store",
-        metavar="MAX_VERTEX_DISTANCE",
+        "--disableRDP",
+        help="Fully disable contour simplification",
+        dest="disableRdp",
+        action="store_true",
     )
     parser.add_option(
         "--gzip",
@@ -562,6 +554,9 @@ def parseCommandLine():
             "\neither one of the --area and --polygon options.\n"
         )
         sys.exit(1)
+    if opts.disableRdp:
+        opts.rdpEpsilon = None
+
     return opts, args
 
 
@@ -693,7 +688,6 @@ def processHgtFile(
                     maxNodesPerWay=opts.maxNodesPerWay,
                     noZero=opts.noZero,
                     rdpEpsilon=opts.rdpEpsilon,
-                    rdpMaxVertexDistance=opts.rdpMaxVertexDistance,
                 )
                 goodTiles.append(tile)
             except ValueError:  # tiles with the same value on every element
@@ -701,7 +695,6 @@ def processHgtFile(
             numOfPointsAdd, numOfWaysAdd = tile.countNodes(
                 maxNodesPerWay=opts.maxNodesPerWay,
                 rdpEpsilon=opts.rdpEpsilon,
-                rdpMaxVertexDistance=opts.rdpMaxVertexDistance,
             )
             numOfPoints += numOfPointsAdd
             numOfWays += numOfWaysAdd
@@ -765,7 +758,6 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
-                        rdpMaxVertexDistance=opts.rdpMaxVertexDistance,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue
@@ -793,7 +785,6 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
-                        rdpMaxVertexDistance=opts.rdpMaxVertexDistance,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue

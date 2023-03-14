@@ -4,7 +4,7 @@
 <HTML><HEAD><TITLE>Man page of PHYGHTMAP</TITLE>
 </HEAD><BODY>
 <H1>PHYGHTMAP</H1>
-Section: User Commands (1)<BR>Updated: January 2021<BR><A HREF="#index">Index</A>
+Section: User Commands (1)<BR>Updated: March 2023<BR><A HREF="#index">Index</A>
 <HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -136,17 +136,10 @@ reduce the output file size while preserving resonable
 accuracy are dependent on the file resolution.  For
 SRTM3 data, some value between 0.0001 and 0.0005 seems
 reasonable, reducing the file size by something like
-one or two thirds.  Note that using contour line
-simplification will slow down contour line generation.
-The default is not to use RDP.
-<DT><B>--simplifyContoursMaxDistance</B>=MAX_VERTEX_DISTANCE<DD>
-Do not delete all vertices while simplifying a contour
-line using RDP but only delete points within this
-range.  The default is to delete all dispensable
-vertices.  Only use this option if you want to get the
-benefit of RDP but need somehow close-lying points
-because of rendering issues or so. Using this option
-will dramatically slow down contour line generation.
+one or two thirds. The default is 0.0 value to remove
+dupe points and optimize straight lines.
+<DT><B>--disableRDP</B><DD>
+Fully disable contour simplification
 <DT><B>--gzip</B>=COMPRESSLEVEL<DD>
 turn on gzip compression of output files. This reduces
 the needed disk space but results in higher
@@ -245,6 +238,8 @@ program aborts due to exceeding the maximum allowed
 number of recursions.
 <DT><B>-v</B>, <B>--version</B><DD>
 print version and exit.
+<DT><B>-l</B> LOGLEVEL, <B>--log</B>=LOGLEVEL<DD>
+Set this tool's debug logging level
 </DL>
 <A NAME="lbAF">&nbsp;</A>
 <H2>USAGE EXAMPLES</H2>
@@ -336,6 +331,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 17:33:18 GMT, January 08, 2021
+Time: 11:46:24 GMT, March 14, 2023
 </BODY>
 </HTML>

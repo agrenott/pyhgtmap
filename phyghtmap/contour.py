@@ -1,26 +1,46 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import contourpy
 import numpy
 import numpy.typing
+from pybind11_rdp import rdp
+
+
+def simplify_path(
+    input_path: numpy.ndarray, rdp_epsilon: Optional[float] = None
+) -> numpy.ndarray:
+    """Simplifies a path using the Ramer-Douglas-Peucker (RDP) algorithm.
+
+    <input_path>: a contour line path
+    <rdp_epsilon>: the epsilon value to use in RDP
+
+    A simplified path is returned as numpy array.
+    """
+    # Remove duplicated consecutive points
+    deduped_path = input_path
+    # While in theory this would be a good thing, this is a computing intensive step, and RDP will remove
+    # most (but not all) of the useless points anyway...
+    # On the whole France-PACA region, the delta is less than 0.05% when adding the dedupe to a RDP with epsion = 0.0...
+    # deduped_path = input_path[numpy.any(input_path != numpy.r_[input_path[1:], [[None,None]]], axis=1)]
+    if rdp_epsilon is not None:
+        deduped_path = rdp(deduped_path, epsilon=rdp_epsilon)
+    return deduped_path
 
 
 class ContourObject(object):
     def __init__(
         self,
-        Cntr: contourpy.ContourGenerator,
-        maxNodesPerWay,
+        cntr: contourpy.ContourGenerator,
+        max_nodes_per_way,
         transform,
         polygon=None,
-        rdpEpsilon=None,
-        rdpMaxVertexDistance=None,
+        rdp_epsilon=None,
     ):
-        self.Cntr: contourpy.ContourGenerator = Cntr
-        self.maxNodesPerWay = maxNodesPerWay
+        self.cntr: contourpy.ContourGenerator = cntr
+        self.max_nodes_per_way = max_nodes_per_way
         self.polygon = polygon
         self.transform = transform
-        self.rdpEpsilon = rdpEpsilon
-        self.rdpMaxVertexDistance = rdpMaxVertexDistance
+        self.rdp_epsilon = rdp_epsilon
 
     def _cutBeginning(self, p):
         """is recursively called to cut off a path's first element
@@ -45,7 +65,7 @@ class ContourObject(object):
         is returned, along with the number of nodes and paths as written later to
         the OSM XML output.
         """
-        length = self.maxNodesPerWay
+        length = self.max_nodes_per_way
         # l = self._cutBeginning(l)
         if len(l) < 2:
             return [], 0, 0
@@ -84,86 +104,21 @@ class ContourObject(object):
         numOfNodes = sum([len(p) for p in pathList]) - numOfClosedPaths
         return pathList, numOfNodes, numOfPaths
 
-    def simplifyPath(self, path) -> numpy.ndarray:
-        """simplifies a path using a modified version of the Ramer-Douglas-Peucker
-        (RDP) algorithm.
-
-        <path>: a contour line path
-
-        other variables used here:
-        self.rdpEpsilon: the epsilon value to use in RDP
-        self.rdpMaxVertexDistance: RDP is modified in a way that it preserves some
-                points if they are too far from each other, even if the point is less
-                than epsilon away from an enclosing contour line segment
-
-        A simplified path is returned as numpy array.
-        """
-        if self.rdpEpsilon is None:
-            return path
-
-        def distance(A, B):
-            """determines the distance between two points <A> and <B>"""
-            return numpy.linalg.norm(A - B)
-
-        def perpendicularDistance(P, S, E):
-            """determines the perpendicular distance of <P> to the <S>-<E> segment"""
-            if numpy.all(numpy.equal(S, E)):
-                return distance(S, P)
-            else:
-                cp = numpy.cross(P - S, E - S)
-                return abs(cp / distance(E, S))
-
-        if self.rdpEpsilon == 0.0:
-            return path
-        if path.shape[0] <= 2:
-            return path
-        S = path[0]
-        E = path[-1]
-        maxInd = 0
-        maxDist = 0.0
-        for ind, P in enumerate(path[1:-1]):
-            dist = perpendicularDistance(P, S, E)
-            if dist > maxDist:
-                maxDist = dist
-                maxInd = ind + 1
-        if maxDist <= self.rdpEpsilon and (
-            self.rdpMaxVertexDistance is None
-            or distance(S, E) <= self.rdpMaxVertexDistance
-        ):
-            return numpy.array([S, E])
-        elif maxDist <= self.rdpEpsilon:
-            ind = 0
-            for ind, P in enumerate(path[1:-1]):
-                if distance(S, P) > self.rdpMaxVertexDistance:
-                    break
-            if ind == 0:
-                return numpy.vstack((S, path[1], self.simplifyPath(path[2:])))
-            else:
-                return numpy.vstack((S, self.simplifyPath(path[ind:])))
-        else:
-            path = numpy.vstack(
-                (
-                    self.simplifyPath(path[: maxInd + 1]),
-                    self.simplifyPath(path[maxInd:])[1:],
-                )
-            )
-            return path
-
     # Actually returns Tuple[List[numpy.typing.ArrayLike[numpy.typing.ArrayLike[numpy.float64]]], int, int]
     # But can't be typed correctly yet...
     # https://stackoverflow.com/questions/66657117/type-hint-2d-numpy-array
-    def trace(self, elevation: int, **kwargs) -> Tuple[List[numpy.ndarray], int, int]:
+    def trace(self, elevation: int) -> Tuple[List[numpy.ndarray], int, int]:
         """this emulates matplotlib.cntr.Cntr's trace method.
         The difference is that this method returns already split paths,
         along with the number of nodes and paths as expected in the OSM
         XML output.  Also, consecutive identical nodes are removed.
         """
         # Keep only the first element of the tuple, ignoring matplot line code
-        rawPaths: List[numpy.ndarray] = self.Cntr.create_contour(elevation)[0]
+        rawPaths: List[numpy.ndarray] = self.cntr.create_contour(elevation)[0]
         numOfPaths, numOfNodes = 0, 0
         resultPaths = []
         for path in rawPaths:
-            path = self.simplifyPath(path)
+            path = simplify_path(path, self.rdp_epsilon)
             splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
             resultPaths.extend(splitPaths)
             numOfPaths += numOfPathsAdd
@@ -179,7 +134,6 @@ def build_contours(
     transform: Callable,
     polygon,
     rdp_epsilon,
-    rdp_max_vertex_distance,
 ) -> ContourObject:
     """Build countours generator object."""
     contours: ContourObject = ContourObject(
@@ -196,6 +150,5 @@ def build_contours(
         transform,
         polygon,
         rdp_epsilon,
-        rdp_max_vertex_distance,
     )
     return contours

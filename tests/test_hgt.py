@@ -1,6 +1,6 @@
 import os
 from types import SimpleNamespace
-from typing import List
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy
@@ -54,13 +54,25 @@ class TestTile:
         )
 
     @staticmethod
+    # Test contours generation with several rdp_espilon values
+    # Results must be close enough not to trigger an exception with mpl plugin
+    @pytest.mark.parametrize(
+        "rdp_epsilon",
+        [
+            None,
+            0.0,
+            0.00001,
+        ],
+    )
     @pytest.mark.mpl_image_compare(baseline_dir="data", filename="toulon_ref.png")
-    def test_draw_contours_Toulon(toulon_tiles: List[hgt.hgtTile]) -> plt.Figure:
+    def test_draw_contours_Toulon(
+        toulon_tiles: List[hgt.hgtTile], rdp_epsilon: Optional[float]
+    ) -> plt.Figure:
         """Rather an end-to-end test.
         Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
         To compare output, run `pytest --mpl`
         """
-        elevations, contour_data = toulon_tiles[0].contourLines()
+        elevations, contour_data = toulon_tiles[0].contourLines(rdpEpsilon=rdp_epsilon)
         dpi = 100
         # Add some space for axises, while trying to get graph space close to original data size
         out_size = HGT_SIZE + 300
