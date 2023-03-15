@@ -757,6 +757,7 @@ class hgtTile:
         minCont=None,
         maxCont=None,
         rdpEpsilon=None,
+        smooth=False,
     ) -> Tuple[Iterable[int], ContourObject]:
         """generates contour lines using matplotlib.
 
@@ -766,6 +767,7 @@ class hgtTile:
         <minCont>:  lower limit of the range to generate contour lines for
         <maxCont>:  upper limit of the range to generate contour lines for
         <rdpEpsilon>: epsilon to use in RDP contour line simplification
+        <smooth>: enable contour smoothing
 
         A list of elevations and a ContourObject is returned.
         """
@@ -779,29 +781,23 @@ class hgtTile:
             corrEle: int = ele + step - ele % step
             return corrEle
 
-        minCont: int = minCont or getContLimit(self.minEle, stepCont)
-        maxCont: int = maxCont or getContLimit(self.maxEle, stepCont)
+        min_cont: int = minCont or getContLimit(self.minEle, stepCont)
+        max_cont: int = maxCont or getContLimit(self.maxEle, stepCont)
         levels: Iterable[int]
         if noZero:
-            levels = [l for l in range(int(minCont), int(maxCont), stepCont) if l != 0]
+            levels = [
+                l for l in range(int(min_cont), int(max_cont), stepCont) if l != 0
+            ]
         else:
-            levels = range(int(minCont), int(maxCont), stepCont)
+            levels = range(int(min_cont), int(max_cont), stepCont)
         x, y = numpy.meshgrid(self.xData, self.yData)
         # z data is a masked array filled with nan.
         z: numpy.typing.ArrayLike = numpy.ma.array(
             self.zData, mask=self.mask, fill_value=float("NaN"), keep_mask=True
         )
 
-        corner_mask: bool = True
-        nchunk: int = 0
         contours: ContourObject = build_contours(
-            x,
-            y,
-            z,
-            maxNodesPerWay,
-            self.transform,
-            self.polygons,
-            rdpEpsilon,
+            x, y, z, maxNodesPerWay, self.transform, self.polygons, rdpEpsilon, smooth
         )
         return levels, contours
 
@@ -812,6 +808,7 @@ class hgtTile:
         minCont=None,
         maxCont=None,
         rdpEpsilon=None,
+        smooth=False,
     ):
         """counts the total number of nodes and paths in the current tile
         as written to output.
@@ -824,11 +821,7 @@ class hgtTile:
         """
         if not (self.elevations and self.contourData):
             elevations, contourData = self.contourLines(
-                stepCont,
-                maxNodesPerWay,
-                minCont,
-                maxCont,
-                rdpEpsilon,
+                stepCont, maxNodesPerWay, minCont, maxCont, rdpEpsilon, smooth
             )
         else:
             elevations, contourData = self.elevations, self.contourData

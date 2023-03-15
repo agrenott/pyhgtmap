@@ -258,6 +258,14 @@ def parseCommandLine():
         action="store_true",
     )
     parser.add_option(
+        "--smooth",
+        help="Smooth contour lines. EXPERIMENTAL. This slows down process and results"
+        "\nare far from perfect.",
+        dest="smooth",
+        action="store_true",
+        default=False,
+    )
+    parser.add_option(
         "--gzip",
         help="turn on gzip compression of output files."
         "\nThis reduces the needed disk space but results in higher computation"
@@ -688,6 +696,7 @@ def processHgtFile(
                     maxNodesPerWay=opts.maxNodesPerWay,
                     noZero=opts.noZero,
                     rdpEpsilon=opts.rdpEpsilon,
+                    smooth=opts.smooth,
                 )
                 goodTiles.append(tile)
             except ValueError:  # tiles with the same value on every element
@@ -758,6 +767,7 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
+                        smooth=opts.smooth,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue
@@ -785,6 +795,7 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
+                        smooth=opts.smooth,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue

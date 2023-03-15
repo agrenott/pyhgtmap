@@ -36,6 +36,7 @@ setup(
         "colorlog>=6.7.0",
         "osmium>=3.6.0",
         "shapely>=2.0.1", 
-        "pybind11-rdp>=0.1.3"
+        "pybind11-rdp>=0.1.3",
+        "scipy>=1.8.0"
     ],
 )
