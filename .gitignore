@@ -10,3 +10,4 @@ build/
 *.osm.pbf
 *.o5m
 .coverage*
+coverage.xml

@@ -33,4 +33,13 @@ jobs:
         mypy
         coverage run -m pytest --mpl
         coverage report
+        coverage xml
+    - name: Report test-coverage to DeepSource
+      run: |
+        # Install the CLI
+        curl https://deepsource.io/cli | sh
 
+        # Send the report to DeepSource
+        ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
+      env:
+        DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
