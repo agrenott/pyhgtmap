@@ -219,7 +219,7 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
     """checks if a source file is needed depending on the bounding box and
     the passed polygon.
     """
-    if polygon == None:
+    if polygon is None:
         return True, False
     minLat = lat + corry
     maxLat = minLat + 1

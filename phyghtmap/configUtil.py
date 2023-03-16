@@ -74,7 +74,7 @@ class Config(object):
             return self.config[section][key]
 
     def setOrGet(self, section, key, value=None):
-        if value == None:
+        if value is None:
             return self.get(section, key)
         else:
             self.set(section, key, value)
