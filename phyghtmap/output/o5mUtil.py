@@ -63,7 +63,7 @@ class Output(output.Output):
         <a> and <b> are two strings; <b> can be None.
         """
         string = chr(0) + a + chr(0)
-        if b != None:
+        if b is not None:
             string += b + chr(0)
         return writableString(string)
 
@@ -159,14 +159,14 @@ class Output(output.Output):
         data = []
         data.append(sint2str(idDelta))
         # version information
-        if lastNode == None:
+        if lastNode is None:
             # first node since reset
             data.append(self.makeVersionChunk(first=True))
         else:
             data.append(self.makeVersionChunk(first=False))
         # lon, lat
         lon, lat = node
-        if lastNode != None:
+        if lastNode is not None:
             deltaLon = sint2str(lon - lastNode[0])
             deltaLat = sint2str(lat - lastNode[1])
         else:

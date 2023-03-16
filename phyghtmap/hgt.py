@@ -169,7 +169,7 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
 
 
 def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
-    if transform == None:
+    if transform is None:
         return minLon, minLat, maxLon, maxLat
     else:
         (lon1, lat1), (lon2, lat2), (lon3, lat3), (lon4, lat4) = transform(
@@ -392,7 +392,7 @@ class hgtFile:
                 .reshape(self.numOfRows, self.numOfCols)
                 .astype("float32")
             )
-            if voidMax != None:
+            if voidMax is not None:
                 voidMask = numpy.asarray(
                     numpy.where(self.zData <= voidMax, True, False)
                 )
@@ -431,7 +431,7 @@ class hgtFile:
             self.numOfRows = g.RasterYSize
             # init z data
             self.zData = g.GetRasterBand(1).ReadAsArray().astype("float32")
-            if voidMax != None:
+            if voidMax is not None:
                 voidMask = numpy.asarray(
                     numpy.where(self.zData <= voidMax, True, False)
                 )
@@ -642,7 +642,7 @@ class hgtFile:
             # Discard quickly fully void tiles (eg. middle of the sea)
             if isinstance(inputData, numpy.ma.masked_array):
                 voidMaskValues = numpy.unique(inputData.mask)
-                if len(voidMaskValues) == 1 and voidMaskValues[0] == True:
+                if len(voidMaskValues) == 1 and voidMaskValues[0] is True:
                     # this tile is full of void values, so discard this tile
                     return
 
