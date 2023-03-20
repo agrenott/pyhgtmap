@@ -716,7 +716,7 @@ class hgtFile:
                 # if depth>20:
                 # os._exit(11)
 
-        tiles = []
+        tiles: List["hgtTile"] = []
         bbox, truncatedData = truncateData(area, self.zData)
         chopData(bbox, truncatedData)
         return tiles
@@ -741,6 +741,8 @@ class hgtTile:
         self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
         self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
         self.minEle, self.maxEle = self.getElevRange()
+        self.elevations = None
+        self.contourData = None
 
     def get_stats(self) -> str:
         """Get some statistics about the tile."""
@@ -758,14 +760,14 @@ class hgtTile:
         """prints some statistics about the tile."""
         print(f"\n{self.get_stats()}")
 
-    def getElevRange(self) -> Tuple[float, float]:
+    def getElevRange(self) -> Tuple[int, int]:
         """returns minEle, maxEle of the current tile.
 
         We don't have to care about -0x8000 values here since these are masked
         so that self.zData's min and max methods will yield proper values.
         """
-        minEle = self.zData.min()
-        maxEle = self.zData.max()
+        minEle = int(self.zData.min())
+        maxEle = int(self.zData.max())
         return minEle, maxEle
 
     def bbox(self, doTransform=True) -> Tuple[float, float, float, float]:
@@ -831,6 +833,7 @@ class hgtTile:
         self,
         maxNodesPerWay=0,
         stepCont=20,
+        noZero=False,
         minCont=None,
         maxCont=None,
         rdpEpsilon=None,
@@ -846,7 +849,7 @@ class hgtTile:
         """
         if not (self.elevations and self.contourData):
             elevations, contourData = self.contourLines(
-                stepCont, maxNodesPerWay, minCont, maxCont, rdpEpsilon
+                stepCont, maxNodesPerWay, noZero, minCont, maxCont, rdpEpsilon
             )
         else:
             elevations, contourData = self.elevations, self.contourData

@@ -8,7 +8,7 @@ __license__ = "GPLv2+"
 import logging
 import os
 import time
-from typing import Iterable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 import numpy
 import numpy.typing
@@ -39,8 +39,8 @@ class Output(phyghtmap.output.Output):
         filename,
         osmVersion,
         phyghtmapVersion,
-        bbox: List[float],
-        elevClassifier,
+        bbox: Tuple[float, float, float, float],
+        elevClassifier: Callable[[int], str],
     ):
         self.bbox = bbox
         # SimpleWriter doesn't support overwriting file...
@@ -56,7 +56,7 @@ class Output(phyghtmap.output.Output):
         self.maxNodesPerNodeBlock = 8000
         self.maxNodesPerWayBlock = 32000
         self.timestamp = int(time.mktime(time.localtime()))
-        self.timestampString = writableString("")  # dummy attribute, needed by main.py
+        self.timestampString: str = ""  # dummy attribute, needed by main.py
 
     def makeHeader(self, phyghtmapVersion) -> osmium.io.Header:
         """Prepare Header object"""

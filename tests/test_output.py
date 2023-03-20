@@ -75,9 +75,9 @@ def contour_data_mock() -> ContourObject:
 
 
 @pytest.fixture
-def bounding_box() -> List[float]:
+def bounding_box() -> Tuple[float, float, float, float]:
     """Bounding box of all fake data nodes"""
-    return [1, 1, 4, 2]
+    return (1, 1, 4, 2)
 
 
 @pytest.fixture
@@ -213,7 +213,7 @@ class TestOutputPbf:
         contour_data_mock: ContourObject,
         elev_classifier,
         elevations: Iterable[int],
-        bounding_box: List[float],
+        bounding_box: Tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:
@@ -247,7 +247,7 @@ class TestOutputO5m:
         contour_data_mock: ContourObject,
         elev_classifier,
         elevations: Iterable[int],
-        bounding_box: List[float],
+        bounding_box: Tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:

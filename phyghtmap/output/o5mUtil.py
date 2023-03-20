@@ -6,7 +6,7 @@ __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import time
-from typing import Iterable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 import phyghtmap.output
 from phyghtmap import contour, output
@@ -44,8 +44,8 @@ class Output(output.Output):
         filename,
         osmVersion,
         phyghtmapVersion,
-        bbox: List[float],
-        elevClassifier=None,
+        bbox: Tuple[float, float, float, float],
+        elevClassifier: Callable[[int], str],
         writeTimestamp=False,
     ):
         self.outf = open(filename, "wb")

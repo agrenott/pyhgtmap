@@ -25,7 +25,7 @@ from optparse import OptionParser
 import phyghtmap.output
 from phyghtmap import NASASRTMUtil, configUtil, hgt
 from phyghtmap.logger import configure_logging
-from phyghtmap.output import Output, o5mUtil, osmUtil, pbfUtil
+from phyghtmap.output import Output, WayType, o5mUtil, osmUtil, pbfUtil
 
 profile = False
 
@@ -609,7 +609,9 @@ def makeOsmFilename(borders, opts, srcNames) -> str:
     return osmName
 
 
-def getOutput(opts, srcNames, bounds: List[float]) -> phyghtmap.output.Output:
+def getOutput(
+    opts, srcNames, bounds: Tuple[float, float, float, float]
+) -> phyghtmap.output.Output:
     outputFilename = makeOsmFilename(bounds, opts, srcNames)
     elevClassifier = phyghtmap.output.make_elev_classifier(
         *[int(h) for h in opts.lineCats.split(",")]
@@ -648,7 +650,7 @@ def writeNodes(
     elevations: Iterable[int],
     timestampString: str,
     opts,
-) -> Tuple[int, List[Tuple[int, int, bool, int]]]:
+) -> Tuple[int, List[WayType]]:
     return output.writeNodes(
         contourData, elevations, timestampString, opts.startId, opts.osmVersion
     )
@@ -706,6 +708,7 @@ def processHgtFile(
                 continue
             numOfPointsAdd, numOfWaysAdd = tile.countNodes(
                 maxNodesPerWay=opts.maxNodesPerWay,
+                noZero=opts.noZero,
                 rdpEpsilon=opts.rdpEpsilon,
             )
             numOfPoints += numOfPointsAdd
@@ -822,7 +825,7 @@ class ProcessQueue(object):
         self.children = {}
         if self.opts.maxNodesPerTile == 0:
             self.singleOutput = True
-            bounds = [float(b) for b in self.opts.area.split(":")]
+            bounds = tuple([float(b) for b in self.opts.area.split(":")])
             srcNames = [s[0] for s in self.fileList]
             self.output = getOutput(self.opts, srcNames, bounds)
         else:
@@ -1056,7 +1059,7 @@ def main():
         opts.doFork = False
         output: Optional[phyghtmap.output.Output] = None
         if opts.maxNodesPerTile == 0:
-            bounds = [float(b) for b in opts.area.split(":")]
+            bounds = tuple([float(b) for b in opts.area.split(":")])
             srcNames = [s[0] for s in hgtDataFiles]
             output = getOutput(opts, srcNames, bounds)
         ways = []
