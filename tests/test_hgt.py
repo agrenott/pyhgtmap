@@ -1,6 +1,6 @@
 import os
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy
@@ -12,12 +12,16 @@ TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.relpath(__file__)), "data"
 HGT_SIZE: int = 1201
 
 
-def toulon_tiles(smooth_ratio: float) -> List[hgt.hgtTile]:
+def toulon_tiles(
+    smooth_ratio: float, custom_options: Optional[SimpleNamespace] = None
+) -> List[hgt.hgtTile]:
     hgt_file = hgt.hgtFile(
         os.path.join(TEST_DATA_PATH, "N43E006.hgt"), 0, 0, smooth_ratio=smooth_ratio
     )
     # Fake command line parser output
-    options = SimpleNamespace(area=None, maxNodesPerTile=0, contourStepSize=20)
+    options = custom_options or SimpleNamespace(
+        area=None, maxNodesPerTile=0, contourStepSize=20
+    )
     tiles: List[hgt.hgtTile] = hgt_file.makeTiles(options)
     return tiles
 
@@ -125,6 +129,35 @@ class TestTile:
 
 class TestHgtFile:
     @staticmethod
+    def test_make_tiles_chopped() -> None:
+        """Tiles chopped due to nodes threshold."""
+        custom_options = SimpleNamespace(
+            area=None, maxNodesPerTile=500000, contourStepSize=20
+        )
+        tiles: List[hgt.hgtTile] = toulon_tiles(1, custom_options)
+        assert len(tiles) == 4
+        assert [tile.get_stats() for tile in tiles] == [
+            "tile with 601 x 1201 points, bbox: (6.00, 43.00, 7.00, 43.50)\nminimum elevation: -4.00\nmaximum elevation: 770.00",
+            "tile with 301 x 1201 points, bbox: (6.00, 43.50, 7.00, 43.75)\nminimum elevation: -12.00\nmaximum elevation: 1703.00",
+            "tile with 151 x 1201 points, bbox: (6.00, 43.75, 7.00, 43.88)\nminimum elevation: 327.00\nmaximum elevation: 1908.00",
+            "tile with 151 x 1201 points, bbox: (6.00, 43.88, 7.00, 44.00)\nminimum elevation: 317.00\nmaximum elevation: 1923.00",
+        ]
+
+    @staticmethod
+    def test_make_tiles_chopped_with_area() -> None:
+        """Tiles chopped due to nodes threshold and area."""
+        custom_options = SimpleNamespace(
+            area="6.2:43.1:7.1:43.8", maxNodesPerTile=500000, contourStepSize=20
+        )
+        tiles: List[hgt.hgtTile] = toulon_tiles(1, custom_options)
+        # Result is cropped to the input area; less tiles are needed
+        assert len(tiles) == 2
+        assert [tile.get_stats() for tile in tiles] == [
+            "tile with 421 x 961 points, bbox: (6.20, 43.10, 7.00, 43.45)\nminimum elevation: -4.00\nmaximum elevation: 770.00",
+            "tile with 421 x 961 points, bbox: (6.20, 43.45, 7.00, 43.80)\nminimum elevation: -12.00\nmaximum elevation: 1703.00",
+        ]
+
+    @staticmethod
     def test_make_tiles_fully_masked() -> None:
         """No tile should be generated out of a fully masked input."""
         # Create a fake file, manually filling data
@@ -143,6 +176,26 @@ class TestHgtFile:
         options = SimpleNamespace(area=None, maxNodesPerTile=0, contourStepSize=20)
         tiles: List[hgt.hgtTile] = hgt_file.makeTiles(options)
         assert tiles == []
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "file_name",
+        ["N43E006.hgt", "N43E006.tiff"],
+    )
+    def test_init(file_name: str) -> None:
+        """Validate init from various sources types."""
+        hgt_file = hgt.hgtFile(os.path.join(TEST_DATA_PATH, file_name), 0, 0)
+
+        assert hgt_file.numOfCols == 1201
+        assert hgt_file.numOfRows == 1201
+        assert hgt_file.minLat == pytest.approx(42.99999999966694)
+        assert hgt_file.maxLat == pytest.approx(44.00000000033306)
+        assert hgt_file.minLon == pytest.approx(5.999999999666945)
+        assert hgt_file.maxLon == pytest.approx(7.000000000333055)
+        assert hgt_file.latIncrement == pytest.approx(0.000833333)
+        assert hgt_file.lonIncrement == hgt_file.lonIncrement
+        assert hgt_file.transform is None
+        assert hgt_file.polygons is None
 
 
 def test_polygon_mask() -> None:
@@ -222,3 +275,19 @@ def test_polygon_mask() -> None:
     polygon_out = [(-1, -1), (-1, -2), (6, -2), (6, -1), (-1, -1)]
     mask_out = hgt.polygon_mask(x_data, y_data, [polygon_out], None)
     numpy.testing.assert_array_equal(mask_out, numpy.full((1), True))
+
+
+@pytest.mark.parametrize(
+    "file_name",
+    ["N43E006.hgt", "N43E006.tiff"],
+)
+def test_calcHgtArea(file_name: str) -> None:
+    bbox: Tuple[float, float, float, float] = hgt.calcHgtArea(
+        [(os.path.join(TEST_DATA_PATH, file_name), False)], 0, 0
+    )
+    assert bbox == (
+        pytest.approx(6),
+        pytest.approx(43),
+        pytest.approx(7),
+        pytest.approx(44),
+    )

@@ -146,7 +146,7 @@ TransformFunType = Callable[[List[Tuple[float, float]]], List[Tuple[float, float
 
 
 def getTransform(o, reverse=False) -> Optional[TransformFunType]:
-    from osgeo import gdal, osr
+    from osgeo import osr
 
     n = osr.SpatialReference()
     n.ImportFromEPSG(4326)
@@ -186,7 +186,7 @@ def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
 
 def parseGeotiffBbox(
     filename: str, corrx: float, corry: float, doTransform: bool
-) -> Tuple[int, int, int, int]:
+) -> Tuple[float, float, float, float]:
     from osgeo import gdal, osr
 
     try:
@@ -243,7 +243,7 @@ def parseGeotiffBbox(
 
 def parseFileForBbox(
     fullFilename: str, corrx: float, corry: float, doTransform: bool
-) -> Tuple[int, int, int, int]:
+) -> Tuple[float, float, float, float]:
     fileExt: str = os.path.splitext(fullFilename)[1].lower().replace(".", "")
     if fileExt == "hgt":
         return parseHgtFilename(os.path.split(fullFilename)[1], corrx, corry)
@@ -253,8 +253,8 @@ def parseFileForBbox(
 
 
 def calcHgtArea(
-    filenames: List[str], corrx: float, corry: float
-) -> Tuple[int, int, int, int]:
+    filenames: List[Tuple[str, bool]], corrx: float, corry: float
+) -> Tuple[float, float, float, float]:
     bboxes = [parseFileForBbox(f[0], corrx, corry, doTransform=True) for f in filenames]
     minLon = sorted([b[0] for b in bboxes])[0]
     minLat = sorted([b[1] for b in bboxes])[0]
@@ -458,6 +458,7 @@ class hgtFile:
             self.numOfCols = g.RasterXSize
             self.numOfRows = g.RasterYSize
             # init z data
+            self.zData = g.GetRasterBand(1).ReadAsArray().astype("float32")
             # Compute mask BEFORE zooming, due to zoom artifacts on void areas boundaries
             voidMask = numpy.asarray(numpy.where(self.zData <= voidMax, True, False))
             if smooth_ratio != 1:
@@ -738,18 +739,21 @@ class hgtTile:
         self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
         self.minEle, self.maxEle = self.getElevRange()
 
-    def printStats(self):
-        """prints some statistics about the tile."""
+    def get_stats(self) -> str:
+        """Get some statistics about the tile."""
         minLon, minLat, maxLon, maxLat = transformLonLats(
             self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
         )
-        print(
-            "\ntile with {0:d} x {1:d} points, bbox: ({2:.2f}, {3:.2f}, {4:.2f}, {5:.2f})".format(
-                self.numOfRows, self.numOfCols, minLon, minLat, maxLon, maxLat
-            )
+        result = (
+            f"tile with {self.numOfRows:d} x {self.numOfCols:d} points, "
+            f"bbox: ({minLon:.2f}, {minLat:.2f}, {maxLon:.2f}, {maxLat:.2f})"
+            f"\nminimum elevation: {self.minEle:.2f}\nmaximum elevation: {self.maxEle:.2f}"
         )
-        print("minimum elevation: {0:d}".format(self.minEle))
-        print("maximum elevation: {0:d}".format(self.maxEle))
+        return result
+
+    def printStats(self):
+        """prints some statistics about the tile."""
+        print(f"\n{self.get_stats()}")
 
     def getElevRange(self):
         """returns minEle, maxEle of the current tile.
