@@ -140,6 +140,14 @@ one or two thirds. The default is 0.0 value to remove
 dupe points and optimize straight lines.
 <DT><B>--disableRDP</B><DD>
 Fully disable contour simplification
+<DT><B>--smooth</B>=SMOOTH_RATIO<DD>
+Smooth contour lines by zooming input files by
+SMOOTH_RATIO. EXPERIMENTAL. A zoom factor of 3 results
+in a 9-times bigger input set, and increases
+processing time and output siz A LOT. You should
+probably increase <B>--max-nodes-per-tile</B> to
+avoid'maximum recursion depth exceeded' error in tiles
+chopping.
 <DT><B>--gzip</B>=COMPRESSLEVEL<DD>
 turn on gzip compression of output files. This reduces
 the needed disk space but results in higher
@@ -331,6 +339,6 @@ version  &lt;<A HREF="http://gnu.org/licenses/gpl.html">http://gnu.org/licenses/
 This document was created by
 man2html,
 using the manual pages.<BR>
-Time: 11:46:24 GMT, March 14, 2023
+Time: 09:33:27 GMT, March 20, 2023
 </BODY>
 </HTML>

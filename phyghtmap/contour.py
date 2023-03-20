@@ -1,10 +1,9 @@
-from typing import Callable, List, Optional, Tuple, cast
+from typing import Callable, List, Optional, Tuple
 
 import contourpy
 import numpy
 import numpy.typing
 from pybind11_rdp import rdp
-from scipy import interpolate
 
 
 def simplify_path(
@@ -28,42 +27,6 @@ def simplify_path(
     return deduped_path
 
 
-def smooth_path(input_path: numpy.ndarray) -> numpy.ndarray:
-    """
-    Smooth a given path via a B Spline interpolation.
-    This is quite computing intensive and results are far from perfect.
-    """
-    xp = input_path[:, 0]
-    yp = input_path[:, 1]
-    # Remove consecutive duplicated points, as it's not supported by splprep
-    okay = numpy.where(numpy.abs(numpy.diff(xp)) + numpy.abs(numpy.diff(yp)) > 0)
-    xp = numpy.r_[xp[okay], xp[-1]]
-    yp = numpy.r_[yp[okay], yp[-1]]
-    if len(xp) < 4:
-        # Not enough points to interpolate
-        return input_path
-    tck, u = interpolate.splprep([xp, yp], k=3, s=0)
-    # Let's get about 10 points per segment
-    nb_out_points = len(input_path) * 10
-    u = numpy.linspace(0, 1, num=nb_out_points, endpoint=True)
-    out: List[numpy.ndarray] = cast(List[numpy.ndarray], interpolate.splev(u, tck))
-
-    # Debug helper, saving a figure for each interpolated path
-    # import matplotlib.pyplot as plt
-    # plt.figure()
-    # plt.plot(xp, yp, 'ro', out[0], out[1], 'b')
-    # plt.plot(input_path[:,0], input_path[:,1], "g")
-    # plt.legend(['Points', 'Interpolated B-spline', "Input path", 'True'],loc='best')
-    # plt.axis([min(xp)-0.0005, max(xp)+0.0005, min(yp)-0.0005, max(yp)+0.0005])
-    # plt.title('B-Spline interpolation')
-    # plt.savefig("interpolate_path.png")
-
-    # Merge X and Y arrays back into array of (X, Y) coordinates
-    out_path: numpy.ndarray = numpy.dstack(out)[0]
-
-    return out_path
-
-
 class ContourObject(object):
     def __init__(
         self,
@@ -72,14 +35,12 @@ class ContourObject(object):
         transform,
         polygon=None,
         rdp_epsilon=None,
-        smooth=False,
     ) -> None:
         self.cntr: contourpy.ContourGenerator = cntr
         self.max_nodes_per_way = max_nodes_per_way
         self.polygon = polygon
         self.transform = transform
         self.rdp_epsilon = rdp_epsilon
-        self.smooth: bool = smooth
 
     def _cutBeginning(self, p):
         """is recursively called to cut off a path's first element
@@ -157,8 +118,6 @@ class ContourObject(object):
         numOfPaths, numOfNodes = 0, 0
         resultPaths = []
         for path in rawPaths:
-            if self.smooth:
-                path = smooth_path(path)
             path = simplify_path(path, self.rdp_epsilon)
             splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
             resultPaths.extend(splitPaths)
@@ -175,7 +134,6 @@ def build_contours(
     transform: Callable,
     polygon,
     rdp_epsilon,
-    smooth=False,
 ) -> ContourObject:
     """Build countours generator object."""
     contours: ContourObject = ContourObject(
@@ -192,6 +150,5 @@ def build_contours(
         transform,
         polygon,
         rdp_epsilon,
-        smooth=smooth,
     )
     return contours

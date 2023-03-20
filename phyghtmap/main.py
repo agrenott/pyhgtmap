@@ -2,11 +2,12 @@
 # psyco.full()
 
 from __future__ import print_function
+
 from io import TextIOWrapper
 from typing import Iterable, List, Optional, Tuple
 
-from phyghtmap import output
 import phyghtmap
+from phyghtmap import output
 from phyghtmap.contour import ContourObject
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
@@ -15,18 +16,16 @@ __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
 import logging
-import sys
 import os
 import select
-from optparse import OptionParser
+import sys
 import time
+from optparse import OptionParser
 
 import phyghtmap.output
-from phyghtmap import hgt
-from phyghtmap.output import Output, o5mUtil, osmUtil, pbfUtil
-from phyghtmap import NASASRTMUtil
-from phyghtmap import configUtil
+from phyghtmap import NASASRTMUtil, configUtil, hgt
 from phyghtmap.logger import configure_logging
+from phyghtmap.output import Output, o5mUtil, osmUtil, pbfUtil
 
 profile = False
 
@@ -259,11 +258,15 @@ def parseCommandLine():
     )
     parser.add_option(
         "--smooth",
-        help="Smooth contour lines. EXPERIMENTAL. This slows down process and results"
-        "\nare far from perfect.",
-        dest="smooth",
-        action="store_true",
-        default=False,
+        help="Smooth contour lines by zooming input files by SMOOTH_RATIO. EXPERIMENTAL."
+        "\nA zoom factor of 3 results in a 9-times bigger input set, and increases processing"
+        "\ntime and output siz A LOT. You should probably increase --max-nodes-per-tile to avoid"
+        "'maximum recursion depth exceeded' error in tiles chopping.",
+        dest="smooth_ratio",
+        action="store",
+        type="float",
+        default=1,
+        metavar="SMOOTH_RATIO",
     )
     parser.add_option(
         "--gzip",
@@ -668,6 +671,7 @@ def processHgtFile(
         checkPoly,
         opts.voidMax,
         opts.contourFeet,
+        opts.smooth_ratio,
     )
     logger.debug(f"processHgtFile {srcName}")
     hgtTiles = hgtFile.makeTiles(opts)
@@ -696,7 +700,6 @@ def processHgtFile(
                     maxNodesPerWay=opts.maxNodesPerWay,
                     noZero=opts.noZero,
                     rdpEpsilon=opts.rdpEpsilon,
-                    smooth=opts.smooth,
                 )
                 goodTiles.append(tile)
             except ValueError:  # tiles with the same value on every element
@@ -767,7 +770,6 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
-                        smooth=opts.smooth,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue
@@ -795,7 +797,6 @@ def processHgtFile(
                         maxNodesPerWay=opts.maxNodesPerWay,
                         noZero=opts.noZero,
                         rdpEpsilon=opts.rdpEpsilon,
-                        smooth=opts.smooth,
                     )
                 except ValueError:  # tiles with the same value on every element
                     continue

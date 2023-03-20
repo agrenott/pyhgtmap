@@ -143,6 +143,15 @@ dupe points and optimize straight lines.
 \fB\-\-disableRDP\fR
 Fully disable contour simplification
 .TP
+\fB\-\-smooth\fR=\fI\,SMOOTH_RATIO\/\fR
+Smooth contour lines by zooming input files by
+SMOOTH_RATIO. EXPERIMENTAL. A zoom factor of 3 results
+in a 9\-times bigger input set, and increases
+processing time and output siz A LOT. You should
+probably increase \fB\-\-max\-nodes\-per\-tile\fR to
+avoid'maximum recursion depth exceeded' error in tiles
+chopping.
+.TP
 \fB\-\-gzip\fR=\fI\,COMPRESSLEVEL\/\fR
 turn on gzip compression of output files. This reduces
 the needed disk space but results in higher

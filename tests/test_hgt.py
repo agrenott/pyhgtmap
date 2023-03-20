@@ -12,21 +12,32 @@ TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.relpath(__file__)), "data"
 HGT_SIZE: int = 1201
 
 
-@pytest.fixture
-def toulon_tiles() -> List[hgt.hgtTile]:
-    hgt_file = hgt.hgtFile(os.path.join(TEST_DATA_PATH, "N43E006.hgt"), 0, 0)
+def toulon_tiles(smooth_ratio: float) -> List[hgt.hgtTile]:
+    hgt_file = hgt.hgtFile(
+        os.path.join(TEST_DATA_PATH, "N43E006.hgt"), 0, 0, smooth_ratio=smooth_ratio
+    )
     # Fake command line parser output
     options = SimpleNamespace(area=None, maxNodesPerTile=0, contourStepSize=20)
     tiles: List[hgt.hgtTile] = hgt_file.makeTiles(options)
     return tiles
 
 
+@pytest.fixture
+def toulon_tiles_raw() -> List[hgt.hgtTile]:
+    return toulon_tiles(smooth_ratio=1)
+
+
+@pytest.fixture
+def toulon_tiles_smoothed() -> List[hgt.hgtTile]:
+    return toulon_tiles(smooth_ratio=3)
+
+
 class TestTile:
     @staticmethod
-    def test_contourLines(toulon_tiles: List[hgt.hgtTile]) -> None:
+    def test_contourLines(toulon_tiles_raw: List[hgt.hgtTile]) -> None:
         """Test contour lines extraction from hgt file."""
-        assert toulon_tiles
-        elevations, contour_data = toulon_tiles[0].contourLines()
+        assert toulon_tiles_raw
+        elevations, contour_data = toulon_tiles_raw[0].contourLines()
         assert elevations == range(0, 1940, 20)
         assert contour_data
         # Get the countours for 20m elevation
@@ -66,13 +77,40 @@ class TestTile:
     )
     @pytest.mark.mpl_image_compare(baseline_dir="data", filename="toulon_ref.png")
     def test_draw_contours_Toulon(
-        toulon_tiles: List[hgt.hgtTile], rdp_epsilon: Optional[float]
+        toulon_tiles_raw: List[hgt.hgtTile], rdp_epsilon: Optional[float]
     ) -> plt.Figure:
         """Rather an end-to-end test.
         Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
         To compare output, run `pytest --mpl`
         """
-        elevations, contour_data = toulon_tiles[0].contourLines(rdpEpsilon=rdp_epsilon)
+        elevations, contour_data = toulon_tiles_raw[0].contourLines(
+            rdpEpsilon=rdp_epsilon
+        )
+        dpi = 100
+        # Add some space for axises, while trying to get graph space close to original data size
+        out_size = HGT_SIZE + 300
+        fig = plt.figure(figsize=(out_size / dpi, out_size / dpi), dpi=dpi)
+        for elev in range(0, 500, 100):
+            for contour in contour_data.trace(elev)[0]:
+                x, y = zip(*contour)
+                plt.plot(x, y, color="black")
+        # plt.savefig(os.path.join(TEST_DATA_PATH, "toulon_out.png"))
+        return fig
+
+    @staticmethod
+    @pytest.mark.mpl_image_compare(
+        baseline_dir="data", filename="toulon_ref_smoothed.png"
+    )
+    def test_draw_contours_smoothed_Toulon(
+        toulon_tiles_smoothed: List[hgt.hgtTile],
+    ) -> plt.Figure:
+        """Rather an end-to-end test.
+        Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
+        To compare output, run `pytest --mpl`
+        """
+        elevations, contour_data = toulon_tiles_smoothed[0].contourLines(
+            rdpEpsilon=0.00001
+        )
         dpi = 100
         # Add some space for axises, while trying to get graph space close to original data size
         out_size = HGT_SIZE + 300

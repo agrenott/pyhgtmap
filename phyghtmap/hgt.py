@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, cast
 
 __author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
 __version__ = "2.23"
@@ -15,6 +15,8 @@ import numpy
 import numpy.typing
 import shapely
 from matplotlib.path import Path as PolygonPath
+from scipy import ndimage
+
 
 from phyghtmap.contour import ContourObject, build_contours
 from phyghtmap.varint import bboxStringtypes
@@ -319,6 +321,24 @@ def polygon_mask(
     return numpy.invert(maskArray.mask.reshape(len(y_data), len(x_data)))
 
 
+def super_sample(
+    input_data: numpy.ndarray, input_mask: numpy.ndarray, zoom_level: float
+) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    """Super sample the input data and associated mask."""
+    logger.debug("Smoothing input by a ratio of %f", zoom_level)
+    # Limit order to 1 to avoid artifacts on constant value boundaries (eg. limit of sea areas)
+    # Round result to avoid oscillations around 0 due to spline interpolation
+    out_data = numpy.around(
+        cast(numpy.ndarray, ndimage.zoom(input_data, zoom_level, order=3)), 0
+    )
+    # Resize mask independantly, using 0 order to avoid artifacts
+    out_mask = ndimage.zoom(input_mask, zoom_level, order=0)
+    # from PIL import Image as im
+    # im.fromarray(input_data, mode="F").save('orig.tiff')
+    # im.fromarray(out_data, mode="F").save('super.tiff')
+    return out_data, out_mask
+
+
 class hgtFile:
     """is a handle for SRTM data files"""
 
@@ -329,8 +349,9 @@ class hgtFile:
         corry,
         polygons: Optional[List[List[Tuple[float, float]]]] = None,
         checkPoly=False,
-        voidMax=None,
+        voidMax: int = -0x8000,
         feetSteps=False,
+        smooth_ratio: float = 1.0,
     ):
         """tries to open <filename> and extracts content to self.zData.
 
@@ -344,9 +365,9 @@ class hgtFile:
         # Assigned by initAsXxx
         self.polygons: Optional[List[List[Tuple[float, float]]]]
         if self.fileExt == "hgt":
-            self.initAsHgt(corrx, corry, polygons, checkPoly, voidMax)
+            self.initAsHgt(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
         elif self.fileExt in ("tif", "tiff", "vrt"):
-            self.initAsGeotiff(corrx, corry, polygons, checkPoly, voidMax)
+            self.initAsGeotiff(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
         # some statistics
         minLon, minLat, maxLon, maxLat = transformLonLats(
             self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
@@ -375,7 +396,8 @@ class hgtFile:
         corry: float,
         polygons: Optional[List[List[Tuple[float, float]]]],
         checkPoly: bool,
-        voidMax: Optional[int],
+        voidMax: int,
+        smooth_ratio: float,
     ) -> None:
         """SRTM3 hgt files contain 1201x1201 points;
         however, we try to determine the real number of points.
@@ -392,13 +414,15 @@ class hgtFile:
                 .reshape(self.numOfRows, self.numOfCols)
                 .astype("float32")
             )
-            if voidMax is not None:
-                voidMask = numpy.asarray(
-                    numpy.where(self.zData <= voidMax, True, False)
-                )
-                self.zData = numpy.ma.array(
-                    self.zData, mask=voidMask, fill_value=float("NaN")
-                )
+
+            # Compute mask BEFORE zooming, due to zoom artifacts on void areas boundaries
+            voidMask = numpy.asarray(numpy.where(self.zData <= voidMax, True, False))
+            if smooth_ratio != 1:
+                self.zData, voidMask = super_sample(self.zData, voidMask, smooth_ratio)
+                self.numOfRows, self.numOfCols = self.zData.shape
+            self.zData = numpy.ma.array(
+                self.zData, mask=voidMask, fill_value=float("NaN")
+            )
             if self.feetSteps:
                 self.zData = self.zData * meters2Feet
         finally:
@@ -411,12 +435,12 @@ class hgtFile:
                 self.polygons = polygons
             else:
                 self.polygons = None
-            xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
-            yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
             self.transform = None
             self.reverseTransform = None
 
-    def initAsGeotiff(self, corrx, corry, polygon, checkPoly, voidMax) -> None:
+    def initAsGeotiff(
+        self, corrx, corry, polygon, checkPoly, voidMax, smooth_ratio: float
+    ) -> None:
         """init this hgtFile instance with data from a geotiff image."""
         from osgeo import gdal, osr
 
@@ -430,14 +454,14 @@ class hgtFile:
             self.numOfCols = g.RasterXSize
             self.numOfRows = g.RasterYSize
             # init z data
-            self.zData = g.GetRasterBand(1).ReadAsArray().astype("float32")
-            if voidMax is not None:
-                voidMask = numpy.asarray(
-                    numpy.where(self.zData <= voidMax, True, False)
-                )
-                self.zData = numpy.ma.array(
-                    self.zData, mask=voidMask, fill_value=float("NaN")
-                )
+            # Compute mask BEFORE zooming, due to zoom artifacts on void areas boundaries
+            voidMask = numpy.asarray(numpy.where(self.zData <= voidMax, True, False))
+            if smooth_ratio != 1:
+                self.zData, voidMask = super_sample(self.zData, voidMask, smooth_ratio)
+                self.numOfRows, self.numOfCols = self.zData.shape
+            self.zData = numpy.ma.array(
+                self.zData, mask=voidMask, fill_value=float("NaN")
+            )
             if self.feetSteps:
                 self.zData = self.zData * meters2Feet
             # make x and y data
@@ -445,11 +469,6 @@ class hgtFile:
             self.latIncrement = -geoTransform[5]
             self.minLon, self.minLat, self.maxLon, self.maxLat = self.borders(
                 corrx, corry
-            )
-            xData = numpy.arange(0, self.numOfCols, 1) * self.lonIncrement + self.minLon
-            yData = (
-                numpy.arange(0, self.numOfRows, 1) * -1 * self.latIncrement
-                + self.maxLat
             )
             # get the transformation function from fileProj to EPSG:4326 for this geotiff file
             self.transform = getTransform(fileProj)
@@ -566,9 +585,7 @@ class hgtFile:
                 helpData = data.filled() / step
                 xHelpData = numpy.abs(helpData[:, 1:] - helpData[:, :-1])
                 yHelpData = numpy.abs(helpData[1:, :] - helpData[:-1, :])
-                xHelpData = numpy.where(xHelpData != xHelpData, 0, xHelpData).sum()
-                yHelpData = numpy.where(yHelpData != yHelpData, 0, yHelpData).sum()
-                estimatedNumOfNodes = xHelpData + yHelpData
+                estimatedNumOfNodes = numpy.nansum(xHelpData) + numpy.nansum(yHelpData)
                 return estimatedNumOfNodes
 
             def tooManyNodes(data):
@@ -757,7 +774,6 @@ class hgtTile:
         minCont=None,
         maxCont=None,
         rdpEpsilon=None,
-        smooth=False,
     ) -> Tuple[Iterable[int], ContourObject]:
         """generates contour lines using matplotlib.
 
@@ -767,7 +783,6 @@ class hgtTile:
         <minCont>:  lower limit of the range to generate contour lines for
         <maxCont>:  upper limit of the range to generate contour lines for
         <rdpEpsilon>: epsilon to use in RDP contour line simplification
-        <smooth>: enable contour smoothing
 
         A list of elevations and a ContourObject is returned.
         """
@@ -797,7 +812,7 @@ class hgtTile:
         )
 
         contours: ContourObject = build_contours(
-            x, y, z, maxNodesPerWay, self.transform, self.polygons, rdpEpsilon, smooth
+            x, y, z, maxNodesPerWay, self.transform, self.polygons, rdpEpsilon
         )
         return levels, contours
 
@@ -808,7 +823,6 @@ class hgtTile:
         minCont=None,
         maxCont=None,
         rdpEpsilon=None,
-        smooth=False,
     ):
         """counts the total number of nodes and paths in the current tile
         as written to output.
@@ -821,7 +835,7 @@ class hgtTile:
         """
         if not (self.elevations and self.contourData):
             elevations, contourData = self.contourLines(
-                stepCont, maxNodesPerWay, minCont, maxCont, rdpEpsilon, smooth
+                stepCont, maxNodesPerWay, minCont, maxCont, rdpEpsilon
             )
         else:
             elevations, contourData = self.elevations, self.contourData
