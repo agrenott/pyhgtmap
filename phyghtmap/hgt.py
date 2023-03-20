@@ -149,6 +149,7 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
     from osgeo import osr
 
     n = osr.SpatialReference()
+    n.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     n.ImportFromEPSG(4326)
     oAuth = o.GetAttrValue("AUTHORITY", 1)
     nAuth = n.GetAttrValue("AUTHORITY", 1)
@@ -200,6 +201,7 @@ def parseGeotiffBbox(
             )
             raise hgtError
         fileProj = osr.SpatialReference()
+        fileProj.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         fileProj.ImportFromWkt(g.GetProjectionRef())
         numOfCols = g.RasterXSize
         numOfRows = g.RasterYSize
@@ -454,6 +456,7 @@ class hgtFile:
             # we don't need to check for the geo transform, this was already done when
             # calculating the area name from main.py
             fileProj = osr.SpatialReference()
+            fileProj.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
             fileProj.ImportFromWkt(g.GetProjectionRef())
             self.numOfCols = g.RasterXSize
             self.numOfRows = g.RasterYSize
@@ -751,11 +754,11 @@ class hgtTile:
         )
         return result
 
-    def printStats(self):
+    def printStats(self) -> None:
         """prints some statistics about the tile."""
         print(f"\n{self.get_stats()}")
 
-    def getElevRange(self):
+    def getElevRange(self) -> Tuple[float, float]:
         """returns minEle, maxEle of the current tile.
 
         We don't have to care about -0x8000 values here since these are masked
@@ -765,7 +768,7 @@ class hgtTile:
         maxEle = self.zData.max()
         return minEle, maxEle
 
-    def bbox(self, doTransform=True):
+    def bbox(self, doTransform=True) -> Tuple[float, float, float, float]:
         """returns the bounding box of the current tile."""
         if doTransform:
             return transformLonLats(
