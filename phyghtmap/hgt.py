@@ -369,23 +369,27 @@ class hgtFile:
         elif self.fileExt in ("tif", "tiff", "vrt"):
             self.initAsGeotiff(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
         # some statistics
-        minLon, minLat, maxLon, maxLat = transformLonLats(
-            self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
-        )
-        print(
-            "{0:s} file {1:s}: {2:d} x {3:d} points, bbox: ({4:.5f}, {5:.5f}, "
-            "{6:.5f}, {7:.5f}){8:s}".format(
-                self.fileExt,
-                self.fullFilename,
-                self.numOfCols,
-                self.numOfRows,
-                minLon,
-                minLat,
-                maxLon,
-                maxLat,
-                {True: ", checking polygon borders", False: ""}[checkPoly],
+        try:
+            minLon, minLat, maxLon, maxLat = transformLonLats(
+                self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
             )
-        )
+            print(
+                "{0:s} file {1:s}: {2:d} x {3:d} points, bbox: ({4:.5f}, {5:.5f}, "
+                "{6:.5f}, {7:.5f}){8:s}".format(
+                    self.fileExt,
+                    self.fullFilename,
+                    self.numOfCols,
+                    self.numOfRows,
+                    minLon,
+                    minLat,
+                    maxLon,
+                    maxLat,
+                    {True: ", checking polygon borders", False: ""}[checkPoly],
+                )
+            )
+        except:
+            # Best effort stats display
+            pass
         # Used only when initialized from GeoTIFF
         self.transform: Optional[TransformFunType]
         self.reverseTransform: Optional[TransformFunType]
@@ -659,7 +663,7 @@ class hgtFile:
             # Discard quickly fully void tiles (eg. middle of the sea)
             if isinstance(inputData, numpy.ma.masked_array):
                 voidMaskValues = numpy.unique(inputData.mask)
-                if len(voidMaskValues) == 1 and voidMaskValues[0] is True:
+                if numpy.array_equal(voidMaskValues, [True]):
                     # this tile is full of void values, so discard this tile
                     return
 

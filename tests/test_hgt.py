@@ -123,6 +123,28 @@ class TestTile:
         return fig
 
 
+class TestHgtFile:
+    @staticmethod
+    def test_make_tiles_fully_masked() -> None:
+        """No tile should be generated out of a fully masked input."""
+        # Create a fake file, manually filling data
+        hgt_file = hgt.hgtFile("no-name.not_hgt", 0, 0)
+        # Simulate init - fully masked data
+        hgt_file.zData = numpy.ma.array([0, 1, 2, 3], mask=[True] * 4).reshape((2, 2))
+        hgt_file.minLon, hgt_file.minLat, hgt_file.maxLon, hgt_file.maxLat = (
+            0,
+            0,
+            1,
+            1,
+        )
+        hgt_file.polygons = []
+        hgt_file.latIncrement, hgt_file.lonIncrement = 1, 1
+        hgt_file.transform = None
+        options = SimpleNamespace(area=None, maxNodesPerTile=0, contourStepSize=20)
+        tiles: List[hgt.hgtTile] = hgt_file.makeTiles(options)
+        assert tiles == []
+
+
 def test_polygon_mask() -> None:
     x_data = numpy.array([0, 1, 2, 3, 4, 5])
     y_data = numpy.array([0, 1, 2, 3, 4, 5])
