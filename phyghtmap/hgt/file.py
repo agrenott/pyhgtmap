@@ -1,15 +1,7 @@
-from __future__ import print_function
-
-from typing import Callable, Iterable, List, Optional, Tuple, cast
-
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
-
 import logging
 import os
 import sys
+from typing import Callable, List, Optional, Tuple, cast
 
 import numpy
 import numpy.typing
@@ -17,9 +9,9 @@ import shapely
 from matplotlib.path import Path as PolygonPath
 from scipy import ndimage
 
+from phyghtmap.hgt import transformLonLats
 
-from phyghtmap.contour import ContourObject, build_contours
-from phyghtmap.varint import bboxStringtypes
+from .tile import hgtTile
 
 meters2Feet = 1.0 / 0.3048
 
@@ -36,15 +28,6 @@ class filenameError(hgtError):
 
 class elevationError(hgtError):
     """is raised when trying to deal with elevations out of range."""
-
-
-def halfOf(seq):
-    """returns the first half of a sequence"""
-    return seq[: len(seq) // 2]
-
-
-def makeBBoxString(bbox):
-    return "{{0:s}}lon{0[0]:.2f}_{0[2]:.2f}lat{0[1]:.2f}_{0[3]:.2f}".format(bbox)
 
 
 def parsePolygon(filename):
@@ -90,22 +73,9 @@ def parsePolygon(filename):
     )
 
 
-def makeBoundsString(bbox):
-    """returns an OSM XML bounds tag.
-
-    The input <bbox> may be a list or tuple of floats or an area string as passed
-    to the --area option of phyghtmap in the following order:
-    minlon, minlat, maxlon, maxlat.
-    """
-    if type(bbox) in bboxStringtypes and bbox.count(":") == 3:
-        bbox = bbox.split(":")
-    minlon, minlat, maxlon, maxlat = [float(i) for i in bbox]
-    return '<bounds minlat="{0:.7f}" minlon="{1:.7f}" maxlat="{2:.7f}" maxlon="{3:.7f}"/>'.format(
-        minlat, minlon, maxlat, maxlon
-    )
-
-
-def parseHgtFilename(filename, corrx, corry) -> Tuple[int, int, int, int]:
+def parseHgtFilename(
+    filename: str, corrx: float, corry: float
+) -> Tuple[float, float, float, float]:
     """tries to extract borders from filename and returns them as a tuple
     of floats:
     (<min longitude>, <min latitude>, <max longitude>, <max latitude>)
@@ -142,6 +112,7 @@ def parseHgtFilename(filename, corrx, corry) -> Tuple[int, int, int, int]:
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
 
 
+# Coordinates transformation function prototype
 TransformFunType = Callable[[List[Tuple[float, float]]], List[Tuple[float, float]]]
 
 
@@ -169,20 +140,6 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
             ]
 
         return transform
-
-
-def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
-    if transform is None:
-        return minLon, minLat, maxLon, maxLat
-    else:
-        (lon1, lat1), (lon2, lat2), (lon3, lat3), (lon4, lat4) = transform(
-            [(minLon, minLat), (maxLon, maxLat), (minLon, maxLat), (maxLon, maxLat)]
-        )
-        minLon = min([lon1, lon2, lon3, lon4])
-        maxLon = max([lon1, lon2, lon3, lon4])
-        minLat = min([lat1, lat2, lat3, lat4])
-        maxLat = max([lat1, lat2, lat3, lat4])
-        return minLon, minLat, maxLon, maxLat
 
 
 def parseGeotiffBbox(
@@ -354,7 +311,7 @@ class hgtFile:
         voidMax: int = -0x8000,
         feetSteps=False,
         smooth_ratio: float = 1.0,
-    ):
+    ) -> None:
         """tries to open <filename> and extracts content to self.zData.
 
         <corrx> and <corry> are longitude and latitude corrections (floats)
@@ -487,7 +444,7 @@ class hgtFile:
             else:
                 self.polygons = None
 
-    def borders(self, corrx=0.0, corry=0.0):
+    def borders(self, corrx=0.0, corry=0.0) -> Tuple[float, float, float, float]:
         """determines the bounding box of self.filename using parseHgtFilename()."""
         return parseFileForBbox(self.fullFilename, corrx, corry, doTransform=False)
 
@@ -646,23 +603,6 @@ class hgtFile:
                 lowerChopData = unchoppedData[chopLatIndex:, :]
                 upperChopData = unchoppedData[: chopLatIndex + 1, :]
                 return (lowerChopBbox, lowerChopData), (upperChopBbox, upperChopData)
-                """
-				else:
-					# number of cols > number of rows, vertical cutting
-					(unchoppedBboxMinLon, unchoppedBboxMinLat, unchoppedBboxMaxLon,
-						unchoppedBboxMaxLat) = unchoppedBbox
-					unchoppedNumOfCols = unchoppedData.shape[1]
-					chopLonIndex = int(unchoppedNumOfCols/2.0)
-					chopLon = unchoppedBboxMinLon + (chopLonIndex*self.lonIncrement)
-					leftChopBbox = (unchoppedBboxMinLon, unchoppedBboxMinLat,
-						chopLon, unchoppedBboxMaxLat)
-					rightChopBbox = (chopLon, unchoppedBboxMinLat,
-						unchoppedBboxMaxLon, unchoppedBboxMaxLat)
-					leftChopData = unchoppedData[:,:chopLonIndex+1]
-					rightChopData = unchoppedData[:,chopLonIndex:]
-					return (leftChopBbox, leftChopData), (rightChopBbox,
-						rightChopData)
-				"""
 
             # Discard quickly fully void tiles (eg. middle of the sea)
             if isinstance(inputData, numpy.ma.masked_array):
@@ -712,164 +652,8 @@ class hgtFile:
                         }
                     )
                 )
-                # print("depth: {:d}".format(depth))
-                # if depth>20:
-                # os._exit(11)
 
         tiles: List["hgtTile"] = []
         bbox, truncatedData = truncateData(area, self.zData)
         chopData(bbox, truncatedData)
         return tiles
-
-
-class hgtTile:
-    """is a handle for hgt data tiles as generated by hgtFile.makeTiles()."""
-
-    def __init__(self, tile):
-        """initializes tile-specific variables. The minimum elevation is stored in
-        self.minEle, the maximum elevation in self.maxEle.
-        """
-        self.minLon, self.minLat, self.maxLon, self.maxLat = tile["bbox"]
-        self.zData = tile["data"]
-        # initialize lists for longitude and latitude data
-        self.numOfRows = self.zData.shape[0]
-        self.numOfCols = self.zData.shape[1]
-        self.lonIncrement, self.latIncrement = tile["increments"]
-        self.polygons = tile["polygon"]
-        self.mask = tile["mask"]
-        self.transform = tile["transform"]
-        self.xData = numpy.arange(self.numOfCols) * self.lonIncrement + self.minLon
-        self.yData = numpy.arange(self.numOfRows) * self.latIncrement * -1 + self.maxLat
-        self.minEle, self.maxEle = self.getElevRange()
-        self.elevations = None
-        self.contourData = None
-
-    def get_stats(self) -> str:
-        """Get some statistics about the tile."""
-        minLon, minLat, maxLon, maxLat = transformLonLats(
-            self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
-        )
-        result = (
-            f"tile with {self.numOfRows:d} x {self.numOfCols:d} points, "
-            f"bbox: ({minLon:.2f}, {minLat:.2f}, {maxLon:.2f}, {maxLat:.2f})"
-            f"\nminimum elevation: {self.minEle:.2f}\nmaximum elevation: {self.maxEle:.2f}"
-        )
-        return result
-
-    def printStats(self) -> None:
-        """prints some statistics about the tile."""
-        print(f"\n{self.get_stats()}")
-
-    def getElevRange(self) -> Tuple[int, int]:
-        """returns minEle, maxEle of the current tile.
-
-        We don't have to care about -0x8000 values here since these are masked
-        so that self.zData's min and max methods will yield proper values.
-        """
-        minEle = int(self.zData.min())
-        maxEle = int(self.zData.max())
-        return minEle, maxEle
-
-    def bbox(self, doTransform=True) -> Tuple[float, float, float, float]:
-        """returns the bounding box of the current tile."""
-        if doTransform:
-            return transformLonLats(
-                self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
-            )
-        else:
-            return self.minLon, self.minLat, self.maxLon, self.maxLat
-
-    def contourLines(
-        self,
-        stepCont=20,
-        maxNodesPerWay=0,
-        noZero=False,
-        minCont=None,
-        maxCont=None,
-        rdpEpsilon=None,
-    ) -> Tuple[Iterable[int], ContourObject]:
-        """generates contour lines using matplotlib.
-
-        <stepCont> is height difference of contiguous contour lines in meters
-        <maxNodesPerWay>:  the maximum number of nodes contained in each way
-        <noZero>:  if True, the 0 m contour line is discarded
-        <minCont>:  lower limit of the range to generate contour lines for
-        <maxCont>:  upper limit of the range to generate contour lines for
-        <rdpEpsilon>: epsilon to use in RDP contour line simplification
-
-        A list of elevations and a ContourObject is returned.
-        """
-
-        def getContLimit(ele: int, step: int) -> int:
-            """returns a proper value for the lower or upper limit to generate contour
-            lines for.
-            """
-            if ele % step == 0:
-                return ele
-            corrEle: int = ele + step - ele % step
-            return corrEle
-
-        min_cont: int = minCont or getContLimit(self.minEle, stepCont)
-        max_cont: int = maxCont or getContLimit(self.maxEle, stepCont)
-        levels: Iterable[int]
-        if noZero:
-            levels = [
-                l for l in range(int(min_cont), int(max_cont), stepCont) if l != 0
-            ]
-        else:
-            levels = range(int(min_cont), int(max_cont), stepCont)
-        x, y = numpy.meshgrid(self.xData, self.yData)
-        # z data is a masked array filled with nan.
-        z: numpy.typing.ArrayLike = numpy.ma.array(
-            self.zData, mask=self.mask, fill_value=float("NaN"), keep_mask=True
-        )
-
-        contours: ContourObject = build_contours(
-            x, y, z, maxNodesPerWay, self.transform, self.polygons, rdpEpsilon
-        )
-        return levels, contours
-
-    def countNodes(
-        self,
-        maxNodesPerWay=0,
-        stepCont=20,
-        noZero=False,
-        minCont=None,
-        maxCont=None,
-        rdpEpsilon=None,
-    ):
-        """counts the total number of nodes and paths in the current tile
-        as written to output.
-
-        <maxNodesPerWay> is the maximal number of nodes per way or 0 for uncut ways
-        <stepCont> is height difference of contiguous contour lines in meters
-        <minCont>:  lower limit of the range to generate contour lines for
-        <maxCont>:  upper limit of the range to generate contour lines for
-        <rdpEpsilon>: epsilon to use in RDP contour line simplification
-        """
-        if not (self.elevations and self.contourData):
-            elevations, contourData = self.contourLines(
-                stepCont, maxNodesPerWay, noZero, minCont, maxCont, rdpEpsilon
-            )
-        else:
-            elevations, contourData = self.elevations, self.contourData
-        numOfNodesWays = [contourData.trace(e)[1:] for e in elevations]
-        numOfNodes = sum([n for n, w in numOfNodesWays])
-        numOfWays = sum([w for n, w in numOfNodesWays])
-        return numOfNodes, numOfWays
-
-    def plotData(self, plotPrefix="heightPlot"):
-        """generates plot data in the file specified by <plotFilename>."""
-        filename = (
-            makeBBoxString(self.bbox(doTransform=True)).format(plotPrefix + "_")
-            + ".xyz"
-        )
-        try:
-            plotFile = open(filename, "w")
-        except:
-            raise IOError("could not open plot file {0:s} for writing".format(filename))
-        for latIndex, row in enumerate(self.zData):
-            lat = self.maxLat - latIndex * self.latIncrement
-            for lonIndex, height in enumerate(row):
-                lon = self.minLon + lonIndex * self.lonIncrement
-                plotFile.write("{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height))

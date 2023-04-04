@@ -1,10 +1,4 @@
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
-
-
-def int2str(n):
+def int2str(n) -> bytes:
     b = n & 127
     n >>= 7
     s = []
@@ -16,7 +10,7 @@ def int2str(n):
     return bytes(s)
 
 
-def sint2str(n):
+def sint2str(n) -> bytes:
     if n > -1:
         # 0 or positive, shift 1 to the left
         n <<= 1
@@ -27,21 +21,18 @@ def sint2str(n):
     return int2str(n)
 
 
-def str2bytes(string, encoding="utf-8"):
+def str2bytes(string, encoding="utf-8") -> bytes:
     return bytes(string, encoding=encoding)
 
 
-def writableInt(integer):
+def writableInt(integer) -> bytes:
     return bytes((integer,))
 
 
-def writableString(string):
+def writableString(string) -> bytes:
     return str2bytes(string)
 
 
-def join(sequence):
+def join(sequence) -> bytes:
     """takes a sequence of bytes-like objects and returns them as joined bytes object"""
     return b"".join(sequence)
-
-
-bboxStringtypes = (type(str()), type(bytes()), type(bytearray()))

@@ -1,14 +1,9 @@
 # -*- encoding: utf-8 -*-
 
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
-
 import logging
 import os
 import time
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, List, Tuple
 
 import numpy
 import numpy.typing
@@ -16,10 +11,9 @@ import osmium
 import osmium.io
 import osmium.osm
 import osmium.osm.mutable
+from phyghtmap.hgt.tile import TileContours
 
 import phyghtmap.output
-from phyghtmap import contour
-from phyghtmap.varint import writableString
 
 logger = logging.getLogger(__name__)
 
@@ -102,8 +96,7 @@ class Output(phyghtmap.output.Output):
 
     def writeNodes(
         self,
-        contour_data: contour.ContourObject,
-        elevations: Iterable[int],
+        tile_contours: TileContours,
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
@@ -112,10 +105,10 @@ class Output(phyghtmap.output.Output):
 
         ways: List[phyghtmap.output.WayType] = []
         next_node_id: int = start_node_id
-        for elevation in elevations:
+
+        for elevation, contour_list in tile_contours.contours.items():
             # logger.debug(f"writeNodes - elevation: {elevation}")
             # Get all the contours for a given elevation
-            contour_list = contour_data.trace(elevation)[0]
             if not contour_list:
                 continue
             for contour in contour_list:

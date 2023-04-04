@@ -27,7 +27,7 @@ def simplify_path(
     return deduped_path
 
 
-class ContourObject(object):
+class ContoursGenerator(object):
     def __init__(
         self,
         cntr: contourpy.ContourGenerator,
@@ -134,9 +134,9 @@ def build_contours(
     transform: Callable,
     polygon,
     rdp_epsilon,
-) -> ContourObject:
+) -> ContoursGenerator:
     """Build countours generator object."""
-    contours: ContourObject = ContourObject(
+    contours: ContoursGenerator = ContoursGenerator(
         contourpy.contour_generator(
             x,
             y,

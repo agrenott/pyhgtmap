@@ -30,8 +30,8 @@ sudo apt update
 sudo apt install python3 python3-pip python3-venv
 # Install GDAL via system package, as it's painful to install through PIP
 sudo apt install python3-gdal 
-# Create virtual env
-python3 -m venv my_venv
+# Create virtual env (allow --system-site-packages to use system's GDAL)
+python3 -m venv --system-site-packages my_venv
 # Switch to venv
 . ./my_venv/bin/activate
 # Install phyghtmap with dependencies from latest git version
@@ -82,7 +82,7 @@ Here is an example originating from a "view1" source with 10m step (lon6.00_7.00
 
 The one-liner for local validation:
 ```bash
-black tests/ phyghtmap tools && mypy && coverage run -m pytest --mpl && coverage html
+black tests/ phyghtmap tools && mypy && coverage run -m pytest --mpl && coverage combine && coverage html
 ```
 
 ## Profiling

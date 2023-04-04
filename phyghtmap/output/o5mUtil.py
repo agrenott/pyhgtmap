@@ -1,15 +1,12 @@
 # -*- encoding: utf-8 -*-
 
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
 
 import time
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, List, Tuple
 
 import phyghtmap.output
-from phyghtmap import contour, output
+from phyghtmap import output
+from phyghtmap.hgt.tile import TileContours
 from phyghtmap.varint import int2str, join, sint2str, writableInt, writableString
 
 # from phyghtmap.pbfint import int2str, sint2str # same as above, C version
@@ -262,21 +259,17 @@ class Output(output.Output):
 
     def writeNodes(
         self,
-        contour_data: contour.ContourObject,
-        elevations: Iterable[int],
+        tile_contours: TileContours,
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
     ) -> Tuple[int, List[output.WayType]]:
-        return writeNodes(
-            self, contour_data, elevations, timestamp_string, start_node_id
-        )
+        return writeNodes(self, tile_contours, timestamp_string, start_node_id)
 
 
 def writeNodes(
     output: Output,
-    contourData: contour.ContourObject,
-    elevations,
+    tile_contours: TileContours,
     timestampString,
     start_node_id,
 ):  # dummy option
@@ -284,8 +277,7 @@ def writeNodes(
     ways = []
     nodes = []
     startId = start_node_id
-    for elevation in elevations:
-        contourList = contourData.trace(elevation)[0]
+    for elevation, contourList in tile_contours.contours.items():
         if not contourList:
             continue
         newNodes, newWays = phyghtmap.output.make_nodes_ways(

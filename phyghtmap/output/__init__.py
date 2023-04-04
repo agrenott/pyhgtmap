@@ -1,8 +1,8 @@
-from typing import Callable, Iterable, List, NamedTuple, Tuple
+from typing import Callable, List, NamedTuple, Tuple
 
 import numpy
 
-from phyghtmap import contour
+from phyghtmap.hgt.tile import TileContours
 
 # First node ID, number of nodes, closed loop, elevation
 WayType = NamedTuple(
@@ -38,12 +38,11 @@ class Output:
     """Base class for all output modules."""
 
     def __init__(self) -> None:
-        pass
+        self.timestampString: str
 
     def writeNodes(
         self,
-        contour_data: contour.ContourObject,
-        elevations: Iterable[int],
+        tile_contours: TileContours,
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,

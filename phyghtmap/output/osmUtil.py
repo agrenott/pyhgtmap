@@ -1,17 +1,12 @@
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
-
 import datetime
 import time
 from io import IOBase
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, List, Tuple
 
 import numpy
 
 import phyghtmap.output
-from phyghtmap import contour
+from phyghtmap.hgt.tile import TileContours
 from phyghtmap.varint import writableString
 
 
@@ -108,14 +103,13 @@ class Output(phyghtmap.output.Output):
 
     def writeNodes(
         self,
-        contour_data: contour.ContourObject,
-        elevations: Iterable[int],
+        tile_contours: TileContours,
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
     ) -> Tuple[int, List[phyghtmap.output.WayType]]:
         return writeXML(
-            self, contour_data, elevations, timestamp_string, start_node_id, osm_version
+            self, tile_contours, timestamp_string, start_node_id, osm_version
         )
 
 
@@ -166,7 +160,7 @@ def _writeContourNodes(
 
 
 def writeXML(
-    output, contourData, elevations, timestampString, start_node_id, osm_version
+    output, tile_contours: TileContours, timestampString, start_node_id, osm_version
 ):
     """emits node OSM XML to <output> and collects path information.
 
@@ -184,14 +178,13 @@ def writeXML(
     else:
         versionString = ""
     ways = []
-    for elevation in elevations:
-        contourList = contourData.trace(elevation)[0]
-        if not contourList:
+    for elevation, contour_list in tile_contours.contours.items():
+        if not contour_list:
             continue
         ways.extend(
             _writeContourNodes(
                 output,
-                contourList,
+                contour_list,
                 elevation,
                 IDCounter,
                 versionString,

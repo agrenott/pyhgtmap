@@ -100,8 +100,6 @@ class NASASRTMUtilConfigClass(object):
 # Create the config object
 NASASRTMUtilConfig = NASASRTMUtilConfigClass()
 
-texAreas = []
-
 
 def calcBbox(area, corrx=0.0, corry=0.0):
     """calculates the appropriate bouding box for the needed files"""
@@ -138,13 +136,6 @@ def calcBbox(area, corrx=0.0, corry=0.0):
         else:
             bboxMaxLat = int(maxLat) + 1
     return bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat
-
-
-"""
-def writeTex(milo, mila, malo, mala, color):
-	texAreas.append("{0:s}/{1:.2f}/{2:.2f}/{3:.2f}/{4:.2f}".format(
-		color, milo, mila, malo, mala))
-"""
 
 
 def getLowInt(n):
@@ -381,7 +372,7 @@ def makeNasaHgtIndex(resolution, srtmVersion):
                 os.rename(hgtIndexFileOldName, hgtIndexFile)
                 # we don't need to return something special
                 print(
-                    "Renamed old index file '{0:s}' to '{0:s}'.".format(
+                    "Renamed old index file '{0:s}' to '{1:s}'.".format(
                         hgtIndexFileOldName, hgtIndexFile
                     )
                 )

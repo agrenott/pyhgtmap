@@ -3,7 +3,6 @@
 import os
 import tempfile
 from typing import Any, Callable, Dict, Iterable, List, Tuple
-from unittest import mock
 
 import numpy
 import numpy.typing
@@ -12,7 +11,7 @@ import osmium.io
 import osmium.osm
 import pytest
 
-from phyghtmap.contour import ContourObject
+from phyghtmap.hgt.tile import TileContours
 from phyghtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
 
 
@@ -34,44 +33,41 @@ class OSMDecoder(osmium.SimpleHandler):
         self.ways[w.id] = ([node.ref for node in w.nodes], [tag for tag in w.tags])
 
 
-def build_fake_contour_data(
+def arrays_from_lists(
     coordinates_lists: List[List[Tuple[int, int]]]
-) -> Tuple[List[numpy.typing.NDArray], int, int]:
-    contours: List[numpy.typing.NDArray] = [
+) -> List[numpy.typing.NDArray]:
+    """Helper to convert list of lists into array of arrays."""
+    return [
         numpy.array(
             [numpy.array(coordinates, dtype=numpy.float64) for coordinates in way]
         )
         for way in coordinates_lists
     ]
-    nb_nodes: int = sum((len(way) for way in contours))
-    nb_ways: int = len(contours)
-    return contours, nb_nodes, nb_ways
 
 
 @pytest.fixture
-def contour_data_mock() -> ContourObject:
-    """Generate a mock of ContourObject, implementing trace() method."""
-    contour_data = mock.Mock(spec=ContourObject)
-    # Some fake data; for each elevation:
-    # resultPaths, numOfNodes, numOfPaths
-    contour_data.trace.side_effect = [
-        # Elevation 0
-        build_fake_contour_data(
-            [
-                # Closed loop
-                [(1, 1), (1, 2), (2, 2), (2, 1), (1, 1)],
-                # Open one
-                [(3, 1), (3, 2)],
-            ]
-        ),
-        # Elevation 50
-        build_fake_contour_data([[(4, 1), (4, 2)]]),
-        # Elevation 100
-        build_fake_contour_data([]),
-        # Elevation 150
-        build_fake_contour_data([]),
-    ]
-    return contour_data
+def tile_contours() -> TileContours:
+    return TileContours(
+        nb_nodes=8,
+        nb_ways=3,
+        contours={
+            # Elevation 0
+            0: arrays_from_lists(
+                [
+                    # Closed loop
+                    [(1, 1), (1, 2), (2, 2), (2, 1), (1, 1)],
+                    # Open one
+                    [(3, 1), (3, 2)],
+                ]
+            ),
+            # Elevation 50
+            50: arrays_from_lists([[(4, 1), (4, 2)]]),
+            # Elevation 100
+            100: [],
+            # Elevation 150
+            150: [],
+        },
+    )
 
 
 @pytest.fixture
@@ -148,9 +144,7 @@ def check_osmium_result(osm_file_name: str) -> None:
 
 class TestOutputOsm:
     @staticmethod
-    def test_produce_osm(
-        contour_data_mock: ContourObject, elev_classifier, elevations: Iterable[int]
-    ) -> None:
+    def test_produce_osm(tile_contours: TileContours, elev_classifier) -> None:
         """Generate OSM file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:
             osm_file_name = os.path.join(tempdir, "output.osm")
@@ -166,7 +160,7 @@ class TestOutputOsm:
 
             # Write OSM file
             next_node_id, ways = osm_output.writeNodes(
-                contour_data_mock, elevations, ' time="some time"', 1000, 0.6
+                tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
             osm_output.writeWays(ways, 2000)
@@ -210,9 +204,8 @@ class TestOutputOsm:
 class TestOutputPbf:
     @staticmethod
     def test_produce_pbf(
-        contour_data_mock: ContourObject,
+        tile_contours: TileContours,
         elev_classifier,
-        elevations: Iterable[int],
         bounding_box: Tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
@@ -228,7 +221,7 @@ class TestOutputPbf:
 
             # Write OSM file
             next_node_id, ways = osm_output.writeNodes(
-                contour_data_mock, elevations, ' time="some time"', 1000, 0.6
+                tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
             osm_output.writeWays(ways, 2000)
@@ -244,9 +237,8 @@ class TestOutputPbf:
 class TestOutputO5m:
     @staticmethod
     def test_produce_o5m(
-        contour_data_mock: ContourObject,
+        tile_contours: TileContours,
         elev_classifier,
-        elevations: Iterable[int],
         bounding_box: Tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
@@ -262,7 +254,7 @@ class TestOutputO5m:
 
             # Write OSM file
             next_node_id, ways = osm_output.writeNodes(
-                contour_data_mock, elevations, ' time="some time"', 1000, 0.6
+                tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
             osm_output.writeWays(ways, 2000)

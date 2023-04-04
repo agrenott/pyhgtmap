@@ -1,0 +1,8 @@
+[run]
+omit =
+    # omit everything in /usr
+    /usr/*
+
+concurrency = 
+    multiprocessing
+    thread
