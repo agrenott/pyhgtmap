@@ -44,3 +44,8 @@ jobs:
         ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
       env:
         DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+    - name: Report test-coverage to Codacy
+      run: |
+        bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ./coverage.xml
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}

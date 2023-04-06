@@ -3,6 +3,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/phyghtmap/pythonpackage.yaml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![DeepSource](https://deepsource.io/gh/agrenott/phyghtmap.svg/?label=active+issues&show_trend=true&token=2WJPDv60DJYqaFeVT85eTdGE)](https://deepsource.io/gh/agrenott/phyghtmap/?ref=repository-badge)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/1251b91e12da4329bd09856d526c91b3)](https://app.codacy.com/gh/agrenott/phyghtmap/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Maintainability](https://api.codeclimate.com/v1/badges/0af92f6750f1bc0840a3/maintainability)](https://codeclimate.com/github/agrenott/phyghtmap/maintainability)
 
 This is a little program which lets you easily generate OSM contour lines from
