@@ -5,17 +5,17 @@ __version__ = "2.23"
 __copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
 __license__ = "GPLv2+"
 
-import sys
-import urllib
-from http import cookiejar as cookielib
 import base64
 import os
-from bs4 import BeautifulSoup
+import sys
+import urllib
 import zipfile
-from matplotlib import __version__ as mplversion
+from http import cookiejar as cookielib
 
-from matplotlib.path import Path as PolygonPath
 import numpy
+from bs4 import BeautifulSoup
+from matplotlib import __version__ as mplversion
+from matplotlib.path import Path as PolygonPath
 
 
 class NASASRTMUtilConfigClass(object):

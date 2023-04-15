@@ -482,7 +482,7 @@ def parseCommandLine():
     if opts.dataSource:
         opts.dataSource = [el.strip() for el in opts.dataSource.lower().split(",")]
         for s in opts.dataSource:
-            if not s[:5] in ["view1", "view3", "srtm1", "srtm3"]:
+            if s[:5] not in ["view1", "view3", "srtm1", "srtm3"]:
                 print("Unknown data source: {0:s}".format(s))
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:

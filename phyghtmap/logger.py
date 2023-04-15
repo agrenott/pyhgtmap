@@ -1,5 +1,6 @@
-import colorlog
 import logging
+
+import colorlog
 
 # Root logger for the package
 logger: logging.Logger = logging.getLogger("phyghtmap")

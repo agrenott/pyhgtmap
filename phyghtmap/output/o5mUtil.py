@@ -22,7 +22,7 @@ class StringTable(object):
     def stringOrIndex(self, string):
         if len(string) > 250:
             return string
-        if not string in self.table:
+        if string not in self.table:
             self.table.append(string)
             if len(self.table) == self.maxStringRef + 1:
                 self.table.pop(0)

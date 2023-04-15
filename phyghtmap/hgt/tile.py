@@ -118,7 +118,9 @@ class hgtTile:
         levels: Iterable[int]
         if noZero:
             levels = [
-                l for l in range(int(min_cont), int(max_cont), stepCont) if l != 0
+                level
+                for level in range(int(min_cont), int(max_cont), stepCont)
+                if level != 0
             ]
         else:
             levels = range(int(min_cont), int(max_cont), stepCont)
@@ -141,7 +143,7 @@ class hgtTile:
         )
         try:
             plotFile = open(filename, "w")
-        except:
+        except Exception:
             raise IOError("could not open plot file {0:s} for writing".format(filename))
         for latIndex, row in enumerate(self.zData):
             lat = self.maxLat - latIndex * self.latIncrement

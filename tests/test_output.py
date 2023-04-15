@@ -26,7 +26,7 @@ class OSMDecoder(osmium.SimpleHandler):
     def node(self, n: osmium.osm.Node) -> None:
         try:
             self.nodes[n.id] = (n.location.lat, n.location.lon)
-        except:
+        except Exception:
             pass
 
     def way(self, w: osmium.osm.Way) -> None:

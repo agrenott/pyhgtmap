@@ -58,7 +58,7 @@ class ContoursGenerator(object):
         else:
             return self._cutBeginning(p[1:])
 
-    def splitList(self, l) -> Tuple[List[numpy.ndarray], int, int]:
+    def splitList(self, input_list) -> Tuple[List[numpy.ndarray], int, int]:
         """splits a path to contain not more than self.maxNodesPerWay nodes.
 
         A list of paths containing at least 2 (or, with closed paths, 3) nodes
@@ -67,11 +67,11 @@ class ContoursGenerator(object):
         """
         length = self.max_nodes_per_way
         # l = self._cutBeginning(l)
-        if len(l) < 2:
+        if len(input_list) < 2:
             return [], 0, 0
-        if length == 0 or len(l) <= length:
+        if length == 0 or len(input_list) <= length:
             tmpList = [
-                l,
+                input_list,
             ]
         else:
             """
@@ -88,7 +88,10 @@ class ContoursGenerator(object):
             # comprehension at the second-last element of the list (i being at maximum
             # len(l)-2.  This works because <length> is at least two, so we are sure
             # to always include the last two elements.
-            tmpList = [l[i : i + length] for i in range(0, len(l) - 1, length - 1)]
+            tmpList = [
+                input_list[i : i + length]
+                for i in range(0, len(input_list) - 1, length - 1)
+            ]
         pathList = []
         numOfClosedPaths = 0
         for path in tmpList:

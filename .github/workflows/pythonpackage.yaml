@@ -25,16 +25,10 @@ jobs:
     - name: Install dependencies
       run: |
         conda install gdal
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+        python -m pip install --upgrade pip hatch
     - name: Test
       run: |
-        black --check phyghtmap tests
-        mypy
-        coverage run -m pytest --mpl
-        coverage combine
-        coverage report
-        coverage xml
+        hatch run all
     - name: Report test-coverage to DeepSource
       run: |
         # Install the CLI

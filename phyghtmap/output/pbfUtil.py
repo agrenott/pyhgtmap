@@ -11,9 +11,9 @@ import osmium
 import osmium.io
 import osmium.osm
 import osmium.osm.mutable
-from phyghtmap.hgt.tile import TileContours
 
 import phyghtmap.output
+from phyghtmap.hgt.tile import TileContours
 
 logger = logging.getLogger(__name__)
 

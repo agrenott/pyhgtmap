@@ -42,16 +42,16 @@ def parsePolygon(filename):
     ]
     polygons = []
     curPolygon = []
-    for l in lines:
-        if l in [str(i) for i in range(1, lines.count("end"))]:
+    for line in lines:
+        if line in [str(i) for i in range(1, lines.count("end"))]:
             # new polygon begins
             curPolygon = []
-        elif l == "end" and len(curPolygon) > 0:
+        elif line == "end" and len(curPolygon) > 0:
             # polygon ends
             polygons.append(curPolygon)
             curPolygon = []
-        elif len(l.split()) == 2:
-            lon, lat = l.split()
+        elif len(line.split()) == 2:
+            lon, lat = line.split()
             try:
                 curPolygon.append((float(lon), float(lat)))
             except ValueError:
@@ -162,7 +162,7 @@ def parseGeotiffBbox(
         fileProj.ImportFromWkt(g.GetProjectionRef())
         numOfCols = g.RasterXSize
         numOfRows = g.RasterYSize
-    except:
+    except Exception:
         raise hgtError("Can't handle geotiff file {!s}".format(filename))
     lonIncrement = geoTransform[1]
     latIncrement = geoTransform[5]
@@ -346,7 +346,7 @@ class hgtFile:
                     {True: ", checking polygon borders", False: ""}[checkPoly],
                 )
             )
-        except:
+        except Exception:
             # Best effort stats display
             pass
         # Used only when initialized from GeoTIFF

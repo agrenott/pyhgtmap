@@ -1,8 +1,0 @@
--r requirements.txt
-pytest~=7.2.1
-black~=23.1.0
-pytest-mpl~=0.16.1
-types-beautifulsoup4>=4
-mypy~=1.0.1
-mypy-extensions~=1.0.0
-coverage~=7.2.1

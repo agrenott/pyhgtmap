@@ -1,0 +1,34 @@
+
+ignore = [
+  # black auto-formats lines, trust it
+  "E501",
+]
+
+select = [
+  #   "A",
+  #   "B",
+  #   "C",
+  #   "DTZ",
+  "E", #   "EM",
+  "F", #   "FBT",
+  #   "I",
+  #   "ICN",
+  #   "ISC",
+  #   "N",
+  #   "PLC",
+  #   "PLE",
+  #   "PLR",
+  #   "PLW",
+  #   "Q",
+  #   "RUF",
+  #   "S",
+  #   "SIM",
+  #   "T",
+  #   "TID",
+  #   "UP",
+  #   "W",
+  #   "YTT",
+]
+target-version = "py39"
+# Ignore files not refactored yet
+exclude = ["NASASRTMUtil.py", "configUtil.py"]

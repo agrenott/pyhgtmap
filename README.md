@@ -2,6 +2,9 @@
 ![GitHub](https://img.shields.io/github/license/agrenott/phyghtmap)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/phyghtmap/pythonpackage.yaml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch)
+[![linting - Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v0.json)](https://github.com/charliermarsh/ruff)
+[![types - Mypy](https://img.shields.io/badge/types-Mypy-blue.svg)](https://github.com/python/mypy)
 [![DeepSource](https://deepsource.io/gh/agrenott/phyghtmap.svg/?label=active+issues&show_trend=true&token=2WJPDv60DJYqaFeVT85eTdGE)](https://deepsource.io/gh/agrenott/phyghtmap/?ref=repository-badge)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1251b91e12da4329bd09856d526c91b3)](https://app.codacy.com/gh/agrenott/phyghtmap/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Maintainability](https://api.codeclimate.com/v1/badges/0af92f6750f1bc0840a3/maintainability)](https://codeclimate.com/github/agrenott/phyghtmap/maintainability)
@@ -81,9 +84,11 @@ Here is an example originating from a "view1" source with 10m step (lon6.00_7.00
 
 # Development
 
-The one-liner for local validation:
+This project uses ![hatch](https://hatch.pypa.io/latest/).
+
+The one-liner for formatting and local validation:
 ```bash
-black tests/ phyghtmap tools && mypy && coverage run -m pytest --mpl && coverage combine && coverage html
+hatch run fmt && hatch run all
 ```
 
 ## Profiling
