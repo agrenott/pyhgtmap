@@ -1,17 +1,17 @@
 .PHONY: all clean
 
-MANPAGE_FILE:=phyghtmap.1
+MANPAGE_FILE:=pyhgtmap.1
 HTML_FILE:=${MANPAGE_FILE}.html
 PLAIN_HTML_FILE:=${MANPAGE_FILE}.plain.html
 
 all: ${HTML_FILE}
 
-${MANPAGE_FILE}: ../phyghtmap/main.py phyghtmap.help2man
-	help2man --no-info --include phyghtmap.help2man "python3 ../phyghtmap/main.py" |\
-		sed -e s/main.py/phyghtmap/ > phyghtmap.1
+${MANPAGE_FILE}: ../pyhgtmap/main.py pyhgtmap.help2man
+	help2man --no-info --include pyhgtmap.help2man "python3 ../pyhgtmap/main.py" |\
+		sed -e s/main.py/pyhgtmap/ > pyhgtmap.1
 
 ${HTML_FILE}: ${MANPAGE_FILE}
-	man2html ${MANPAGE_FILE} |sed -e s/FBPHYGHTMAPFR/PHYGHTMAP/ \
+	man2html ${MANPAGE_FILE} |sed -e s/FBPYHGTMAPFR/pyhgtmap/ \
 		| sed -e s/"<A HREF.*man2html<\/A>"/man2html/ \
 		| sed -e s/"<I>,"//g \
 		| sed -e s/"\/<\/I>"//g \
@@ -22,4 +22,4 @@ ${PLAIN_HTML_FILE}: ${MANPAGE_FILE}
 	man2html ${MANPAGE_FILE} > ${PLAIN_HTML_FILE}
 
 clean:
-	rm phyghtmap.1*
+	rm pyhgtmap.1*

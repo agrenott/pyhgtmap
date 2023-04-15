@@ -1,10 +1,10 @@
 import os
 from typing import Any, List, Tuple
 
-import phyghtmap
-import phyghtmap.output
-from phyghtmap import hgt
-from phyghtmap.output import Output, o5mUtil, osmUtil, pbfUtil
+import pyhgtmap
+import pyhgtmap.output
+from pyhgtmap import hgt
+from pyhgtmap.output import Output, o5mUtil, osmUtil, pbfUtil
 
 from . import make_elev_classifier
 
@@ -56,7 +56,7 @@ def makeBoundsString(bbox: Any) -> str:
     """returns an OSM XML bounds tag.
 
     The input <bbox> may be a list or tuple of floats or an area string as passed
-    to the --area option of phyghtmap in the following order:
+    to the --area option of pyhgtmap in the following order:
     minlon, minlat, maxlon, maxlat.
     """
     if type(bbox) in bboxStringtypes and bbox.count(":") == 3:
@@ -78,7 +78,7 @@ def get_osm_output(
         output = pbfUtil.Output(
             outputFilename,
             opts.osmVersion,
-            phyghtmap.__version__,
+            pyhgtmap.__version__,
             bounds,
             elevClassifier,
         )
@@ -86,7 +86,7 @@ def get_osm_output(
         output = o5mUtil.Output(
             outputFilename,
             opts.osmVersion,
-            phyghtmap.__version__,
+            pyhgtmap.__version__,
             bounds,
             elevClassifier,
             writeTimestamp=opts.writeTimestamp,
@@ -96,7 +96,7 @@ def get_osm_output(
         output = osmUtil.Output(
             outputFilename,
             osmVersion=opts.osmVersion,
-            phyghtmapVersion=phyghtmap.__version__,
+            pyhgtmap_version=pyhgtmap.__version__,
             boundsTag=makeBoundsString(bounds),
             gzip=opts.gzip,
             elevClassifier=elevClassifier,

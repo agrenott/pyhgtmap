@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "phyghtmap"
+name = "pyhgtmap"
 dynamic = ["version"]
 description = "Creates OpenStreetMap suitable contour lines from NASA SRTM data"
 readme = "README.md"
@@ -27,17 +27,16 @@ dependencies = [
 ]
 
 [project.scripts]
-phyghtmap = "phyghtmap.main:main"
+pyhgtmap = "pyhgtmap.main:main"
 
 [project.urls]
-homepage = "http://katze.tfiu.de/projects/phyghtmap/"
-repository = "https://github.com/agrenott/phyghtmap"
+repository = "https://github.com/agrenott/pyhgtmap"
 
 [tool.hatch.version]
-path = "phyghtmap/__init__.py"
+path = "pyhgtmap/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["/phyghtmap"]
+include = ["/pyhgtmap"]
 
 
 [tool.hatch.envs.default]
@@ -59,13 +58,13 @@ system-packages = true
 [tool.hatch.envs.default.scripts]
 all = ["style", "typing", "test_cov"]
 fmt = [
-  "black {args:.}",
+  "black {args:pyhgtmap tests tools}",
   "ruff --fix {args:.}",
   "style",
 ]
 style = [
   "ruff {args:.}",
-  "black --check --diff {args:.}",
+  "black --check --diff {args:pyhgtmap tests tools}",
 ]
 test = "pytest {args}"
 test_cov = [
@@ -86,11 +85,11 @@ atomic = true
 profile = "black"
 line_length = 88
 skip_gitignore = true
-known_first_party = ["phyghtmap"]
+known_first_party = ["pyhgtmap"]
 
 [tool.mypy]
 plugins = "numpy.typing.mypy_plugin"
 ignore_missing_imports = true
-files = ["tests", "phyghtmap", "tools"]
+files = ["tests", "pyhgtmap", "tools"]
 install_types = true
 non_interactive = true

@@ -5,8 +5,8 @@ from typing import Any, Dict, Iterable, List, NamedTuple, Tuple
 import numpy
 import numpy.typing
 
-from phyghtmap.contour import ContoursGenerator, build_contours
-from phyghtmap.hgt import makeBBoxString, transformLonLats
+from pyhgtmap.contour import ContoursGenerator, build_contours
+from pyhgtmap.hgt import makeBBoxString, transformLonLats
 
 meters2Feet = 1.0 / 0.3048
 

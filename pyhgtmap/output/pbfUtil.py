@@ -12,15 +12,15 @@ import osmium.io
 import osmium.osm
 import osmium.osm.mutable
 
-import phyghtmap.output
-from phyghtmap.hgt.tile import TileContours
+import pyhgtmap.output
+from pyhgtmap.hgt.tile import TileContours
 
 logger = logging.getLogger(__name__)
 
 BUFFER_SIZE: int = 4096 * 1024
 
 
-class Output(phyghtmap.output.Output):
+class Output(pyhgtmap.output.Output):
     """
     PBF output class, based on official osmium.
     Interesting internals:
@@ -32,7 +32,7 @@ class Output(phyghtmap.output.Output):
         self,
         filename,
         osmVersion,
-        phyghtmapVersion,
+        pyhgtmap_version,
         bbox: Tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
     ):
@@ -41,7 +41,7 @@ class Output(phyghtmap.output.Output):
         if os.path.exists(filename):
             os.remove(filename)
         self.osm_writer = osmium.SimpleWriter(
-            filename, BUFFER_SIZE, self.makeHeader(phyghtmapVersion)
+            filename, BUFFER_SIZE, self.makeHeader(pyhgtmap_version)
         )
         # self.outf = open(filename, "wb")
         self.granularity = 100
@@ -52,7 +52,7 @@ class Output(phyghtmap.output.Output):
         self.timestamp = int(time.mktime(time.localtime()))
         self.timestampString: str = ""  # dummy attribute, needed by main.py
 
-    def makeHeader(self, phyghtmapVersion) -> osmium.io.Header:
+    def makeHeader(self, pyhgtmap_version) -> osmium.io.Header:
         """Prepare Header object"""
         osm_header = osmium.io.Header()
         left, bottom, right, top = self.bbox
@@ -63,12 +63,12 @@ class Output(phyghtmap.output.Output):
         )
         osm_header.set(
             key="generator",
-            value="phyghtmap {0:s}".format(phyghtmapVersion),
+            value="pyhgtmap {0:s}".format(pyhgtmap_version),
         )
 
         return osm_header
 
-    def writeWays(self, ways: List[phyghtmap.output.WayType], startWayId) -> None:
+    def writeWays(self, ways: List[pyhgtmap.output.WayType], startWayId) -> None:
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
 
@@ -100,10 +100,10 @@ class Output(phyghtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[phyghtmap.output.WayType]]:
+    ) -> Tuple[int, List[pyhgtmap.output.WayType]]:
         logger.debug(f"writeNodes - startId: {start_node_id}")
 
-        ways: List[phyghtmap.output.WayType] = []
+        ways: List[pyhgtmap.output.WayType] = []
         next_node_id: int = start_node_id
 
         for elevation, contour_list in tile_contours.contours.items():
@@ -128,7 +128,7 @@ class Output(phyghtmap.output.Output):
                     )
 
                 ways.append(
-                    phyghtmap.output.WayType(
+                    pyhgtmap.output.WayType(
                         next_node_id, len(contour), is_closed_way, elevation
                     )
                 )

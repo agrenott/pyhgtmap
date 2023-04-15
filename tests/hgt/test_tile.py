@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy
 import pytest
 
-from phyghtmap.hgt.file import hgtFile
-from phyghtmap.hgt.tile import TileContours, hgtTile
+from pyhgtmap.hgt.file import hgtFile
+from pyhgtmap.hgt.tile import TileContours, hgtTile
 
 from .. import TEST_DATA_PATH
 

@@ -9,7 +9,7 @@ import shapely
 from matplotlib.path import Path as PolygonPath
 from scipy import ndimage
 
-from phyghtmap.hgt import transformLonLats
+from pyhgtmap.hgt import transformLonLats
 
 from .tile import hgtTile
 
@@ -315,7 +315,7 @@ class hgtFile:
         """tries to open <filename> and extracts content to self.zData.
 
         <corrx> and <corry> are longitude and latitude corrections (floats)
-        as passed to phyghtmap on the commandline.
+        as passed to pyhgtmap on the commandline.
         """
         self.feetSteps = feetSteps
         self.fullFilename = filename

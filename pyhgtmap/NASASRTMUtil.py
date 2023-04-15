@@ -1,9 +1,5 @@
 from __future__ import print_function
 
-__author__ = "Adrian Dempwolff (phyghtmap@aldw.de)"
-__version__ = "2.23"
-__copyright__ = "Copyright (c) 2009-2021 Adrian Dempwolff"
-__license__ = "GPLv2+"
 
 import base64
 import os
@@ -14,7 +10,6 @@ from http import cookiejar as cookielib
 
 import numpy
 from bs4 import BeautifulSoup
-from matplotlib import __version__ as mplversion
 from matplotlib.path import Path as PolygonPath
 
 
@@ -240,10 +235,7 @@ def areaNeeded(lat, lon, bbox, polygon, corrx, corry):
             points.append((lo, la))
     inside = numpy.zeros((1, 4))
     for p in polygon:
-        if mplversion < "1.3.0":
-            inside += points_inside_poly(points, p)
-        else:
-            inside += PolygonPath(p).contains_points(points)
+        inside += PolygonPath(p).contains_points(points)
     if numpy.all(inside):
         # area ist completely inside
         print("yes")
@@ -338,10 +330,7 @@ def getSRTMv3Areas(polygons):
                 points = [
                     (lon, lat),
                 ]
-                if mplversion < "1.3.0":
-                    inside = points_inside_poly(points, p)
-                else:
-                    inside = PolygonPath(p).contains_points(points)
+                inside = PolygonPath(p).contains_points(points)
                 if numpy.all(inside):
                     areaName = makeFileNamePrefix(getLowInt(lon), getLowInt(lat))
                     rawAreas.append(areaName)

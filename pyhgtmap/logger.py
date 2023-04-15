@@ -3,7 +3,7 @@ import logging
 import colorlog
 
 # Root logger for the package
-logger: logging.Logger = logging.getLogger("phyghtmap")
+logger: logging.Logger = logging.getLogger("pyhgtmap")
 
 
 def configure_logging(logLevel) -> None:

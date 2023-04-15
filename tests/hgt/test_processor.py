@@ -14,7 +14,7 @@ import osmium.io
 import osmium.osm
 import pytest
 
-from phyghtmap.hgt.processor import HgtFilesProcessor
+from pyhgtmap.hgt.processor import HgtFilesProcessor
 
 from .. import TEST_DATA_PATH
 

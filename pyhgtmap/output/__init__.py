@@ -2,7 +2,7 @@ from typing import Callable, List, NamedTuple, Tuple
 
 import numpy
 
-from phyghtmap.hgt.tile import TileContours
+from pyhgtmap.hgt.tile import TileContours
 
 # First node ID, number of nodes, closed loop, elevation
 WayType = NamedTuple(

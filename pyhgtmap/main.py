@@ -6,12 +6,12 @@ import os
 import sys
 from optparse import OptionParser
 
-from phyghtmap import NASASRTMUtil, __version__, configUtil
-from phyghtmap.hgt.file import calcHgtArea, parsePolygon
-from phyghtmap.hgt.processor import HgtFilesProcessor
-from phyghtmap.logger import configure_logging
+from pyhgtmap import NASASRTMUtil, __version__, configUtil
+from pyhgtmap.hgt.file import calcHgtArea, parsePolygon
+from pyhgtmap.hgt.processor import HgtFilesProcessor
+from pyhgtmap.logger import configure_logging
 
-configFilename = os.path.join(os.path.expanduser("~"), ".phyghtmaprc")
+configFilename = os.path.join(os.path.expanduser("~"), ".pyhgtmaprc")
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +20,15 @@ def parseCommandLine():
     """parses the command line."""
     parser = OptionParser(
         usage="%prog [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
-        "\nphyghtmap generates contour lines from NASA SRTM and smiliar data"
+        "\npyhgtmap generates contour lines from NASA SRTM and smiliar data"
         "\nas well as from GeoTiff data"
         "\nin OSM formats.  For now, there are three ways to achieve this. First,"
         "\nit can be used to process existing source files given as arguments"
         "\non the command line.  Note that the filenames must have the format"
         "\n[N|S]YY[W|E]XXX.hgt, with YY the latitude and XXX the longitude of the"
         "\nlower left corner of the tile.  Second, it can be used with an area"
-        "\ndefinition as input.  The third way to use phyghtmap is to specify a"
-        "\npolygon definition.  In the last two cases, phyghtmap will look for a"
+        "\ndefinition as input.  The third way to use pyhgtmap is to specify a"
+        "\npolygon definition.  In the last two cases, pyhgtmap will look for a"
         "\ncache directory (per default: ./hgt/) and the needed SRTM files.  If"
         "\nno cache directory is found, it will be created.  It then downloads"
         "\nall the needed NASA SRTM data files automatically if they are not cached"
@@ -313,8 +313,8 @@ def parseCommandLine():
         "\nearthexplorer login.  This is needed if you want to use NASA SRTM sources"
         "\nin version 3.0.  If you do not yet have an earthexplorer login, visit"
         "\nhttps://ers.cr.usgs.gov/register/ and create one.  Once specified,"
-        "\nphyghtmap will store the earthexplorer login credentials unencrypted in a"
-        "\nfile called '.phyghtmaprc' in your home directory.  I. e., you only"
+        "\npyhgtmap will store the earthexplorer login credentials unencrypted in a"
+        "\nfile called '.pyhgtmaprc' in your home directory.  I. e., you only"
         "\nhave to specify this option (and the --earthexplorer-password option) once. "
         "\nIn addition, the password specified on the command line may be read"
         "\nby every user on your system.  So, don't choose a password which you"
@@ -400,7 +400,7 @@ def parseCommandLine():
     parser.add_option(
         "--rewrite-indices",
         help="rewrite the index files and"
-        "\nexit.  Try this if phyghtmap encounters problems when trying to download"
+        "\nexit.  Try this if pyhgtmap encounters problems when trying to download"
         "\ndata files.",
         dest="rewriteIndices",
         action="store_true",
@@ -414,7 +414,7 @@ def parseCommandLine():
         "\ncontain other negative values which are implausible as height values,"
         "\ne. g. -0x4000 (-16384) or similar.  Since the lowest place on earth is"
         "\nabout -420 m below sea level, it should be safe to say -500 here in"
-        "\ncase you encounter strange phyghtmap behaviour such as program aborts"
+        "\ncase you encounter strange pyhgtmap behaviour such as program aborts"
         "\ndue to exceeding the maximum allowed number of recursions.",
         default=-0x8000,
         type="int",
@@ -440,7 +440,7 @@ def parseCommandLine():
     )
     opts, args = parser.parse_args()
     if opts.version:
-        print("phyghtmap {0:s}".format(__version__))
+        print("pyhgtmap {0:s}".format(__version__))
         sys.exit(0)
     if opts.hgtdir:  # Set custom ./hgt/ directory
         NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)

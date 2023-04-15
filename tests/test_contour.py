@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy
 import pytest
 
-from phyghtmap import contour
+from pyhgtmap import contour
 
 
 @pytest.mark.parametrize(

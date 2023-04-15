@@ -5,9 +5,9 @@ from typing import Callable, List, Tuple
 
 import numpy
 
-import phyghtmap.output
-from phyghtmap.hgt.tile import TileContours
-from phyghtmap.varint import writableString
+import pyhgtmap.output
+from pyhgtmap.hgt.tile import TileContours
+from pyhgtmap.varint import writableString
 
 
 def makeUtcTimestamp():
@@ -17,11 +17,11 @@ def makeUtcTimestamp():
     )
 
 
-class Output(phyghtmap.output.Output):
+class Output(pyhgtmap.output.Output):
     """An OSM output.
 
     It is constructed with a destination name, the desired OSM API version,
-    the version of phyghtmap as string, an already formatted OSM XML bounds tag
+    the version of pyhgtmap as string, an already formatted OSM XML bounds tag
     as output by the hgt.makeBoundsString() function,	an integer representing
     the gzip compressionlevel (or 0 if no gzip compression is desired),
     an elevation classifying function as returned by makeElevClassifier()
@@ -32,7 +32,7 @@ class Output(phyghtmap.output.Output):
         self,
         fName: str,
         osmVersion: float,
-        phyghtmapVersion: str,
+        pyhgtmap_version: str,
         boundsTag: str,
         gzip: int,
         elevClassifier: Callable[[int], str],
@@ -55,15 +55,15 @@ class Output(phyghtmap.output.Output):
         else:
             self.timestampString = ""
         self.elevClassifier = elevClassifier
-        self.phyghtmapVersion = phyghtmapVersion
+        self.pyhgtmap_version = pyhgtmap_version
         self.boundsTag = boundsTag
         self._writePreamble()
 
     def _writePreamble(self):
         self.write('<?xml version="1.0" encoding="utf-8"?>\n')
         self.write(
-            '<osm version="{0:s}" generator="phyghtmap {1:s}">\n'.format(
-                self.osmVersion, self.phyghtmapVersion
+            '<osm version="{0:s}" generator="pyhgtmap {1:s}">\n'.format(
+                self.osmVersion, self.pyhgtmap_version
             )
         )
         self.write(self.boundsTag + "\n")
@@ -79,7 +79,7 @@ class Output(phyghtmap.output.Output):
         self.outF.flush()
 
     def writeWays(self, ways, startWayId):
-        IDCounter = phyghtmap.output.Id(startWayId)
+        IDCounter = pyhgtmap.output.Id(startWayId)
         for startNodeId, length, isCycle, elevation in ways:
             IDCounter.curId += 1
             nodeIds = list(range(startNodeId, startNodeId + length))
@@ -107,7 +107,7 @@ class Output(phyghtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[phyghtmap.output.WayType]]:
+    ) -> Tuple[int, List[pyhgtmap.output.WayType]]:
         return writeXML(
             self, tile_contours, timestamp_string, start_node_id, osm_version
         )
@@ -167,12 +167,12 @@ def writeXML(
     <output> may be anything having a write method.  For now, its used with
     Output instance or an open pipe to the parent process, if running in parallel.
 
-    <contourData> is a phyghtmap.hgt.ContourObject instance, <elevations> a list
+    <contourData> is a pyhgtmap.hgt.ContourObject instance, <elevations> a list
     of elevations to generate contour lines for.
 
-    <opts> are the options coming from phyghtmap.
+    <opts> are the options coming from pyhgtmap.
     """
-    IDCounter = phyghtmap.output.Id(start_node_id)
+    IDCounter = pyhgtmap.output.Id(start_node_id)
     if osm_version > 0.5:
         versionString = ' version="1"'
     else:

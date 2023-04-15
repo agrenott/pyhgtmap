@@ -4,9 +4,9 @@ from multiprocessing.context import ForkProcess
 from multiprocessing.sharedctypes import Synchronized
 from typing import Callable, List, Tuple, cast
 
-from phyghtmap.hgt.file import hgtFile
-from phyghtmap.hgt.tile import hgtTile
-from phyghtmap.output.factory import get_osm_output
+from pyhgtmap.hgt.file import hgtFile
+from pyhgtmap.hgt.tile import hgtTile
+from pyhgtmap.output.factory import get_osm_output
 
 logger = logging.getLogger(__name__)
 

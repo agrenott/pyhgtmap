@@ -11,8 +11,8 @@ import osmium.io
 import osmium.osm
 import pytest
 
-from phyghtmap.hgt.tile import TileContours
-from phyghtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
+from pyhgtmap.hgt.tile import TileContours
+from pyhgtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
 
 
 class OSMDecoder(osmium.SimpleHandler):
@@ -96,7 +96,7 @@ def check_osmium_result(osm_file_name: str) -> None:
     assert header.box().top_right == osmium.osm.Location(4, 2)
     if osm_file_name[-4:] != ".o5m":
         # Not implemented for o5m format
-        assert header.get("generator") == "phyghtmap 123"
+        assert header.get("generator") == "pyhgtmap 123"
     osm_decoder.apply_file(osm_file_name)
 
     # Check nodes
@@ -151,7 +151,7 @@ class TestOutputOsm:
             osm_output = osmUtil.Output(
                 osm_file_name,
                 osmVersion=0.6,
-                phyghtmapVersion="123",
+                pyhgtmap_version="123",
                 boundsTag='<bounds minlat="1" minlon="1" maxlat="2" maxlon="4"/>',
                 gzip=0,
                 elevClassifier=elev_classifier,
@@ -171,7 +171,7 @@ class TestOutputOsm:
             assert (
                 contents
                 == """<?xml version="1.0" encoding="utf-8"?>
-<osm version="0.6" generator="phyghtmap 123">
+<osm version="0.6" generator="pyhgtmap 123">
 <bounds minlat="1" minlon="1" maxlat="2" maxlon="4"/>
 <node id="1000" lat="1.0000000" lon="1.0000000" version="1" time="some time"/>
 <node id="1001" lat="2.0000000" lon="1.0000000" version="1" time="some time"/>
@@ -214,7 +214,7 @@ class TestOutputPbf:
             osm_output = pbfUtil.Output(
                 osm_file_name,
                 osmVersion=0.6,
-                phyghtmapVersion="123",
+                pyhgtmap_version="123",
                 bbox=bounding_box,
                 elevClassifier=elev_classifier,
             )
@@ -247,7 +247,7 @@ class TestOutputO5m:
             osm_output = o5mUtil.Output(
                 osm_file_name,
                 osmVersion=0.6,
-                phyghtmapVersion="123",
+                pyhgtmap_version="123",
                 bbox=bounding_box,
                 elevClassifier=elev_classifier,
             )

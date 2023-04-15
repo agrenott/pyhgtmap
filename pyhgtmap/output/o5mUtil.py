@@ -4,12 +4,11 @@
 import time
 from typing import Callable, List, Tuple
 
-import phyghtmap.output
-from phyghtmap import output
-from phyghtmap.hgt.tile import TileContours
-from phyghtmap.varint import int2str, join, sint2str, writableInt, writableString
+import pyhgtmap.output
+from pyhgtmap import output
+from pyhgtmap.hgt.tile import TileContours
+from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
 
-# from phyghtmap.pbfint import int2str, sint2str # same as above, C version
 
 HUNDREDNANO = 10000000
 
@@ -40,7 +39,7 @@ class Output(output.Output):
         self,
         filename,
         osmVersion,
-        phyghtmapVersion,
+        pyhgtmap_version,
         bbox: Tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
         writeTimestamp=False,
@@ -52,7 +51,7 @@ class Output(output.Output):
         self.writeTimestamp = writeTimestamp
         self.timestamp = int(time.mktime(time.localtime()))
         self.timestampString = ""  # dummy attribute, needed by main.py
-        self.writeHeader(osmVersion, phyghtmapVersion)
+        self.writeHeader(osmVersion, pyhgtmap_version)
 
     def makeStringPair(self, a, b=None):
         """format a string pair according to the o5m specification.
@@ -69,7 +68,7 @@ class Output(output.Output):
         self.lastNodeId = 0
         self.stringTable.reset()
 
-    def writeHeader(self, osmVersion, phyghtmapVersion):
+    def writeHeader(self, osmVersion, pyhgtmap_version):
         # write reset
         self.writeReset()
         header = []
@@ -273,14 +272,14 @@ def writeNodes(
     timestampString,
     start_node_id,
 ):  # dummy option
-    IDCounter = phyghtmap.output.Id(start_node_id)
+    IDCounter = pyhgtmap.output.Id(start_node_id)
     ways = []
     nodes = []
     startId = start_node_id
     for elevation, contourList in tile_contours.contours.items():
         if not contourList:
             continue
-        newNodes, newWays = phyghtmap.output.make_nodes_ways(
+        newNodes, newWays = pyhgtmap.output.make_nodes_ways(
             contourList, elevation, IDCounter, HUNDREDNANO
         )
         ways.extend(newWays)

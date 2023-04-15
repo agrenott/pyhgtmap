@@ -5,9 +5,9 @@ from typing import List, Optional, Tuple
 import numpy
 import pytest
 
-from phyghtmap import hgt
-from phyghtmap.hgt.file import calcHgtArea, hgtFile, polygon_mask
-from phyghtmap.hgt.tile import hgtTile
+from pyhgtmap import hgt
+from pyhgtmap.hgt.file import calcHgtArea, hgtFile, polygon_mask
+from pyhgtmap.hgt.tile import hgtTile
 
 from .. import TEST_DATA_PATH
 
