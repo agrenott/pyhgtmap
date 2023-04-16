@@ -41,8 +41,8 @@ sudo apt install python3-gdal
 python3 -m venv --system-site-packages my_venv
 # Switch to venv
 . ./my_venv/bin/activate
-# Install pyhgtmap with dependencies from latest git version
-pip install git+https://github.com/agrenott/pyhgtmap.git
+# Install pyhgtmap with dependencies from PyPi
+pip install pyhgtmap
 ```
 
 # Usage

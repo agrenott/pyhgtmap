@@ -1,30 +1,40 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs"]
 
 [project]
-name = "pyhgtmap"
-dynamic = ["version"]
-description = "Creates OpenStreetMap suitable contour lines from NASA SRTM data"
-readme = "README.md"
-license = "GPL-2.0-or-later"
 authors = [
-    { name = "Adrian Dempwolff", email = "phyghtmap@aldw.de" },
-    { name = "Aurélien Grenotton", email = "agrenott@gmail.com" },
+  {name = "Adrian Dempwolff", email = "phyghtmap@aldw.de"},
+  {name = "Aurélien Grenotton", email = "agrenott@gmail.com"},
+]
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Topic :: Scientific/Engineering :: GIS",
 ]
 dependencies = [
-    "bs4>=0.0.1",
-    "colorlog>=6.7.0",
-    "contourpy>=1.0.7",
-    # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
-    "GDAL",
-    "matplotlib>=3.4.3",
-    "numpy>=1.24.2",
-    "osmium>=3.6.0",
-    "pybind11-rdp>=0.1.3",
-    "scipy>=1.8.0",
-    "shapely>=2.0.1",
+  "bs4>=0.0.1",
+  "colorlog>=6.7.0",
+  "contourpy>=1.0.7", # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
+  "GDAL",
+  "matplotlib>=3.4.3",
+  "numpy>=1.24.2",
+  "osmium>=3.6.0",
+  "pybind11-rdp>=0.1.3",
+  "scipy>=1.8.0",
+  "shapely>=2.0.1",
 ]
+description = "Creates OpenStreetMap suitable contour lines from NASA SRTM data"
+dynamic = ["version"]
+keywords = ["osm", "OpenStreetMap", "countour", "SRTM", "elevation"]
+license = "GPL-2.0-or-later"
+name = "pyhgtmap"
+readme = "README.md"
 
 [project.scripts]
 pyhgtmap = "pyhgtmap.main:main"
@@ -33,11 +43,10 @@ pyhgtmap = "pyhgtmap.main:main"
 repository = "https://github.com/agrenott/pyhgtmap"
 
 [tool.hatch.version]
-path = "pyhgtmap/__init__.py"
+source = "vcs"
 
 [tool.hatch.build.targets.sdist]
 include = ["/pyhgtmap"]
-
 
 [tool.hatch.envs.default]
 # Use default env for all dev activities
@@ -82,14 +91,14 @@ python = ["3.9", "3.10"]
 
 [tool.isort]
 atomic = true
-profile = "black"
-line_length = 88
-skip_gitignore = true
 known_first_party = ["pyhgtmap"]
+line_length = 88
+profile = "black"
+skip_gitignore = true
 
 [tool.mypy]
-plugins = "numpy.typing.mypy_plugin"
-ignore_missing_imports = true
 files = ["tests", "pyhgtmap", "tools"]
+ignore_missing_imports = true
 install_types = true
 non_interactive = true
+plugins = "numpy.typing.mypy_plugin"
