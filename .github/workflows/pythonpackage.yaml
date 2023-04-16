@@ -30,6 +30,8 @@ jobs:
       run: |
         hatch run all
     - name: Report test-coverage to DeepSource
+      # Deepsource doesn't seem super stable
+      continue-on-error: true
       run: |
         # Install the CLI
         curl https://deepsource.io/cli | sh
@@ -39,6 +41,7 @@ jobs:
       env:
         DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
     - name: Report test-coverage to Codacy
+      continue-on-error: true
       run: |
         bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ./coverage.xml
       env:
