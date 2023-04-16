@@ -43,11 +43,3 @@ jobs:
         bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ./coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-    - name: Publish to PyPi
-      if: startsWith(github.ref, 'refs/tags/v')
-      run: |
-        hatch build
-        hatch publish -u __token__
-      env:
-        HATCH_INDEX_AUTH: ${{ secrets.HATCH_INDEX_AUTH }}
-
