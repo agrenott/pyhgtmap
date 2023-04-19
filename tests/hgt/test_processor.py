@@ -8,6 +8,7 @@ import tempfile
 from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Callable, Generator, List, NamedTuple, Tuple
+from unittest.mock import Mock
 
 import osmium
 import osmium.io
@@ -140,6 +141,8 @@ class TestHgtFilesProcessor:
                 files_list: List[Tuple[str, bool]] = [
                     (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False)
                 ]
+                # Instrument method without changing its behavior
+                processor.process_tile_internal = Mock(side_effect=processor.process_tile_internal)  # type: ignore
                 processor.process_files(files_list, custom_options)
                 out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
@@ -150,11 +153,14 @@ class TestHgtFilesProcessor:
                     "lon6.00_7.00lat43.88_44.00_local-source.osm.pbf",
                 ], f"out_files_names mismatch; {out_files_names}"
                 if nb_jobs == 1:
-                    # No child process used if jobs == 1
-                    assert len(processor.children) == 0
+                    # process_tile_internal called in main process when parallelization is not used
+                    assert processor.process_tile_internal.call_count == len(
+                        out_files_names
+                    )
                 else:
-                    # As many children as output tiles (painful to check for actual max concurrency)
-                    assert len(processor.children) == len(out_files_names)
+                    # process_tile_internal is NOT called in parent process, but in children
+                    # (not reflected in parent's mock). Can' check for actual max concurrency.
+                    processor.process_tile_internal.assert_not_called()
 
                 # Ensure nodes and ways IDs do not overlap between generated files
                 # (they should actually be continuous, but we really only care about overlapping)
