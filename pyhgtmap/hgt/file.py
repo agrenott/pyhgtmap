@@ -17,6 +17,8 @@ meters2Feet = 1.0 / 0.3048
 
 logger = logging.getLogger(__name__)
 
+GEOTIFF_ERROR = "GeoTiff optional support not enabled; please install with 'pip install pyhgtmap[geotiff]'"
+
 
 class hgtError(Exception):
     """is the main class of visible exceptions from this file."""
@@ -117,7 +119,10 @@ TransformFunType = Callable[[List[Tuple[float, float]]], List[Tuple[float, float
 
 
 def getTransform(o, reverse=False) -> Optional[TransformFunType]:
-    from osgeo import osr
+    try:
+        from osgeo import osr
+    except ModuleNotFoundError:
+        raise ImportError(GEOTIFF_ERROR)
 
     n = osr.SpatialReference()
     n.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -145,8 +150,10 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
 def parseGeotiffBbox(
     filename: str, corrx: float, corry: float, doTransform: bool
 ) -> Tuple[float, float, float, float]:
-    from osgeo import gdal, osr
-
+    try:
+        from osgeo import gdal, osr
+    except ModuleNotFoundError:
+        raise ImportError(GEOTIFF_ERROR)
     try:
         g = gdal.Open(filename)
         geoTransform = g.GetGeoTransform()
@@ -405,7 +412,10 @@ class hgtFile:
         self, corrx, corry, polygon, checkPoly, voidMax, smooth_ratio: float
     ) -> None:
         """init this hgtFile instance with data from a geotiff image."""
-        from osgeo import gdal, osr
+        try:
+            from osgeo import gdal, osr
+        except ModuleNotFoundError:
+            raise ImportError(GEOTIFF_ERROR)
 
         try:
             g = gdal.Open(self.fullFilename)

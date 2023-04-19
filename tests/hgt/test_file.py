@@ -1,6 +1,8 @@
+import contextlib
+import importlib.util
 import os
 from types import SimpleNamespace
-from typing import List, Optional, Tuple
+from typing import Generator, List, Optional, Tuple
 
 import numpy
 import pytest
@@ -50,6 +52,27 @@ def toulon_tiles_smoothed() -> List[hgtTile]:
     pytest.approx(7),
     pytest.approx(44),
 )
+
+
+@contextlib.contextmanager
+def handle_optional_geotiff_support() -> Generator[None, None, None]:
+    """
+    Context manager handling the cases where optional GeoTiff support has an impact.
+    Cases should run fully if geotiff dependencies are available, else specific exception is
+    expected.
+    """
+    try:
+        # Execute test case
+        yield
+    except ImportError as ex:
+        if importlib.util.find_spec("osgeo") is not None:
+            # GDAL module is available, do NOT ignore the exception
+            raise
+        # GDAL not available, ensure the proper errror message is raised
+        assert (
+            "GeoTiff optional support not enabled; please install with 'pip install pyhgtmap[geotiff]'"
+            == ex.msg
+        )
 
 
 class TestHgtFile:
@@ -116,45 +139,47 @@ class TestHgtFile:
     )
     def test_init(file_name: str) -> None:
         """Validate init from various sources types."""
-        hgt_file = hgtFile(os.path.join(TEST_DATA_PATH, file_name), 0, 0)
+        with handle_optional_geotiff_support():
+            hgt_file = hgtFile(os.path.join(TEST_DATA_PATH, file_name), 0, 0)
 
-        assert hgt_file.numOfCols == 1201
-        assert hgt_file.numOfRows == 1201
-        assert hgt_file.minLat == MIN_LAT
-        assert hgt_file.maxLat == MAX_LAT
-        assert hgt_file.minLon == MIN_LON
-        assert hgt_file.maxLon == MAX_LON
-        assert hgt_file.latIncrement == pytest.approx(0.000833333)
-        assert hgt_file.lonIncrement == hgt_file.lonIncrement
-        assert hgt_file.transform is None
-        assert hgt_file.polygons is None
+            assert hgt_file.numOfCols == 1201
+            assert hgt_file.numOfRows == 1201
+            assert hgt_file.minLat == MIN_LAT
+            assert hgt_file.maxLat == MAX_LAT
+            assert hgt_file.minLon == MIN_LON
+            assert hgt_file.maxLon == MAX_LON
+            assert hgt_file.latIncrement == pytest.approx(0.000833333)
+            assert hgt_file.lonIncrement == hgt_file.lonIncrement
+            assert hgt_file.transform is None
+            assert hgt_file.polygons is None
 
     @staticmethod
     def test_init_geotiff_transform() -> None:
         """Validate init from geotiff in EPSG 3857 projection."""
-        hgt_file = hgtFile(os.path.join(TEST_DATA_PATH, "N43E006_3857.tiff"), 0, 0)
+        with handle_optional_geotiff_support():
+            hgt_file = hgtFile(os.path.join(TEST_DATA_PATH, "N43E006_3857.tiff"), 0, 0)
 
-        assert hgt_file.numOfCols == 1201
-        assert hgt_file.numOfRows == 1201
-        # Coordinates are kept in original projection
-        assert hgt_file.minLat == pytest.approx(5311972)
-        assert hgt_file.maxLat == pytest.approx(5465442)
-        assert hgt_file.minLon == pytest.approx(667917)
-        assert hgt_file.maxLon == pytest.approx(779236)
-        assert hgt_file.latIncrement == pytest.approx(127.89195462114967)
-        assert hgt_file.lonIncrement == pytest.approx(92.76624238134882)
-        # Transform functions must be set
-        assert hgt_file.transform is not None
-        assert hgt_file.reverseTransform is not None
-        assert hgt_file.polygons is None
-        # Transformed coordinates must match usual ones
-        assert hgt.transformLonLats(
-            hgt_file.minLon,
-            hgt_file.minLat,
-            hgt_file.maxLon,
-            hgt_file.maxLat,
-            hgt_file.transform,
-        ) == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
+            assert hgt_file.numOfCols == 1201
+            assert hgt_file.numOfRows == 1201
+            # Coordinates are kept in original projection
+            assert hgt_file.minLat == pytest.approx(5311972)
+            assert hgt_file.maxLat == pytest.approx(5465442)
+            assert hgt_file.minLon == pytest.approx(667917)
+            assert hgt_file.maxLon == pytest.approx(779236)
+            assert hgt_file.latIncrement == pytest.approx(127.89195462114967)
+            assert hgt_file.lonIncrement == pytest.approx(92.76624238134882)
+            # Transform functions must be set
+            assert hgt_file.transform is not None
+            assert hgt_file.reverseTransform is not None
+            assert hgt_file.polygons is None
+            # Transformed coordinates must match usual ones
+            assert hgt.transformLonLats(
+                hgt_file.minLon,
+                hgt_file.minLat,
+                hgt_file.maxLon,
+                hgt_file.maxLat,
+                hgt_file.transform,
+            ) == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
 
 
 def test_polygon_mask() -> None:
@@ -259,7 +284,8 @@ def test_polygon_mask() -> None:
     ["N43E006.hgt", "N43E006.tiff"],
 )
 def test_calcHgtArea(file_name: str) -> None:
-    bbox: Tuple[float, float, float, float] = calcHgtArea(
-        [(os.path.join(TEST_DATA_PATH, file_name), False)], 0, 0
-    )
-    assert bbox == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
+    with handle_optional_geotiff_support():
+        bbox: Tuple[float, float, float, float] = calcHgtArea(
+            [(os.path.join(TEST_DATA_PATH, file_name), False)], 0, 0
+        )
+        assert bbox == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)

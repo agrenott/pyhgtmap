@@ -20,8 +20,7 @@ classifiers = [
 dependencies = [
   "bs4>=0.0.1",
   "colorlog>=6.7.0",
-  "contourpy>=1.0.7", # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
-  "GDAL",
+  "contourpy>=1.0.7",
   "matplotlib>=3.4.3",
   "numpy>=1.24.2",
   "osmium>=3.6.0",
@@ -35,6 +34,12 @@ keywords = ["osm", "OpenStreetMap", "countour", "SRTM", "elevation"]
 license = "GPL-2.0-or-later"
 name = "pyhgtmap"
 readme = "README.md"
+
+[project.optional-dependencies]
+geotiff = [
+  # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
+  "GDAL",
+]
 
 [project.scripts]
 pyhgtmap = "pyhgtmap.main:main"
@@ -61,9 +66,6 @@ dependencies = [
   "ruff>=0.0.259",
 ]
 
-# To allow using system's GDAL, which is painful to install
-system-packages = true
-
 [tool.hatch.envs.default.scripts]
 all = ["style", "typing", "test_cov"]
 fmt = [
@@ -86,6 +88,11 @@ typing = "mypy {args}"
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.9", "3.10"]
+
+[tool.hatch.envs.geotiff]
+# Env for optional geotiff dependencies
+# To allow using system's GDAL, which is painful to install
+system-packages = true
 
 [tool.black]
 
