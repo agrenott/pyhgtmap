@@ -35,7 +35,10 @@ class HgtFilesProcessor:
         )
         self.available_children = multiprocessing.Semaphore(nb_jobs)
         self.parallel: bool = nb_jobs > 1
-        self.children: List[ForkProcess] = []
+        # Not joined yet children
+        self.active_children: List[ForkProcess] = []
+        # Errors raised by previously joined children
+        self.children_errors: List[Tuple[int, int]] = []
 
     @staticmethod
     def get_and_inc_counter(counter: Synchronized, inc_value: int) -> int:
@@ -133,14 +136,16 @@ class HgtFilesProcessor:
         if self.parallel:
             # Fork into a child process when available
             self.available_children.acquire()
-            # Ensure "fork" method is used to share paren's process context
+            # Ensure "fork" method is used to share parent's process context
             ctx = multiprocessing.get_context("fork")
             p = ctx.Process(
                 target=self.run_in_child,
                 args=(self.process_tile_internal, file_name, tile, options),
             )
-            self.children.append(p)
+            self.active_children.append(p)
             p.start()
+            # Try to progressively clean some done children
+            self.join_children(skip_active=True)
         else:
             # Process tile in current process
             self.process_tile_internal(file_name, tile, options)
@@ -172,19 +177,32 @@ class HgtFilesProcessor:
         for tile in hgt_tiles:
             self.process_tile(file_name, tile, options)
 
+    def join_children(self, skip_active=False) -> None:
+        """
+        Join all/finished children.
+        Call regularly to avoid open file (pipes) exhaustion when spawning
+        many processes for big datasets.
+        """
+        for p in self.active_children:
+            if skip_active and p.is_alive():
+                continue
+            # Wait for child to finish and check return code
+            p.join()
+            logger.debug("Joined child process %d", p.pid)
+            if p.exitcode and p.pid:
+                self.children_errors.append((p.pid, p.exitcode))
+            self.active_children.remove(p)
+
     def process_files(self, files: List[Tuple[str, bool]], options) -> None:
         for file_name, check_poly in files:
             self.process_file(file_name, check_poly, options)
         logger.debug("Done scheduling, waiting for all children to complete...")
 
-        errors: List[Tuple[int, int]] = []
-        for p in self.children:
-            # Wait for all children to finish and check return code
-            p.join()
-            if p.exitcode and p.pid:
-                errors.append((p.pid, p.exitcode))
-        if errors:
+        self.join_children()
+        if self.children_errors:
             logger.error(
                 "Some child process(es) finished with error; check earlier logs for exception details.%s",
-                "\n - ".join(f"pid: {p[0]}; exitcode: {p[1]}" for p in errors),
+                "\n - ".join(
+                    f"pid: {p[0]}; exitcode: {p[1]}" for p in self.children_errors
+                ),
             )
