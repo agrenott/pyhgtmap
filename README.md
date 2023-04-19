@@ -32,6 +32,23 @@ OSM servers but to use it for fancy maps.
 
 For ubuntu-like system:
 
+## Ligther deployment (without GeoTiff support)
+
+GDAL dependency is required only to add GeoTiff support, and is quite painful to install.
+If you don't need GeoTiff support, simply install the default version of pyhgtmap:
+
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+python3 -m venv my_venv
+# Switch to venv
+. ./my_venv/bin/activate
+# Install pyhgtmap with dependencies from PyPi
+pip install pyhgtmap
+```
+
+## With GeoTiff optional support
+
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip python3-venv
@@ -42,7 +59,7 @@ python3 -m venv --system-site-packages my_venv
 # Switch to venv
 . ./my_venv/bin/activate
 # Install pyhgtmap with dependencies from PyPi
-pip install pyhgtmap
+pip install pyhgtmap[geotiff]
 ```
 
 # Usage

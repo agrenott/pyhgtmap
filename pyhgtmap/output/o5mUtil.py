@@ -9,7 +9,6 @@ from pyhgtmap import output
 from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
 
-
 HUNDREDNANO = 10000000
 
 
