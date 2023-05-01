@@ -62,6 +62,18 @@ python3 -m venv --system-site-packages my_venv
 pip install pyhgtmap[geotiff]
 ```
 
+## Install directly from GitHub (useful to test non-released fixes)
+
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv git
+python3 -m venv my_venv
+# Switch to venv
+. ./my_venv/bin/activate
+# Install pyhgtmap with dependencies from PyPi
+pip install -U git+https://github.com/agrenott/pyhgtmap.git
+```
+
 # Usage
 
 For a detailed help, run `pyhgtmap --help` on the console.

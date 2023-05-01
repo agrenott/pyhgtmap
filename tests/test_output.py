@@ -159,11 +159,11 @@ class TestOutputOsm:
             )
 
             # Write OSM file
-            next_node_id, ways = osm_output.writeNodes(
+            next_node_id, ways = osm_output.write_nodes(
                 tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
-            osm_output.writeWays(ways, 2000)
+            osm_output.write_ways(ways, 2000)
             osm_output.done()
 
             # Check file output
@@ -220,11 +220,11 @@ class TestOutputPbf:
             )
 
             # Write OSM file
-            next_node_id, ways = osm_output.writeNodes(
+            next_node_id, ways = osm_output.write_nodes(
                 tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
-            osm_output.writeWays(ways, 2000)
+            osm_output.write_ways(ways, 2000)
             osm_output.done()
 
             # Check file content with osmium
@@ -253,11 +253,11 @@ class TestOutputO5m:
             )
 
             # Write OSM file
-            next_node_id, ways = osm_output.writeNodes(
+            next_node_id, ways = osm_output.write_nodes(
                 tile_contours, ' time="some time"', 1000, 0.6
             )
             assert next_node_id == 1008
-            osm_output.writeWays(ways, 2000)
+            osm_output.write_ways(ways, 2000)
             osm_output.done()
 
             # Check file with osmium

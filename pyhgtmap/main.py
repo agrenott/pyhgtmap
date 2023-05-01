@@ -195,7 +195,8 @@ def parseCommandLine():
         help="specify an integer as a maximum"
         "\nnumber of nodes per generated tile.  It defaults to 1000000,"
         "\nwhich is approximately the maximum number of nodes handled properly"
-        "\nby mkgmap.  For bigger tiles, try higher values.",
+        "\nby mkgmap.  For bigger tiles, try higher values. For a single file"
+        "\noutput, say 0 here (this disables any parallelization).",
         dest="maxNodesPerTile",
         type="int",
         default=1000000,
@@ -586,8 +587,8 @@ def main() -> None:
             [str(i) for i in calcHgtArea(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)]
         )
 
-    HgtFilesProcessor(opts.nJobs, opts.startId, opts.startWayId).process_files(
-        hgtDataFiles, opts
+    HgtFilesProcessor(opts.nJobs, opts.startId, opts.startWayId, opts).process_files(
+        hgtDataFiles
     )
 
 

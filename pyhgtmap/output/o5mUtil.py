@@ -42,7 +42,8 @@ class Output(output.Output):
         bbox: Tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
         writeTimestamp=False,
-    ):
+    ) -> None:
+        super().__init__()
         self.outf = open(filename, "wb")
         self.bbox = bbox
         self.elevClassifier = elevClassifier
@@ -172,7 +173,7 @@ class Output(output.Output):
         # no tags, so data is complete now
         return join(data)
 
-    def writeWays(self, ways, startWayId):
+    def _write_ways(self, ways, startWayId):
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
         """
@@ -249,13 +250,14 @@ class Output(output.Output):
         self.outf.flush()
 
     def done(self) -> None:
+        super().done()
         self.outf.write(writableInt(0xFE))
         self.__del__()
 
     def __del__(self):
         self.outf.close()
 
-    def writeNodes(
+    def write_nodes(
         self,
         tile_contours: TileContours,
         timestamp_string: str,
