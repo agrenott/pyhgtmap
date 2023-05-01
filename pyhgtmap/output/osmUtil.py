@@ -38,6 +38,7 @@ class Output(pyhgtmap.output.Output):
         elevClassifier: Callable[[int], str],
         timestamp=False,
     ) -> None:
+        super().__init__()
         self.outF: IOBase
         if 0 < gzip < 10:
             import gzip as Gzip
@@ -69,6 +70,7 @@ class Output(pyhgtmap.output.Output):
         self.write(self.boundsTag + "\n")
 
     def done(self) -> None:
+        super().done()
         self.write("</osm>\n")
         self.outF.close()
 
@@ -78,7 +80,7 @@ class Output(pyhgtmap.output.Output):
     def flush(self) -> None:
         self.outF.flush()
 
-    def writeWays(self, ways, startWayId):
+    def _write_ways(self, ways, startWayId):
         IDCounter = pyhgtmap.output.Id(startWayId)
         for startNodeId, length, isCycle, elevation in ways:
             IDCounter.curId += 1
@@ -101,7 +103,7 @@ class Output(pyhgtmap.output.Output):
                 )
             )
 
-    def writeNodes(
+    def write_nodes(
         self,
         tile_contours: TileContours,
         timestamp_string: str,

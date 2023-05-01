@@ -36,6 +36,7 @@ class Output(pyhgtmap.output.Output):
         bbox: Tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
     ):
+        super().__init__()
         self.bbox = bbox
         # SimpleWriter doesn't support overwriting file...
         if os.path.exists(filename):
@@ -68,7 +69,7 @@ class Output(pyhgtmap.output.Output):
 
         return osm_header
 
-    def writeWays(self, ways: List[pyhgtmap.output.WayType], startWayId) -> None:
+    def _write_ways(self, ways: List[pyhgtmap.output.WayType], startWayId) -> None:
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
 
@@ -92,9 +93,10 @@ class Output(pyhgtmap.output.Output):
         pass
 
     def done(self) -> None:
+        super().done()
         self.osm_writer.close()
 
-    def writeNodes(
+    def write_nodes(
         self,
         tile_contours: TileContours,
         timestamp_string: str,

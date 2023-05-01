@@ -1,8 +1,11 @@
+import logging
 from typing import Callable, List, NamedTuple, Tuple
 
 import numpy
 
 from pyhgtmap.hgt.tile import TileContours
+
+logger = logging.getLogger(__name__)
 
 # First node ID, number of nodes, closed loop, elevation
 WayType = NamedTuple(
@@ -39,8 +42,9 @@ class Output:
 
     def __init__(self) -> None:
         self.timestampString: str
+        self.ways_pending_write: List[Tuple[List[WayType], int]] = []
 
-    def writeNodes(
+    def write_nodes(
         self,
         tile_contours: TileContours,
         timestamp_string: str,
@@ -53,13 +57,22 @@ class Output:
         """
         raise NotImplementedError
 
-    def writeWays(self, ways: List[WayType], start_way_id: int) -> None:
-        """Write ways previously prepared by writeNodes."""
+    def write_ways(self, ways: List[WayType], start_way_id: int) -> None:
+        """
+        Add ways previously prepared by write_nodes to be written later
+        (as ways should ideally be written after all nodes).
+        """
+        self.ways_pending_write.append((ways, start_way_id))
+
+    def _write_ways(self, ways: List[WayType], start_way_id: int) -> None:
+        """Actually write ways, upon output finalization via done()."""
         raise NotImplementedError
 
     def done(self) -> None:
         """Finalize and close file."""
-        raise NotImplementedError
+        logger.debug("done() - Writing pending ways")
+        for ways, start_way_id in self.ways_pending_write:
+            self._write_ways(ways, start_way_id)
 
     def flush(self) -> None:
         """Flush file to disk."""

@@ -2,10 +2,11 @@ import logging
 import multiprocessing
 from multiprocessing.context import ForkProcess
 from multiprocessing.sharedctypes import Synchronized
-from typing import Callable, List, Tuple, cast
+from typing import Callable, List, Optional, Tuple, cast
 
 from pyhgtmap.hgt.file import hgtFile
 from pyhgtmap.hgt.tile import hgtTile
+from pyhgtmap.output import Output
 from pyhgtmap.output.factory import get_osm_output
 
 logger = logging.getLogger(__name__)
@@ -19,13 +20,20 @@ class HgtFilesProcessor:
     Process can be parallelized per tile to benefit from multiple cores CPU.
     """
 
-    def __init__(self, nb_jobs: int, node_start_id: int, way_start_id: int) -> None:
+    def __init__(
+        self,
+        nb_jobs: int,
+        node_start_id: int,
+        way_start_id: int,
+        options,
+    ) -> None:
         """Initialiaze files processor.
 
         Args:
             nb_jobs (int): Max number of processes allowed (>1 to enable parallelization)
             node_start_id (int): ID of the first generated node
             way_start_id (int): ID of the first generated way
+            options (optparse options): general options
         """
         self.next_node_id: Synchronized = cast(
             Synchronized, multiprocessing.Value("i", node_start_id)
@@ -39,6 +47,44 @@ class HgtFilesProcessor:
         self.active_children: List[ForkProcess] = []
         # Errors raised by previously joined children
         self.children_errors: List[Tuple[int, int]] = []
+        self.options = options
+        # Common output file used in single output mode
+        self.common_osm_output: Optional[Output] = None
+
+    @property
+    def single_output(self) -> bool:
+        """Return true if single output file mode should be used"""
+        return self.options.maxNodesPerTile == 0
+
+    def get_osm_output(
+        self,
+        hgt_files_names: List[str],
+        bounding_box: Tuple[float, float, float, float],
+    ) -> Output:
+        """Allocate or return already existing OSM output (for consecutive calls in single output mode)
+
+        Args:
+            hgt_files_names (List[str]): List of HGT input files names
+            bounding_box (Tuple[float, float, float, float]): Output bounding box
+
+        Returns:
+            Output: OSM Output wrapper
+        """
+        if self.common_osm_output is None:
+            # No common output: either this is the first call in single output mode,
+            # or we're in multiple outputs; in any case, allocate a new one
+            osm_output = get_osm_output(
+                self.options,
+                hgt_files_names,
+                bounding_box,
+            )
+            if self.single_output:
+                # Keep reference for future calls
+                self.common_osm_output = osm_output
+        else:
+            osm_output = self.common_osm_output
+
+        return osm_output
 
     @staticmethod
     def get_and_inc_counter(counter: Synchronized, inc_value: int) -> int:
@@ -56,16 +102,16 @@ class HgtFilesProcessor:
             counter.value += inc_value
         return previous_value
 
-    def process_tile_internal(self, file_name: str, tile: hgtTile, options) -> None:
+    def process_tile_internal(self, file_name: str, tile: hgtTile) -> None:
         """Process a single output tile."""
         logger.debug("process_tile %s", tile)
         try:
             # Compute contours
             tile_contours = tile.get_contours(
-                step_cont=int(options.contourStepSize),
-                max_nodes_per_way=options.maxNodesPerWay,
-                no_zero=options.noZero,
-                rdp_epsilon=options.rdpEpsilon,
+                step_cont=int(self.options.contourStepSize),
+                max_nodes_per_way=self.options.maxNodesPerWay,
+                no_zero=self.options.noZero,
+                rdp_epsilon=self.options.rdpEpsilon,
             )
 
             # Update counters shared among parallel processes
@@ -79,24 +125,25 @@ class HgtFilesProcessor:
             )
 
             # Writing nodes to output is the most time & resources consuming part
-            osm_output = get_osm_output(
-                options,
+            osm_output = self.get_osm_output(
                 [
                     file_name,
                 ],
                 tile.bbox(),
             )
             logger.debug("writeNodes")
-            new_start_id, ways = osm_output.writeNodes(
+            new_start_id, ways = osm_output.write_nodes(
                 tile_contours,
                 osm_output.timestampString,
                 tile_node_start_id,
-                options.osmVersion,
+                self.options.osmVersion,
             )
             logger.debug("writeWays")
-            osm_output.writeWays(ways, tile_way_start_id)
-            logger.debug("done")
-            osm_output.done()
+            osm_output.write_ways(ways, tile_way_start_id)
+            if not self.single_output:
+                # In single output mode, file will be finalized at the very end
+                logger.debug("done")
+                osm_output.done()
 
             if new_start_id != tile_node_start_id + tile_contours.nb_nodes:
                 logger.warning(
@@ -125,22 +172,21 @@ class HgtFilesProcessor:
         finally:
             self.available_children.release()
 
-    def process_tile(self, file_name: str, tile: hgtTile, options) -> None:
+    def process_tile(self, file_name: str, tile: hgtTile) -> None:
         """Process given tile, in a dedicated process if parallelization is enabled.
 
         Args:
             file_name (str): original file name (used for output file name generation)
             tile (hgt.hgtTile): tile to process
-            options (_type_): processing options
         """
-        if self.parallel:
+        if self.parallel and not self.single_output:
             # Fork into a child process when available
             self.available_children.acquire()
             # Ensure "fork" method is used to share parent's process context
             ctx = multiprocessing.get_context("fork")
             p = ctx.Process(
                 target=self.run_in_child,
-                args=(self.process_tile_internal, file_name, tile, options),
+                args=(self.process_tile_internal, file_name, tile),
             )
             self.active_children.append(p)
             p.start()
@@ -148,9 +194,9 @@ class HgtFilesProcessor:
             self.join_children(skip_active=True)
         else:
             # Process tile in current process
-            self.process_tile_internal(file_name, tile, options)
+            self.process_tile_internal(file_name, tile)
 
-    def process_file(self, file_name: str, check_poly: bool, options) -> None:
+    def process_file(self, file_name: str, check_poly: bool) -> None:
         """Process given file, parallelizing tiles processing if enabled.
 
         Args:
@@ -161,21 +207,21 @@ class HgtFilesProcessor:
         logger.debug("process_file %s", file_name)
         hgt_file = hgtFile(
             file_name,
-            options.srtmCorrx,
-            options.srtmCorry,
-            options.polygon,
+            self.options.srtmCorrx,
+            self.options.srtmCorry,
+            self.options.polygon,
             check_poly,
-            options.voidMax,
-            options.contourFeet,
-            options.smooth_ratio,
+            self.options.voidMax,
+            self.options.contourFeet,
+            self.options.smooth_ratio,
         )
-        hgt_tiles = hgt_file.makeTiles(options)
+        hgt_tiles = hgt_file.makeTiles(self.options)
         logger.debug("Tiles built; nb tiles: %d", len(hgt_tiles))
         for tile in hgt_tiles:
             logger.debug("  %s", tile.get_stats())
 
         for tile in hgt_tiles:
-            self.process_tile(file_name, tile, options)
+            self.process_tile(file_name, tile)
 
     def join_children(self, skip_active=False) -> None:
         """
@@ -193,9 +239,24 @@ class HgtFilesProcessor:
                 self.children_errors.append((p.pid, p.exitcode))
             self.active_children.remove(p)
 
-    def process_files(self, files: List[Tuple[str, bool]], options) -> None:
+    def process_files(self, files: List[Tuple[str, bool]]) -> None:
+        """Main entry point of this class, processing a bunch of HGT files.
+
+        Args:
+            files (List[Tuple[str, bool]]): List of [source file name, check poly toggle]
+        """
+        if self.single_output:
+            # Initialize common OSM output
+            self.get_osm_output(
+                [file_tuple[0] for file_tuple in files],
+                cast(
+                    Tuple[float, float, float, float],
+                    [float(b) for b in self.options.area.split(":")],
+                ),
+            )
+
         for file_name, check_poly in files:
-            self.process_file(file_name, check_poly, options)
+            self.process_file(file_name, check_poly)
         logger.debug("Done scheduling, waiting for all children to complete...")
 
         self.join_children()
@@ -206,3 +267,9 @@ class HgtFilesProcessor:
                     f"pid: {p[0]}; exitcode: {p[1]}" for p in self.children_errors
                 ),
             )
+
+        if self.single_output and self.common_osm_output is not None:
+            # Finalize output file
+            logger.debug("Finalizing output file")
+            self.common_osm_output.done()
+            self.common_osm_output = None
