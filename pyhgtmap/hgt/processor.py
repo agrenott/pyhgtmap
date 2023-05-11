@@ -255,8 +255,42 @@ class HgtFilesProcessor:
                 ),
             )
 
+        # import objgraph
+        # import tracemalloc
+        # import random
+
+        # tracemalloc.start(10)
         for file_name, check_poly in files:
             self.process_file(file_name, check_poly)
+            # snapshot = tracemalloc.take_snapshot()
+            # top_stats = snapshot.statistics("traceback")
+            # # logger.debug("[memory top 10]\n  "+"\n  ".join([str(s) for s in top_stats[:10]]))
+            # logger.debug("===== Memory usage =====")
+            # for stat in top_stats[:10]:
+            #     logger.debug(
+            #         "%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024)
+            #     )
+            #     logger.debug("\n ".join(stat.traceback.format()))
+
+            # logger.debug("nb files: %s; nb tiles: %s", objgraph.count("hgtFile"), objgraph.count("hgtTile"))
+            # tiles = objgraph.by_type("hgtTile")
+            # objgraph.show_backrefs(tiles, filename="tiles_refs.png")
+            # objgraph.show_most_common_types()
+            # objgraph.show_growth(limit=3)
+            # try:
+            #     objgraph.show_chain(
+            #         objgraph.find_backref_chain(
+            #             random.choice(objgraph.by_type("WayType")),
+            #             objgraph.is_proper_module,
+            #         ),
+            #         filename="chain.png",
+            #     )
+            # except Exception:
+            #     pass
+            # roots = objgraph.get_leaking_objects()
+            # logger.debug("Leaking objects: %s", objgraph.show_most_common_types(objects=roots))
+            # objgraph.show_refs(roots[:3], refcounts=True, filename='roots.png')
+            # # objgraph.show_refs([y], filename='sample-graph.png')
         logger.debug("Done scheduling, waiting for all children to complete...")
 
         self.join_children()
