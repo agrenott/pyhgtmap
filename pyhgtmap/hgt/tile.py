@@ -1,5 +1,5 @@
 import logging
-from functools import cache
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, NamedTuple, Tuple
 
 import numpy
@@ -47,6 +47,9 @@ class hgtTile:
         self.minEle, self.maxEle = self.getElevRange()
         self.elevations = None
         self.contourData = None
+        # Use cache local to this instance to avoid memory leak
+        # https://stackoverflow.com/a/68550238
+        self.get_contours = lru_cache(maxsize=16)(self._get_contours)
 
     def get_stats(self) -> str:
         """Get some statistics about the tile."""
@@ -151,8 +154,7 @@ class hgtTile:
                 lon = self.minLon + lonIndex * self.lonIncrement
                 plotFile.write("{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height))
 
-    @cache
-    def get_contours(
+    def _get_contours(
         self,
         step_cont=20,
         max_nodes_per_way=0,

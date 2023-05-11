@@ -70,7 +70,7 @@ sudo apt install python3 python3-pip python3-venv git
 python3 -m venv my_venv
 # Switch to venv
 . ./my_venv/bin/activate
-# Install pyhgtmap with dependencies from PyPi
+# Install latest pyhgtmap development version from github
 pip install -U git+https://github.com/agrenott/pyhgtmap.git
 ```
 
