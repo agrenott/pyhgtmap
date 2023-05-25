@@ -11,9 +11,9 @@ from typing import Callable, Generator, List, NamedTuple, Tuple
 from unittest import mock
 from unittest.mock import Mock
 
-import osmium
-import osmium.io
-import osmium.osm
+import npyosmium
+import npyosmium.io
+import npyosmium.osm
 import pytest
 
 from pyhgtmap.hgt.processor import HgtFilesProcessor
@@ -21,7 +21,7 @@ from pyhgtmap.hgt.processor import HgtFilesProcessor
 from .. import TEST_DATA_PATH
 
 
-class OSMDecoder(osmium.SimpleHandler):
+class OSMDecoder(npyosmium.SimpleHandler):
     """Basic OSM file decoder, relying on official osmium library."""
 
     def __init__(self) -> None:
@@ -31,13 +31,13 @@ class OSMDecoder(osmium.SimpleHandler):
         self.min_way_id: int = sys.maxsize
         self.max_way_id: int = 0
 
-    def node(self, n: osmium.osm.Node) -> None:
+    def node(self, n: npyosmium.osm.Node) -> None:
         if n.id < self.min_node_id:
             self.min_node_id = n.id
         elif n.id > self.max_node_id:
             self.max_node_id = n.id
 
-    def way(self, w: osmium.osm.Way) -> None:
+    def way(self, w: npyosmium.osm.Way) -> None:
         if w.id < self.min_way_id:
             self.min_way_id = w.id
         elif w.id > self.max_way_id:

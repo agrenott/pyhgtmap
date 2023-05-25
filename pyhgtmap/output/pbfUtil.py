@@ -7,10 +7,10 @@ from typing import Callable, List, Tuple
 
 import numpy
 import numpy.typing
-import osmium
-import osmium.io
-import osmium.osm
-import osmium.osm.mutable
+import npyosmium
+import npyosmium.io
+import npyosmium.osm
+import npyosmium.osm.mutable
 
 import pyhgtmap.output
 from pyhgtmap.hgt.tile import TileContours
@@ -41,7 +41,7 @@ class Output(pyhgtmap.output.Output):
         # SimpleWriter doesn't support overwriting file...
         if os.path.exists(filename):
             os.remove(filename)
-        self.osm_writer = osmium.SimpleWriter(
+        self.osm_writer = npyosmium.SimpleWriter(
             filename, BUFFER_SIZE, self.makeHeader(pyhgtmap_version)
         )
         # self.outf = open(filename, "wb")
@@ -53,13 +53,13 @@ class Output(pyhgtmap.output.Output):
         self.timestamp = int(time.mktime(time.localtime()))
         self.timestampString: str = ""  # dummy attribute, needed by main.py
 
-    def makeHeader(self, pyhgtmap_version) -> osmium.io.Header:
+    def makeHeader(self, pyhgtmap_version) -> npyosmium.io.Header:
         """Prepare Header object"""
-        osm_header = osmium.io.Header()
+        osm_header = npyosmium.io.Header()
         left, bottom, right, top = self.bbox
         osm_header.add_box(
-            osmium.osm.Box(
-                osmium.osm.Location(left, bottom), osmium.osm.Location(right, top)
+            npyosmium.osm.Box(
+                npyosmium.osm.Location(left, bottom), npyosmium.osm.Location(right, top)
             )
         )
         osm_header.set(
@@ -77,7 +77,7 @@ class Output(pyhgtmap.output.Output):
         """
         for ind, way in enumerate(ways):
             closed_loop_id: list[int] = [way.first_node_id] if way.closed_loop else []
-            osm_way = osmium.osm.mutable.Way(
+            osm_way = npyosmium.osm.mutable.Way(
                 id=startWayId + ind,
                 tags=(
                     ("ele", str(way.elevation)),
@@ -119,15 +119,7 @@ class Output(pyhgtmap.output.Output):
                 if is_closed_way:
                     # Close way by re-using first node instead of a new one; last node is not needed
                     contour = contour[:-1]
-                for node_id, location in zip(
-                    range(next_node_id, next_node_id + len(contour)), contour
-                ):
-                    self.osm_writer.add_node(
-                        osmium.osm.mutable.Node(
-                            id=node_id,
-                            location=(location[0], location[1]),
-                        )
-                    )
+                self.osm_writer.add_locations(contour, next_node_id)
 
                 ways.append(
                     pyhgtmap.output.WayType(

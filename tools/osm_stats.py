@@ -11,12 +11,12 @@ python tools/osm_stats.py tests/data/lon6*view1_*.pbf
 import os
 import sys
 
-import osmium
+import npyosmium
 
 
-class Counter(osmium.SimpleHandler):
+class Counter(npyosmium.SimpleHandler):
     def __init__(self):
-        osmium.SimpleHandler.__init__(self)
+        npyosmium.SimpleHandler.__init__(self)
         self.num_nodes = 0
         self.num_ways = 0
         self.num_relations = 0
