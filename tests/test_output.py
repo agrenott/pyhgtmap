@@ -6,16 +6,16 @@ from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 import numpy
 import numpy.typing
-import osmium
-import osmium.io
-import osmium.osm
+import npyosmium
+import npyosmium.io
+import npyosmium.osm
 import pytest
 
 from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
 
 
-class OSMDecoder(osmium.SimpleHandler):
+class OSMDecoder(npyosmium.SimpleHandler):
     """Basic OSM file decoder, relying on official osmium library."""
 
     def __init__(self) -> None:
@@ -23,13 +23,13 @@ class OSMDecoder(osmium.SimpleHandler):
         self.nodes: Dict[int, Any] = {}
         self.ways: Dict[int, Any] = {}
 
-    def node(self, n: osmium.osm.Node) -> None:
+    def node(self, n: npyosmium.osm.Node) -> None:
         try:
             self.nodes[n.id] = (n.location.lat, n.location.lon)
         except Exception:
             pass
 
-    def way(self, w: osmium.osm.Way) -> None:
+    def way(self, w: npyosmium.osm.Way) -> None:
         self.ways[w.id] = ([node.ref for node in w.nodes], [tag for tag in w.tags])
 
 
@@ -89,11 +89,11 @@ def elevations() -> Iterable[int]:
 def check_osmium_result(osm_file_name: str) -> None:
     """Check results using osmium. Data corresponding to shared fixtures."""
     osm_decoder = OSMDecoder()
-    reader = osmium.io.Reader(osm_file_name)
+    reader = npyosmium.io.Reader(osm_file_name)
     header = reader.header()
     # Check header attributes
-    assert header.box().bottom_left == osmium.osm.Location(1, 1)
-    assert header.box().top_right == osmium.osm.Location(4, 2)
+    assert header.box().bottom_left == npyosmium.osm.Location(1, 1)
+    assert header.box().top_right == npyosmium.osm.Location(4, 2)
     if osm_file_name[-4:] != ".o5m":
         # Not implemented for o5m format
         assert header.get("generator") == "pyhgtmap 123"
@@ -117,26 +117,26 @@ def check_osmium_result(osm_file_name: str) -> None:
             # Loop must be closed, re-using first ID
             [1000, 1001, 1002, 1003, 1000],
             [
-                osmium.osm.Tag(k="ele", v="0"),
-                osmium.osm.Tag(k="contour", v="elevation"),
-                osmium.osm.Tag(k="contour_ext", v="elevation_major"),
+                npyosmium.osm.Tag(k="ele", v="0"),
+                npyosmium.osm.Tag(k="contour", v="elevation"),
+                npyosmium.osm.Tag(k="contour_ext", v="elevation_major"),
             ],
         ),
         2001: (
             [1004, 1005],
             [
-                osmium.osm.Tag(k="ele", v="0"),
-                osmium.osm.Tag(k="contour", v="elevation"),
-                osmium.osm.Tag(k="contour_ext", v="elevation_major"),
+                npyosmium.osm.Tag(k="ele", v="0"),
+                npyosmium.osm.Tag(k="contour", v="elevation"),
+                npyosmium.osm.Tag(k="contour_ext", v="elevation_major"),
             ],
         ),
         2002: (
             [1006, 1007],
             [
-                osmium.osm.Tag(k="ele", v="50"),
-                osmium.osm.Tag(k="contour", v="elevation"),
+                npyosmium.osm.Tag(k="ele", v="50"),
+                npyosmium.osm.Tag(k="contour", v="elevation"),
                 # Medium elevation expected
-                osmium.osm.Tag(k="contour_ext", v="elevation_medium"),
+                npyosmium.osm.Tag(k="contour_ext", v="elevation_medium"),
             ],
         ),
     }
