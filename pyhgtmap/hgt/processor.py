@@ -36,10 +36,10 @@ class HgtFilesProcessor:
             options (optparse options): general options
         """
         self.next_node_id: Synchronized = cast(
-            Synchronized, multiprocessing.Value("i", node_start_id)
+            Synchronized, multiprocessing.Value("L", node_start_id)
         )
         self.next_way_id: Synchronized = cast(
-            Synchronized, multiprocessing.Value("i", way_start_id)
+            Synchronized, multiprocessing.Value("L", way_start_id)
         )
         self.available_children = multiprocessing.Semaphore(nb_jobs)
         self.parallel: bool = nb_jobs > 1

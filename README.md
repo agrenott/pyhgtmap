@@ -7,7 +7,7 @@
 [![types - Mypy](https://img.shields.io/badge/types-Mypy-blue.svg)](https://github.com/python/mypy)
 [![DeepSource](https://deepsource.io/gh/agrenott/pyhgtmap.svg/?label=active+issues&show_trend=true&token=2WJPDv60DJYqaFeVT85eTdGE)](https://deepsource.io/gh/agrenott/pyhgtmap/?ref=repository-badge)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1251b91e12da4329bd09856d526c91b3)](https://app.codacy.com/gh/agrenott/pyhgtmap/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-[![Maintainability](https://api.codeclimate.com/v1/badges/0af92f6750f1bc0840a3/maintainability)](https://codeclimate.com/github/agrenott/pyhgtmap/maintainability)
+[![Maintainability](https://api.codeclimate.com/v1/badges/96551164b79ce7e76500/maintainability)](https://codeclimate.com/github/agrenott/pyhgtmap/maintainability)
 
 pyhgtmap is a fork of the original ![phyghtmap](http://katze.tfiu.de/projects/phyghtmap/) tool,
 which doesn't seem to be maintained anymore.
