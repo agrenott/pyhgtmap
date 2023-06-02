@@ -1,7 +1,7 @@
 import datetime
 import time
 from io import IOBase
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 
 import numpy
 
@@ -80,7 +80,7 @@ class Output(pyhgtmap.output.Output):
     def flush(self) -> None:
         self.outF.flush()
 
-    def _write_ways(self, ways, startWayId):
+    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId):
         IDCounter = pyhgtmap.output.Id(startWayId)
         for startNodeId, length, isCycle, elevation in ways:
             IDCounter.curId += 1
@@ -109,7 +109,7 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[pyhgtmap.output.WayType]]:
+    ) -> Tuple[int, pyhgtmap.output.WaysType]:
         return writeXML(
             self, tile_contours, timestamp_string, start_node_id, osm_version
         )
@@ -163,7 +163,7 @@ def _writeContourNodes(
 
 def writeXML(
     output, tile_contours: TileContours, timestampString, start_node_id, osm_version
-):
+) -> Tuple[int, pyhgtmap.output.WaysType]:
     """emits node OSM XML to <output> and collects path information.
 
     <output> may be anything having a write method.  For now, its used with
@@ -195,4 +195,4 @@ def writeXML(
         )
         # output.flush()
     newId = IDCounter.getId()
-    return newId, ways
+    return newId, pyhgtmap.output.build_efficient_ways(ways)

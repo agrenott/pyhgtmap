@@ -1,7 +1,8 @@
 import logging
-from typing import Callable, List, NamedTuple, Tuple
+from typing import Any, Callable, List, NamedTuple, Tuple
 
 import numpy
+from nptyping import NDArray, Structure
 
 from pyhgtmap.hgt.tile import TileContours
 
@@ -17,6 +18,12 @@ WayType = NamedTuple(
         ("elevation", int),
     ],
 )
+
+# Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
+WaysType = NDArray[
+    Any,
+    Structure["first_node_id: Int, nb_nodes: Int, closed_loop: Bool, elevation: Int"],
+]
 
 NodeType = Tuple[int, int]
 
@@ -42,7 +49,7 @@ class Output:
 
     def __init__(self) -> None:
         self.timestampString: str
-        self.ways_pending_write: List[Tuple[List[WayType], int]] = []
+        self.ways_pending_write: List[Tuple[WaysType, int]] = []
 
     def write_nodes(
         self,
@@ -50,29 +57,33 @@ class Output:
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[WayType]]:
+    ) -> Tuple[int, WaysType]:
         """
         Write nodes and prepare associated ways.
         Return (latest_node_id, [ways]) tuple.
         """
         raise NotImplementedError
 
-    def write_ways(self, ways: List[WayType], start_way_id: int) -> None:
+    def write_ways(self, ways: WaysType, start_way_id: int) -> None:
         """
         Add ways previously prepared by write_nodes to be written later
         (as ways should ideally be written after all nodes).
         """
         self.ways_pending_write.append((ways, start_way_id))
 
-    def _write_ways(self, ways: List[WayType], start_way_id: int) -> None:
+    def _write_ways(self, ways: WaysType, start_way_id: int) -> None:
         """Actually write ways, upon output finalization via done()."""
         raise NotImplementedError
 
     def done(self) -> None:
         """Finalize and close file."""
-        logger.debug("done() - Writing pending ways")
+        logger.debug(
+            "done() - Writing %s pending ways",
+            sum([len(x[0]) for x in self.ways_pending_write]),
+        )
         for ways, start_way_id in self.ways_pending_write:
             self._write_ways(ways, start_way_id)
+        logger.debug("done() - done!")
 
     def flush(self) -> None:
         """Flush file to disk."""
@@ -121,3 +132,18 @@ def make_nodes_ways(
         else:
             ways.append(WayType(nodeRefs[0], len(nodeRefs), False, elevation))
     return nodes, ways
+
+
+def build_efficient_ways(ways: List[WayType]) -> WaysType:
+    """Convert a list of ways (tuples) into a more efficient numpy array."""
+    return numpy.array(
+        ways,
+        dtype=numpy.dtype(
+            [
+                ("first_node_id", int),
+                ("nb_nodes", int),
+                ("closed_loop", bool),
+                ("elevation", int),
+            ]
+        ),
+    )  # type: ignore  # not supported by pylance

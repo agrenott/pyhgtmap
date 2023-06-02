@@ -5,12 +5,12 @@ import os
 import time
 from typing import Callable, List, Tuple
 
-import numpy
-import numpy.typing
 import npyosmium
 import npyosmium.io
 import npyosmium.osm
 import npyosmium.osm.mutable
+import numpy
+import numpy.typing
 
 import pyhgtmap.output
 from pyhgtmap.hgt.tile import TileContours
@@ -69,22 +69,26 @@ class Output(pyhgtmap.output.Output):
 
         return osm_header
 
-    def _write_ways(self, ways: List[pyhgtmap.output.WayType], startWayId) -> None:
+    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId) -> None:
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
 
         The waylist is split up to make sure the pbf blobs will not be too big.
         """
         for ind, way in enumerate(ways):
-            closed_loop_id: list[int] = [way.first_node_id] if way.closed_loop else []
+            closed_loop_id: list[int] = (
+                [way["first_node_id"]] if way["closed_loop"] else []
+            )
             osm_way = npyosmium.osm.mutable.Way(
                 id=startWayId + ind,
                 tags=(
-                    ("ele", str(way.elevation)),
+                    ("ele", str(way["elevation"])),
                     ("contour", "elevation"),
-                    ("contour_ext", self.elevClassifier(way.elevation)),
+                    ("contour_ext", self.elevClassifier(way["elevation"])),
                 ),
-                nodes=list(range(way.first_node_id, way.first_node_id + way.nb_nodes))
+                nodes=list(
+                    range(way["first_node_id"], way["first_node_id"] + way["nb_nodes"])
+                )
                 + closed_loop_id,
             )
             self.osm_writer.add_way(osm_way)
@@ -102,7 +106,7 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[pyhgtmap.output.WayType]]:
+    ) -> Tuple[int, pyhgtmap.output.WaysType]:
         logger.debug(f"writeNodes - startId: {start_node_id}")
 
         ways: List[pyhgtmap.output.WayType] = []
@@ -130,4 +134,5 @@ class Output(pyhgtmap.output.Output):
                 next_node_id += len(contour)
 
         logger.debug(f"writeNodes - next_node_id: {next_node_id}")
-        return next_node_id, ways
+
+        return next_node_id, pyhgtmap.output.build_efficient_ways(ways)

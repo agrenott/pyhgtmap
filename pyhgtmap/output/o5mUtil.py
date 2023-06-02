@@ -2,7 +2,7 @@
 
 
 import time
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 
 import pyhgtmap.output
 from pyhgtmap import output
@@ -173,7 +173,7 @@ class Output(output.Output):
         # no tags, so data is complete now
         return join(data)
 
-    def _write_ways(self, ways, startWayId):
+    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId):
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
         """
@@ -187,7 +187,7 @@ class Output(output.Output):
         for way in ways[1:]:
             self.writeWay(way, idDelta=1)
 
-    def writeWay(self, way, idDelta, first=False):
+    def writeWay(self, way: pyhgtmap.output.WayType, idDelta, first=False):
         wayDataset = []
         # 0x11 means way
         wayDataset.append(writableInt(0x11))
@@ -197,7 +197,7 @@ class Output(output.Output):
         wayDataset.append(wayData)
         self.outf.write(join(wayDataset))
 
-    def makeWayData(self, way, idDelta, first):
+    def makeWayData(self, way: pyhgtmap.output.WayType, idDelta, first):
         startNodeId, length, isCycle, elevation = way
         data = []
         data.append(sint2str(idDelta))
@@ -263,16 +263,16 @@ class Output(output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, List[output.WayType]]:
+    ) -> Tuple[int, output.WaysType]:
         return writeNodes(self, tile_contours, timestamp_string, start_node_id)
 
 
 def writeNodes(
     output: Output,
     tile_contours: TileContours,
-    timestampString,
+    timestampString,  # dummy option
     start_node_id,
-):  # dummy option
+) -> Tuple[int, output.WaysType]:
     IDCounter = pyhgtmap.output.Id(start_node_id)
     ways = []
     nodes = []
@@ -294,4 +294,4 @@ def writeNodes(
     if len(nodes) > 0:
         output.write(str((startId, nodes)) + "\n")
         output.flush()
-    return newId, ways
+    return newId, pyhgtmap.output.build_efficient_ways(ways)
