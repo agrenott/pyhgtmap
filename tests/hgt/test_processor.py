@@ -309,3 +309,21 @@ class TestHgtFilesProcessor:
                 default_options, ["file1.hgt"], (0, 1, 2, 3)
             )
             assert output1 is output2
+
+    @staticmethod
+    def test_node_id_overflow(default_options: SimpleNamespace) -> None:
+        # Ensure node ID doesn't overflow limit of int32
+        processor = HgtFilesProcessor(
+            1, node_start_id=2147483647, way_start_id=200, options=default_options
+        )
+        assert processor.get_and_inc_counter(processor.next_node_id, 1) == 2147483647
+        assert processor.get_and_inc_counter(processor.next_node_id, 1) == 2147483648
+
+    @staticmethod
+    def test_way_id_overflow(default_options: SimpleNamespace) -> None:
+        # Ensure way ID doesn't overflow limit of int32
+        processor = HgtFilesProcessor(
+            1, node_start_id=100, way_start_id=2147483647, options=default_options
+        )
+        assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483647
+        assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483648

@@ -233,6 +233,29 @@ class TestOutputPbf:
             # Check file size to ensure there's no major drop in efficiency (compression, dense encoding)
             assert os.stat(osm_file_name).st_size < 420
 
+    @staticmethod
+    def test_node_id_overflow(
+        tile_contours: TileContours,
+        elev_classifier,
+        bounding_box: Tuple[float, float, float, float],
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            osm_file_name = os.path.join(tempdir, "output.osm.pbf")
+            osm_output = pbfUtil.Output(
+                osm_file_name,
+                osmVersion=0.6,
+                pyhgtmap_version="123",
+                bbox=bounding_box,
+                elevClassifier=elev_classifier,
+            )
+            start = 2147483647
+            next_node_id, ways = osm_output.write_nodes(
+                tile_contours, ' time="some time"', start, 0.6
+            )
+
+            # Check int32 boundary has been passed without issue
+            assert next_node_id == 2147483655
+
 
 class TestOutputO5m:
     @staticmethod
