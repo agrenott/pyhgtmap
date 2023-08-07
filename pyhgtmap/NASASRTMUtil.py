@@ -898,7 +898,13 @@ def getFiles(area, polygon, corrx, corry, sources):
 
 
 def anySRTMsources(sources):
-    for source in sources:
-        if source.startswith("srtm"):
-            return True
-    return False
+    """
+    Returns True if any of the given sources start with 'srtm', False otherwise.
+
+    Args:
+        sources (iterable): An iterable of strings representing the data sources.
+
+    Returns:
+        bool: True if any of the sources start with 'srtm', False otherwise.
+    """
+    return any(source.startswith("srtm") for source in sources)
