@@ -727,8 +727,7 @@ def earthexplorerLogin():
     return opener
 
 
-def downloadToFile_SRTMv3(url, filename):
-    opener = earthexplorerLogin()
+def downloadToFile_SRTMv3(opener, url, filename):
     # earthexplorer servers yield HTTP error 500 for some specific files like,
     # e.g.,  https://earthexplorer.usgs.gov/download/4960/SRTM3S11W139V2/GEOTIFF3/EE
     try:
@@ -748,23 +747,23 @@ def downloadToFile_Simple(url, filename):
     open(filename, "wb").write(res.read())
 
 
-def downloadToFile(url, filename, source):
+def downloadToFile(opener, url, filename, source):
     sourceType, sourceResolution = source[:4], int(source[4])
     if sourceType == "srtm":
         srtmVersion = float(source[6:])
         if srtmVersion == 3.0:
-            return downloadToFile_SRTMv3(url, filename)
+            return downloadToFile_SRTMv3(opener, url, filename)
     return downloadToFile_Simple(url, filename)
 
 
-def downloadAndUnzip(url, area, source):
+def downloadAndUnzip(opener, url, area, source):
     if source.lower().startswith("srtm") and "v3.0" in source.lower():
-        return downloadAndUnzip_Tif(url, area, source)
+        return downloadAndUnzip_Tif(opener, url, area, source)
     else:
-        return downloadAndUnzip_Zip(url, area, source)
+        return downloadAndUnzip_Zip(opener, url, area, source)
 
 
-def downloadAndUnzip_Tif(url, area, source):
+def downloadAndUnzip_Tif(opener, url, area, source):
     hgtSaveDir, hgtSaveSubDir = getDirNames(source)
     fileResolution = int(source[4])
     oldSaveFilename = os.path.join(hgtSaveSubDir, "{0:s}.hgt".format(area))
@@ -781,7 +780,7 @@ def downloadAndUnzip_Tif(url, area, source):
         print(
             "{0:s}: downloading file {1:s} to {2:s} ...".format(area, url, saveFilename)
         )
-        downloadToFile(url, saveFilename, source)
+        downloadToFile(opener, url, saveFilename, source)
     try:
         os.stat(saveFilename)
         print("{0:s}: using file {1:s}.".format(area, saveFilename))
@@ -791,7 +790,7 @@ def downloadAndUnzip_Tif(url, area, source):
         return None
 
 
-def downloadAndUnzip_Zip(url, area, source):
+def downloadAndUnzip_Zip(opener, url, area, source):
     hgtSaveDir, hgtSaveSubDir = getDirNames(source)
     fileResolution = int(source[4])
     saveZipFilename = os.path.join(hgtSaveSubDir, url.split("/")[-1])
@@ -819,14 +818,14 @@ def downloadAndUnzip_Zip(url, area, source):
                     print(
                         "Got the wrong zip file (area found multiple times in index file)."
                     )
-                    return downloadAndUnzip(viewUrl, area, source)
+                    return downloadAndUnzip(opener, viewUrl, area, source)
         except:
             print(
                 "{0:s}: downloading file {1:s} to {2:s} ...".format(
                     area, url, saveZipFilename
                 )
             )
-            downloadToFile(url, saveZipFilename, source)
+            downloadToFile(opener, url, saveZipFilename, source)
             try:
                 areaNames = unzipFile(saveZipFilename, area)
                 if source.startswith("view"):
@@ -838,7 +837,7 @@ def downloadAndUnzip_Zip(url, area, source):
                         print(
                             "Got the wrong zip file (area found multiple times in index file)."
                         )
-                        return downloadAndUnzip(viewUrl, area, source)
+                        return downloadAndUnzip(opener, viewUrl, area, source)
             except Exception as msg:
                 print(msg)
                 print(
@@ -863,7 +862,7 @@ def downloadAndUnzip_Zip(url, area, source):
         return None
 
 
-def getFile(area, source):
+def getFile(opener, area, source):
     fileResolution = int(source[4])
     if source.startswith("srtm"):
         srtmVersion = float(source[6:])
@@ -873,7 +872,7 @@ def getFile(area, source):
     if not url:
         return None
     else:
-        return downloadAndUnzip(url, area, source)
+        return downloadAndUnzip(opener, url, area, source)
 
 
 def getFiles(area, polygon, corrx, corry, sources):
@@ -881,10 +880,14 @@ def getFiles(area, polygon, corrx, corry, sources):
     bbox = calcBbox(area, corrx, corry)
     areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
     files = []
+    if anySRTMsources(sources):
+        opener = earthexplorerLogin()
+    else:
+        opener = None
     for area, checkPoly in areaPrefixes:
         for source in sources:
             print("{0:s}: trying {1:s} ...".format(area, source))
-            saveFilename = getFile(area, source)
+            saveFilename = getFile(opener, area, source)
             if saveFilename:
                 files.append((saveFilename, checkPoly))
                 break
@@ -892,3 +895,10 @@ def getFiles(area, polygon, corrx, corry, sources):
             print("{0:s}: no file found on server.".format(area))
             continue
     return files
+
+
+def anySRTMsources(sources):
+    for source in sources:
+        if source.startswith("srtm"):
+            return True
+    return False
