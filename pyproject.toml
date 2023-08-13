@@ -21,6 +21,7 @@ dependencies = [
   "bs4>=0.0.1",
   "colorlog>=6.7.0",
   "contourpy>=1.0.7",
+  "lxml>=4.9.2",
   "matplotlib>=3.4.3",
   "numpy>=1.24.2",
   "nptyping>=2.5.0",
