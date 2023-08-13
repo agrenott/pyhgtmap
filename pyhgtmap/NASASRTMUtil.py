@@ -297,7 +297,8 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 
 def parseSRTMv3CoverageKml(kmlContents):
     polygons = []
-    polygonSoup = BeautifulSoup(kmlContents, "lxml").findAll("polygon")
+    # KML file is pure XML
+    polygonSoup = BeautifulSoup(kmlContents, "lxml-xml").findAll("Polygon")
     for p in polygonSoup:
         for c in p.findAll("coordinates"):
             for cont in c.contents:

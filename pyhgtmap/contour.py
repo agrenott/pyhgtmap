@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, cast
 
 import contourpy
 import numpy
@@ -117,7 +117,9 @@ class ContoursGenerator(object):
         XML output.  Also, consecutive identical nodes are removed.
         """
         # Keep only the first element of the tuple, ignoring matplot line code
-        rawPaths: List[numpy.ndarray] = self.cntr.create_contour(elevation)[0]
+        rawPaths: List[numpy.ndarray] = cast(
+            List[numpy.ndarray], self.cntr.create_contour(elevation)[0]
+        )
         numOfPaths, numOfNodes = 0, 0
         resultPaths = []
         for path in rawPaths:
