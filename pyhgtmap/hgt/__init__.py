@@ -1,11 +1,22 @@
-from typing import Tuple
+from typing import Callable, Iterable, Optional, Tuple
+
+# Coordinates transformation function prototype
+TransformFunType = Callable[
+    [Iterable[Tuple[float, float]]], Iterable[Tuple[float, float]]
+]
 
 
 def makeBBoxString(bbox: Tuple[float, float, float, float]) -> str:
     return "{{0:s}}lon{0[0]:.2f}_{0[2]:.2f}lat{0[1]:.2f}_{0[3]:.2f}".format(bbox)
 
 
-def transformLonLats(minLon, minLat, maxLon, maxLat, transform):
+def transformLonLats(
+    minLon: float,
+    minLat: float,
+    maxLon: float,
+    maxLat: float,
+    transform: Optional[TransformFunType],
+) -> Tuple[float, float, float, float]:
     if transform is None:
         return minLon, minLat, maxLon, maxLat
     else:

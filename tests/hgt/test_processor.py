@@ -1,5 +1,6 @@
 import glob
 import itertools
+import logging
 import multiprocessing
 import os
 import shutil
@@ -9,7 +10,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Callable, Generator, List, NamedTuple, Tuple
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import npyosmium
 import npyosmium.io
@@ -17,6 +18,7 @@ import npyosmium.osm
 import pytest
 
 from pyhgtmap.hgt.processor import HgtFilesProcessor
+from pyhgtmap.hgt.tile import TileContours
 
 from .. import TEST_DATA_PATH
 
@@ -327,3 +329,27 @@ class TestHgtFilesProcessor:
         )
         assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483647
         assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483648
+
+    @staticmethod
+    def test_process_tile_internal_empty_contour(
+        default_options: SimpleNamespace, caplog
+    ) -> None:
+        """Ensure no empty output file is generated when there's no contour."""
+        processor = HgtFilesProcessor(
+            1, node_start_id=100, way_start_id=200, options=default_options
+        )
+        # Empty tile
+        tile_contours = TileContours(nb_nodes=0, nb_ways=0, contours={})
+        tile_mock = MagicMock()
+        tile_mock.get_contours.return_value = tile_contours
+        tile_mock.__str__.return_value = "Tile (28.00, 42.50, 29.00, 43.00)"  # type: ignore
+        with tempfile.TemporaryDirectory() as tempdir_name:
+            with cwd(tempdir_name):
+                caplog.set_level(logging.INFO)
+                processor.process_tile_internal("empty.pbf", tile_mock)
+                # NO file must be generated
+                assert not os.path.exists("empty.pbf")
+                assert (
+                    "Tile (28.00, 42.50, 29.00, 43.00) doesn't contain any node, skipping."
+                    in caplog.text
+                )

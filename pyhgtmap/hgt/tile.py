@@ -53,9 +53,7 @@ class hgtTile:
 
     def get_stats(self) -> str:
         """Get some statistics about the tile."""
-        minLon, minLat, maxLon, maxLat = transformLonLats(
-            self.minLon, self.minLat, self.maxLon, self.maxLat, self.transform
-        )
+        minLon, minLat, maxLon, maxLat = self.bbox()
         result = (
             f"tile with {self.numOfRows:d} x {self.numOfCols:d} points, "
             f"bbox: ({minLon:.2f}, {minLat:.2f}, {maxLon:.2f}, {maxLat:.2f})"
@@ -66,6 +64,10 @@ class hgtTile:
     def printStats(self) -> None:
         """prints some statistics about the tile."""
         print(f"\n{self.get_stats()}")
+
+    def __str__(self) -> str:
+        bbox = self.bbox()
+        return f"Tile ({bbox[0]:.2f}, {bbox[1]:.2f}, {bbox[2]:.2f}, {bbox[3]:.2f})"
 
     def getElevRange(self) -> Tuple[int, int]:
         """returns minEle, maxEle of the current tile.
