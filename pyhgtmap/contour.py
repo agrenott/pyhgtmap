@@ -1,9 +1,11 @@
-from typing import Callable, List, Optional, Tuple, cast
+from typing import List, Optional, Tuple, cast
 
 import contourpy
 import numpy
 import numpy.typing
 from pybind11_rdp import rdp
+
+from pyhgtmap.hgt import TransformFunType
 
 
 def simplify_path(
@@ -32,14 +34,14 @@ class ContoursGenerator(object):
         self,
         cntr: contourpy.ContourGenerator,
         max_nodes_per_way,
-        transform,
+        transform: Optional[TransformFunType],
         polygon=None,
         rdp_epsilon=None,
     ) -> None:
         self.cntr: contourpy.ContourGenerator = cntr
         self.max_nodes_per_way = max_nodes_per_way
         self.polygon = polygon
-        self.transform = transform
+        self.transform: Optional[TransformFunType] = transform
         self.rdp_epsilon = rdp_epsilon
 
     def _cutBeginning(self, p):
@@ -136,7 +138,7 @@ def build_contours(
     y: numpy.typing.ArrayLike,
     z: numpy.typing.ArrayLike,
     max_nodes_per_way: int,
-    transform: Callable,
+    transform: Optional[TransformFunType],
     polygon,
     rdp_epsilon,
 ) -> ContoursGenerator:

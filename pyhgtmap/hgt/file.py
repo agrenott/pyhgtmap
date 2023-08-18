@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from typing import Callable, List, Optional, Tuple, cast
+from typing import Iterable, List, Optional, Tuple, cast
 
 import numpy
 import numpy.typing
@@ -9,7 +9,7 @@ import shapely
 from matplotlib.path import Path as PolygonPath
 from scipy import ndimage
 
-from pyhgtmap.hgt import transformLonLats
+from pyhgtmap.hgt import TransformFunType, transformLonLats
 
 from .tile import hgtTile
 
@@ -114,10 +114,6 @@ def parseHgtFilename(
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
 
 
-# Coordinates transformation function prototype
-TransformFunType = Callable[[List[Tuple[float, float]]], List[Tuple[float, float]]]
-
-
 def getTransform(o, reverse=False) -> Optional[TransformFunType]:
     try:
         from osgeo import osr
@@ -137,7 +133,9 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
         else:
             t = osr.CoordinateTransformation(o, n)
 
-        def transform(points: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
+        def transform(
+            points: Iterable[Tuple[float, float]]
+        ) -> Iterable[Tuple[float, float]]:
             return [
                 p[:2]
                 for p in t.TransformPoints(points)
@@ -236,7 +234,7 @@ def polygon_mask(
     x_data: numpy.ndarray,
     y_data: numpy.ndarray,
     polygons: List[List[Tuple[float, float]]],
-    transform,
+    transform: Optional[TransformFunType],
 ) -> numpy.ndarray:
     """return a mask on self.zData corresponding to all polygons in self.polygons.
     <xData> is meant to be a 1-D array of longitude values, <yData> a 1-D array of
@@ -246,12 +244,14 @@ def polygon_mask(
     which is the projection used within polygon files.
     """
     X, Y = numpy.meshgrid(x_data, y_data)
-    xyPoints = numpy.vstack(([X.T], [Y.T])).T.reshape(len(x_data) * len(y_data), 2)
+    xyPoints: Iterable[tuple[float, float]] = numpy.vstack(([X.T], [Y.T])).T.reshape(
+        len(x_data) * len(y_data), 2
+    )
 
     # To improve performances, clip original polygons to current data boundaries.
     # Slightly expand the bounding box, as PolygonPath.contains_points result is undefined for points on boundary
     # https://matplotlib.org/stable/api/path_api.html#matplotlib.path.Path.contains_point
-    bbox_points: List[Tuple[float, float]] = [
+    bbox_points: Iterable[Tuple[float, float]] = [
         (x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
         (x_data.min() - BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),
         (x_data.max() + BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),

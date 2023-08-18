@@ -114,6 +114,10 @@ class HgtFilesProcessor:
                 rdp_epsilon=self.options.rdpEpsilon,
             )
 
+            if not tile_contours.nb_nodes:
+                logger.info("%s doesn't contain any node, skipping.", tile)
+                return
+
             # Update counters shared among parallel processes
             # This is the actual critical section, to avoid duplicated node IDs
             logger.debug("Pending next_node_id_lock")
