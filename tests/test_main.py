@@ -22,7 +22,7 @@ def test_main_download_from_poly(HgtFilesProcessor_mock, NASASRTMUtil_mock) -> N
     ]
 
     # Test
-    main.main(sys_args)
+    main.main_internal(sys_args)
 
     # Check
     NASASRTMUtil_mock.getFiles.assert_called_once()
@@ -65,7 +65,7 @@ def test_main_manual_input_poly(HgtFilesProcessor_mock, NASASRTMUtil_mock) -> No
     ]
 
     # Test
-    main.main(sys_args)
+    main.main_internal(sys_args)
 
     # Check
     NASASRTMUtil_mock.getFiles.assert_not_called()
@@ -93,7 +93,7 @@ def test_main_manual_input_no_poly(HgtFilesProcessor_mock, NASASRTMUtil_mock) ->
     ]
 
     # Test
-    main.main(sys_args)
+    main.main_internal(sys_args)
 
     # Check
     NASASRTMUtil_mock.getFiles.assert_not_called()

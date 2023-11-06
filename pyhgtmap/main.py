@@ -554,7 +554,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     return opts, args
 
 
-def main(sys_args: List[str]) -> None:
+def main_internal(sys_args: List[str]) -> None:
     opts, args = parseCommandLine(sys_args)
     configure_logging(opts.logLevel)
 
@@ -589,5 +589,11 @@ def main(sys_args: List[str]) -> None:
     )
 
 
+def main() -> None:
+    """Parameter-less entry point, required for python packaging scripts"""
+    # https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts
+    main_internal(sys.argv[1:])
+
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
