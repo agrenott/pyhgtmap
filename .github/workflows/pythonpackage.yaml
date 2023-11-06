@@ -35,7 +35,10 @@ jobs:
         hatch run geotiff:all
     - name: Run unit test without Geotiff dependencies
       run: |
-        hatch run test 
+        hatch run test
+    - name: Ensure script entrypoint is executable
+      run: |
+        hatch run pyhgtmap -v 
     - name: Report test-coverage to DeepSource
       # Deepsource doesn't seem super stable
       continue-on-error: true
