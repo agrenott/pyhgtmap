@@ -282,7 +282,7 @@ def polygon_mask(
     maskArray = numpy.ma.array(numpy.empty((len(x_data) * len(y_data), 1)))
     for p in clipped_polygons:
         # run through all polygons and combine masks
-        mask = PolygonPath(p).contains_points(xyPoints)
+        mask = PolygonPath(p).contains_points(xyPoints)  # type: ignore
         maskArray = numpy.ma.array(maskArray, mask=mask, keep_mask=True)
     return numpy.invert(maskArray.mask.reshape(len(y_data), len(x_data)))
 

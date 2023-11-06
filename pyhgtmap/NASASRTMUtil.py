@@ -3,6 +3,7 @@ from __future__ import print_function
 import base64
 import os
 import sys
+from typing import List, Optional, Tuple
 import urllib
 import zipfile
 from http import cookiejar as cookielib
@@ -876,7 +877,13 @@ def getFile(opener, area, source):
         return downloadAndUnzip(opener, url, area, source)
 
 
-def getFiles(area, polygon, corrx, corry, sources):
+def getFiles(
+    area: str,
+    polygon: Optional[List[List[Tuple[float, float]]]],
+    corrx: float,
+    corry: float,
+    sources: List[str],
+) -> List[Tuple[str, bool]]:
     initDirs(sources)
     bbox = calcBbox(area, corrx, corry)
     areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
@@ -898,7 +905,7 @@ def getFiles(area, polygon, corrx, corry, sources):
     return files
 
 
-def anySRTMsources(sources):
+def anySRTMsources(sources: List[str]) -> bool:
     """
     Returns True if any of the given sources start with 'srtm', False otherwise.
 

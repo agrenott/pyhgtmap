@@ -332,7 +332,7 @@ class TestHgtFilesProcessor:
 
     @staticmethod
     def test_process_tile_internal_empty_contour(
-        default_options: SimpleNamespace, caplog
+        default_options: SimpleNamespace, caplog: pytest.LogCaptureFixture
     ) -> None:
         """Ensure no empty output file is generated when there's no contour."""
         processor = HgtFilesProcessor(
@@ -345,7 +345,7 @@ class TestHgtFilesProcessor:
         tile_mock.__str__.return_value = "Tile (28.00, 42.50, 29.00, 43.00)"  # type: ignore
         with tempfile.TemporaryDirectory() as tempdir_name:
             with cwd(tempdir_name):
-                caplog.set_level(logging.INFO)
+                caplog.set_level(logging.INFO, logger="pyhgtmap.hgt.processor")
                 processor.process_tile_internal("empty.pbf", tile_mock)
                 # NO file must be generated
                 assert not os.path.exists("empty.pbf")
