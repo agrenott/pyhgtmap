@@ -4,7 +4,8 @@
 import logging
 import os
 import sys
-from optparse import OptionParser
+from optparse import OptionParser, Values
+from typing import List, Tuple
 
 from pyhgtmap import NASASRTMUtil, __version__, configUtil
 from pyhgtmap.hgt.file import calcHgtArea, parsePolygon
@@ -16,7 +17,7 @@ configFilename = os.path.join(os.path.expanduser("~"), ".pyhgtmaprc")
 logger = logging.getLogger(__name__)
 
 
-def parseCommandLine():
+def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     """parses the command line."""
     parser = OptionParser(
         usage="%prog [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
@@ -439,7 +440,7 @@ def parseCommandLine():
         default="WARNING",
         help="Set this tool's debug logging level",
     )
-    opts, args = parser.parse_args()
+    opts, args = parser.parse_args(sys_args)
     if opts.version:
         print("pyhgtmap {0:s}".format(__version__))
         sys.exit(0)
@@ -553,39 +554,35 @@ def parseCommandLine():
     return opts, args
 
 
-def main() -> None:
-    opts, args = parseCommandLine()
+def main(sys_args: List[str]) -> None:
+    opts, args = parseCommandLine(sys_args)
     configure_logging(opts.logLevel)
-    if opts.area:
-        logger.debug(f"Downloading HGT files for area {opts.area}")
-        hgtDataFiles = NASASRTMUtil.getFiles(
-            opts.area, opts.polygon, opts.srtmCorrx, opts.srtmCorry, opts.dataSource
-        )
-        if len(hgtDataFiles) == 0:
-            if len(opts.dataSource) == 1:
-                print(
-                    "No files for this area {0:s} from desired source.".format(
-                        opts.area
-                    )
-                )
-            else:
-                print(
-                    "No files for this area {0:s} from desired sources.".format(
-                        opts.area
-                    )
-                )
-            sys.exit(0)
-        elif opts.downloadOnly:
-            sys.exit(0)
-    else:
+
+    hgtDataFiles: List[Tuple[str, bool]]
+    if args:
+        # Prefer using any manually provided source file
+        use_poly_flag = opts.polygon is not None
         hgtDataFiles = [
-            (arg, False)
+            (arg, use_poly_flag)
             for arg in args
             if os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff", ".vrt")
         ]
         opts.area = ":".join(
             [str(i) for i in calcHgtArea(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)]
         )
+    else:
+        # Download from area or polygon
+        logger.debug(f"Downloading HGT files for area {opts.area}")
+        hgtDataFiles = NASASRTMUtil.getFiles(
+            opts.area, opts.polygon, opts.srtmCorrx, opts.srtmCorry, opts.dataSource
+        )
+        if len(hgtDataFiles) == 0:
+            print(
+                "No files for this area {0:s} from desired source(s).".format(opts.area)
+            )
+            sys.exit(0)
+        elif opts.downloadOnly:
+            sys.exit(0)
 
     HgtFilesProcessor(opts.nJobs, opts.startId, opts.startWayId, opts).process_files(
         hgtDataFiles
@@ -593,4 +590,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
