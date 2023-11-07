@@ -492,17 +492,17 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
                     opts.dataSource[opts.dataSource.index(s)] = "{0:s}v{1:.1f}".format(
                         s, opts.srtmVersion
                     )
-    else:
+    elif len(args) == 0:
+        # No explicit source nor input provided, try to download using default
         opts.dataSource = []
         if opts.viewfinder != 0:
             opts.dataSource.append("view{0:d}".format(opts.viewfinder))
         opts.dataSource.append(
             "srtm{0:d}v{1:.1f}".format(opts.srtmResolution, opts.srtmVersion)
         )
-        if not opts.area and not opts.polygon:
-            # this is a hint for makeOsmFilename() that files are specified on the
-            # command line
-            opts.dataSource = []
+    else:
+        # Input files provided, no download source
+        opts.dataSource = []
     needsEarthexplorerLogin = False
     for s in opts.dataSource:
         if s.startswith("srtm") and "v3" in s:
