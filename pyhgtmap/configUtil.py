@@ -1,11 +1,21 @@
 # -*- encoding: utf-8 -*-
 
 import base64
+import pathlib
+import os
+
+CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".pyhgtmap")
+CONFIG_FILENAME = os.path.join(CONFIG_DIR, ".pyhgtmaprc")
+
+
+def create_config_dir() -> None:
+    """Create configuration directory if it doesn't exist."""
+    pathlib.Path(CONFIG_DIR).mkdir(exist_ok=True)
 
 
 class Config(object):
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
+        self.filename = CONFIG_FILENAME
         self.parse()
         self.needsWrite = False
 

@@ -28,6 +28,32 @@ simple form of parallelization and the advance will be dramatical.
 Note that the intended use is not to upload generated contour OSM data to the
 OSM servers but to use it for fancy maps.
 
+# Sources
+
+pyhgtmap supports several HGT data sources. Those are identified by a 4-character "nickname" + one digit resolution suffix, which can be specified with the `--source` parameter of pyhgtmap.
+
+## SRTM
+
+[NASA Shuttle Radar Topography Mission v3.0](https://www.earthdata.nasa.gov/news/nasa-shuttle-radar-topography-mission-srtm-version-3-0-global-1-arc-second-data-released-over-asia-and-australia)
+
+*Available for 1" and 3" resolutions.*
+
+This source requires creating an earthexplorer account on https://ers.cr.usgs.gov/register/.
+
+## VIEW
+
+[VIEWFINDER PANORAMAS DIGITAL ELEVATION DATA](http://viewfinderpanoramas.org/dem3.html)
+
+*Available for 1" and 3" resolutions.*
+
+## SONN
+
+[Sonny's LiDAR Digital Terrain Models (DTM) of European countries](https://sonny.4lima.de/)
+
+*Available for 1" and 3" resolutions.*
+
+This source require usage of Google Drive API. To use it, you have to generate API client OAuth secret as described in [pydrive2's documentation](https://docs.iterative.ai/PyDrive2/quickstart/) and save the client secrets JSON file in pyhgtmap config directory (`~/.pyhgtmap/client-secret.json`).
+
 # Installation
 
 For ubuntu-like system:

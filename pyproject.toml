@@ -26,7 +26,9 @@ dependencies = [
   "numpy>=1.24.2",
   "nptyping>=2.5.0",
   "npyosmium>=3.6.1",
+  "phx-class-registry>=4.0.6",
   "pybind11-rdp>=0.1.3",
+  "PyDrive2>=1.17.0",
   "scipy>=1.8.0",
   "shapely>=2.0.1",
 ]
