@@ -38,6 +38,7 @@ keywords = ["osm", "OpenStreetMap", "countour", "SRTM", "elevation"]
 license = "GPL-2.0-or-later"
 name = "pyhgtmap"
 readme = "README.md"
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
 geotiff = [
@@ -91,7 +92,7 @@ test_cov = [
 typing = "mypy {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.9", "3.10"]
+python = ["3.9", "3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.geotiff]
 # Env for optional geotiff dependencies
