@@ -12,8 +12,6 @@ from pyhgtmap.hgt.file import calcHgtArea, parsePolygon
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.logger import configure_logging
 
-configFilename = os.path.join(os.path.expanduser("~"), ".pyhgtmaprc")
-
 logger = logging.getLogger(__name__)
 
 
@@ -354,11 +352,11 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         "--data-source",
         help="specify a list of"
         "\nsources to use as comma-seperated string.  Available sources are"
-        "\n'srtm1', 'srtm3', 'view1' and 'view3'.  If specified, the data source"
-        "\nwill be selected using this option as preference list.  Specifying"
-        "\n--source=view3,srtm3 for example will prefer viewfinder 3 arc second"
-        "\ndata to NASA SRTM 3 arc second data.  Also see the --srtm-version"
-        "\noption for different versions of SRTM data.",
+        "\n'srtm1', 'srtm3', 'sonn1', 'sonn3' 'view1' and 'view3'.  If specified,"
+        "\nthe data source will be selected using this option as preference list."
+        "\nSpecifying --source=view3,srtm3 for example will prefer viewfinder 3"
+        "\narc second data to NASA SRTM 3 arc second data.  Also see the"
+        "\n--srtm-version option for different versions of SRTM data.",
         metavar="DATA-SOURCE",
         action="store",
         default=None,
@@ -484,7 +482,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     if opts.dataSource:
         opts.dataSource = [el.strip() for el in opts.dataSource.lower().split(",")]
         for s in opts.dataSource:
-            if s[:5] not in ["view1", "view3", "srtm1", "srtm3"]:
+            if s[:5] not in ["view1", "view3", "srtm1", "srtm3", "sonn1", "sonn3"]:
                 print("Unknown data source: {0:s}".format(s))
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:
@@ -509,10 +507,10 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
             needsEarthexplorerLogin = True
     if needsEarthexplorerLogin:
         # we need earthexplorer login credentials handling then
-        earthexplorerUser = configUtil.Config(configFilename).setOrGet(
+        earthexplorerUser = configUtil.Config().setOrGet(
             "earthexplorer_credentials", "user", opts.earthexplorerUser
         )
-        earthexplorerPassword = configUtil.Config(configFilename).setOrGet(
+        earthexplorerPassword = configUtil.Config().setOrGet(
             "earthexplorer_credentials", "password", opts.earthexplorerPassword
         )
         if not all((earthexplorerUser, earthexplorerPassword)):

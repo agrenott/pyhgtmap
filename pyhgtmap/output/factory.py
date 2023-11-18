@@ -24,7 +24,14 @@ def make_osm_filename(
         for srcName in input_files_names
     ]
     for srcNameMiddle in set(srcNameMiddles):
-        if srcNameMiddle.lower()[:5] in ["srtm1", "srtm3", "view1", "view3"]:
+        if srcNameMiddle.lower()[:5] in [
+            "srtm1",
+            "srtm3",
+            "view1",
+            "view3",
+            "sonn1",
+            "sonn3",
+        ]:
             continue
         elif not opts.dataSource:
             # files from the command line, this could be something custom

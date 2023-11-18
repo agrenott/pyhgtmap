@@ -3,14 +3,17 @@ from __future__ import print_function
 import base64
 import os
 import sys
-from typing import List, Optional, Tuple
 import urllib
 import zipfile
 from http import cookiejar as cookielib
+from typing import List, Optional, Tuple
 
 import numpy
 from bs4 import BeautifulSoup
 from matplotlib.path import Path as PolygonPath
+
+from pyhgtmap.configUtil import CONFIG_DIR
+from pyhgtmap.sources.pool import Pool
 
 
 class NASASRTMUtilConfigClass(object):
@@ -660,16 +663,16 @@ def getDirNames(source):
     return NASASRTMUtilConfig.hgtSaveDir, hgtSaveSubDir
 
 
-def initDirs(sources):
+def initDirs(sources: List[str]) -> None:
     mkdir(NASASRTMUtilConfig.hgtSaveDir)
     for source in sources:
-        sourceType, sourceResolution = source[:4], int(source[4])
-        if sourceType == "srtm":
+        source_type, source_resolution = source[:4], int(source[4])
+        if source_type == "srtm":
             srtmVersion = float(source[6:])
             NASAhgtSaveSubDir = os.path.join(
                 NASASRTMUtilConfig.hgtSaveDir,
                 NASASRTMUtilConfig.NASAhgtSaveSubDirRe.format(
-                    sourceResolution, srtmVersion
+                    source_resolution, srtmVersion
                 ),
             )
             if srtmVersion == 2.1:
@@ -696,10 +699,10 @@ def initDirs(sources):
             # we can try the create the directory no matter if we already renamed
             # an old directory to this name
             mkdir(NASAhgtSaveSubDir)
-        elif sourceType == "view":
+        elif source_type == "view":
             VIEWhgtSaveSubDir = os.path.join(
                 NASASRTMUtilConfig.hgtSaveDir,
-                NASASRTMUtilConfig.VIEWhgtSaveSubDirRe.format(sourceResolution),
+                NASASRTMUtilConfig.VIEWhgtSaveSubDirRe.format(source_resolution),
             )
             mkdir(VIEWhgtSaveSubDir)
 
@@ -864,17 +867,30 @@ def downloadAndUnzip_Zip(opener, url, area, source):
         return None
 
 
-def getFile(opener, area, source):
-    fileResolution = int(source[4])
-    if source.startswith("srtm"):
-        srtmVersion = float(source[6:])
-        url = getNASAUrl(area, fileResolution, srtmVersion)
-    elif source.startswith("view"):
-        url = getViewUrl(area, fileResolution)
-    if not url:
-        return None
-    else:
-        return downloadAndUnzip(opener, url, area, source)
+class SourcesPool:
+    """Stateful pool of various HGT data sources."""
+
+    # TODO get rid of this layer once existing sources are migrated to the new framework
+
+    def __init__(self) -> None:
+        self._real_pool = Pool(NASASRTMUtilConfig.hgtSaveDir, CONFIG_DIR)
+
+    def get_file(self, opener, area: str, source: str):
+        fileResolution = int(source[4])
+        if source.startswith("srtm"):
+            srtmVersion = float(source[6:])
+            url = getNASAUrl(area, fileResolution, srtmVersion)
+        elif source.startswith("view"):
+            url = getViewUrl(area, fileResolution)
+        elif source.startswith("sonn"):
+            file_name = self._real_pool.get_source("sonn").get_file(
+                area, fileResolution
+            )
+            return file_name
+        if not url:
+            return None
+        else:
+            return downloadAndUnzip(opener, url, area, source)
 
 
 def getFiles(
@@ -888,6 +904,7 @@ def getFiles(
     bbox = calcBbox(area, corrx, corry)
     areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
     files = []
+    sources_pool = SourcesPool()
     if anySRTMsources(sources):
         opener = earthexplorerLogin()
     else:
@@ -895,7 +912,7 @@ def getFiles(
     for area, checkPoly in areaPrefixes:
         for source in sources:
             print("{0:s}: trying {1:s} ...".format(area, source))
-            saveFilename = getFile(opener, area, source)
+            saveFilename = sources_pool.get_file(opener, area, source)
             if saveFilename:
                 files.append((saveFilename, checkPoly))
                 break
