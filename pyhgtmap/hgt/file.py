@@ -244,7 +244,7 @@ def polygon_mask(
     which is the projection used within polygon files.
     """
     X, Y = numpy.meshgrid(x_data, y_data)
-    xyPoints: Iterable[tuple[float, float]] = numpy.vstack(([X.T], [Y.T])).T.reshape(
+    xyPoints: Iterable[Tuple[float, float]] = numpy.vstack(([X.T], [Y.T])).T.reshape(
         len(x_data) * len(y_data), 2
     )
 

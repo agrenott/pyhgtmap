@@ -76,7 +76,7 @@ class Output(pyhgtmap.output.Output):
         The waylist is split up to make sure the pbf blobs will not be too big.
         """
         for ind, way in enumerate(ways):
-            closed_loop_id: list[int] = (
+            closed_loop_id: List[int] = (
                 [way["first_node_id"]] if way["closed_loop"] else []
             )
             osm_way = npyosmium.osm.mutable.Way(
