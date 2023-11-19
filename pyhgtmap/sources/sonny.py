@@ -1,7 +1,7 @@
 import io
 import os
 import pathlib
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, cast
 from zipfile import ZipFile
 
 from pydrive2.auth import GoogleAuth
@@ -22,7 +22,7 @@ class Sonny(Source):
 
     # Root Sonny's Google Drive folders IDs for Europe DTMs, for various resolutions
     # TODO: does this change often? Should it be configurable/self-discovered from website?
-    FOLDER_IDS: dict[int, str] = {
+    FOLDER_IDS: Dict[int, str] = {
         1: "0BxphPoRgwhnoWkRoTFhMbTM3RDA",
         3: "0BxphPoRgwhnoekRQZUZJT2ZRX2M",
     }

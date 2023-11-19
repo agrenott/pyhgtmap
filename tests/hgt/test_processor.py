@@ -182,7 +182,7 @@ class TestHgtFilesProcessor:
                 # Instrument method without changing its behavior
                 processor.process_tile_internal = Mock(side_effect=processor.process_tile_internal)  # type: ignore
                 processor.process_files(files_list)
-                out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
+                out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
                 assert out_files_names == [
                     "lon6.00_7.00lat43.00_43.50_local-source.osm.pbf",
@@ -253,7 +253,7 @@ class TestHgtFilesProcessor:
                 # Instrument method without changing its behavior
                 processor.process_tile_internal = Mock(side_effect=processor.process_tile_internal)  # type: ignore
                 processor.process_files(files_list)
-                out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
+                out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
                 assert out_files_names == [
                     "lon6.00_8.00lat43.00_44.00_local-source.osm.pbf",
