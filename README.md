@@ -52,7 +52,7 @@ This source requires creating an earthexplorer account on https://ers.cr.usgs.go
 
 *Available for 1" and 3" resolutions.*
 
-This source require usage of Google Drive API. To use it, you have to generate API client OAuth secret as described in [pydrive2's documentation](https://docs.iterative.ai/PyDrive2/quickstart/) and save the client secrets JSON file in pyhgtmap config directory (`~/.pyhgtmap/client-secret.json`).
+This source require usage of Google Drive API. To use it, you have to generate API client OAuth secret as described in [Google drive's documentation](https://developers.google.com/drive/api/quickstart/python?hl=en#set_up_your_environment) and save the client secrets JSON file in pyhgtmap config directory (`~/.pyhgtmap/client-secret.json`).
 
 # Installation
 
