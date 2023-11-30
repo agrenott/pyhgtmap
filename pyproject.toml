@@ -75,11 +75,11 @@ dependencies = [
 all = ["style", "typing", "test_cov"]
 fmt = [
   "black {args:pyhgtmap tests tools}",
-  "ruff --fix {args:.}",
+  "ruff --fix {args:pyhgtmap tests tools}",
   "style",
 ]
 style = [
-  "ruff {args:.}",
+  "ruff {args:pyhgtmap tests tools}",
   "black --check --diff {args:pyhgtmap tests tools}",
 ]
 test = "pytest {args}"

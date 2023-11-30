@@ -25,6 +25,12 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
     # MUST be 4 alphanum for backward compatibility.
     NICKNAME: str
 
+    # Banner to encourage users to support original HGT sources
+    BANNER: str
+
+    # Resolutions supported by this source in arc-seconds
+    SUPPORTED_RESOLUTIONS: List[int] = [1, 3]
+
     def __init__(self, cache_dir_root: str, config_dir: str) -> None:
         """
         Args:
@@ -35,6 +41,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
             raise ValueError("Downloader nickname must be exactly 4 char long")
         self.cache_dir_root: str = cache_dir_root
         self.config_dir: str = config_dir
+        self._banner_showed: bool = False
 
     def get_cache_dir(self, resolution: int) -> str:
         """Get the cache directory for given resolution"""
@@ -74,12 +81,25 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
                 pathlib.Path(self.get_cache_dir(resolution)).mkdir(
                     parents=True, exist_ok=True
                 )
+                self.show_banner()
                 self.download_missing_file(area, resolution, file_name)
                 self.check_cached_file(file_name, resolution)
             except (FileNotFoundError, IOError):
+                LOGGER.warning(
+                    "No file found for area %s with resolution %d in '%s' source",
+                    area,
+                    resolution,
+                    self.NICKNAME,
+                )
                 return None
 
         return file_name
+
+    def show_banner(self) -> None:
+        """Show banner referencing original source, only once per session."""
+        if not self._banner_showed:
+            LOGGER.info(self.BANNER)
+            self._banner_showed = True
 
     @abstractmethod
     def download_missing_file(
