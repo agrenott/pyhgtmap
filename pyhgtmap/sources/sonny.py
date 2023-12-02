@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import pathlib
 from typing import Dict, List, Optional, cast
@@ -8,7 +9,9 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from pydrive2.files import GoogleDriveFile
 
-from . import LOGGER, Source
+from . import Source
+
+LOGGER: logging.Logger = logging.getLogger(__name__)
 
 __all__ = ["Sonny"]
 
@@ -19,6 +22,11 @@ class Sonny(Source):
     """
 
     NICKNAME = "sonn"
+
+    BANNER = (
+        "You're downloading from Sonny's LiDAR DEM source. Please "
+        "consider visiting https://sonny.4lima.de/ to support the author."
+    )
 
     # Root Sonny's Google Drive folders IDs for Europe DTMs, for various resolutions
     # TODO: does this change often? Should it be configurable/self-discovered from website?
@@ -31,6 +39,7 @@ class Sonny(Source):
         """
         Args:
             cache_dir_root (str): Root directory to store cached HGT files
+            config_dir (str): Root directory to store configuration (if any)
         """
         super().__init__(cache_dir_root, config_dir)
         self._gdrive: Optional[GoogleDrive] = None
@@ -61,10 +70,6 @@ class Sonny(Source):
             gauth.CommandLineAuth()
             self._gdrive = GoogleDrive(gauth)
             LOGGER.debug("Connected to Google Drive API")
-            LOGGER.info(
-                "You're downloading from Sonny's LiDAR DEM source. Please "
-                "consider visiting https://sonny.4lima.de/ to support the author."
-            )
 
         return self._gdrive
 

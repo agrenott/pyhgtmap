@@ -1,3 +1,4 @@
+import logging
 import os
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock
@@ -11,6 +12,7 @@ class SomeTestSource(Source):
     """Fake test source, implementing abstract methods"""
 
     NICKNAME = "test"
+    BANNER = "Please support my test banner!"
 
     def download_missing_file(
         self, area: str, resolution: int, output_file_name: str
@@ -171,3 +173,26 @@ class TestSource:
             area, 3, f"cache_dir/TEST3/{area}.hgt"
         )
         assert file_name is None
+
+    @staticmethod
+    def test_show_banner(caplog: pytest.LogCaptureFixture) -> None:
+        # Prepare
+        source = SomeTestSource("cache_dir", "conf_dir")
+        caplog.set_level(logging.INFO, logger="pyhgtmap.sources")
+
+        source.check_cached_file = MagicMock(  # type: ignore[method-assign]
+            spec=source.check_cached_file,
+            side_effect=IOError("File not found in cache"),  # Raises exception
+        )
+        source.download_missing_file = MagicMock(  # type: ignore[method-assign]
+            spec=source.download_missing_file,
+            side_effect=[None, None],
+        )
+
+        # Test
+        source.get_file("N42E004.hgt", 3)
+        source.get_file("N42E005.hgt", 3)
+
+        # Check
+        # Banner must be shown only once
+        assert caplog.text.count("Please support my test banner!") == 1
