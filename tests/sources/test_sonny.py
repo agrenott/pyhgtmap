@@ -1,13 +1,14 @@
 import os
-import pathlib
 from io import BytesIO
+from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from zipfile import ZipFile
 
 import pytest
+from pydrive2.auth import RefreshError
 
-from pyhgtmap.sources.sonny import Sonny
+from pyhgtmap.sources.sonny import CLIENT_SECRET_FILE, SAVED_CREDENTIALS_FILE, Sonny
 
 
 def get_hgt_zipped_file(file_base_name: str, file_size: int) -> BytesIO:
@@ -29,8 +30,6 @@ class TestSonny:
         "resolution, folder_id",
         [(1, "0BxphPoRgwhnoWkRoTFhMbTM3RDA"), (3, "0BxphPoRgwhnoekRQZUZJT2ZRX2M")],
     )
-    @patch("pyhgtmap.sources.sonny.GoogleAuth")
-    @patch("pyhgtmap.sources.sonny.GoogleDrive")
     def test_download_missing_file(
         gdrive_mock: MagicMock, gauth_mock: MagicMock, resolution: int, folder_id: str
     ) -> None:
@@ -39,7 +38,7 @@ class TestSonny:
             conf_dir = os.path.join(temp_dir, "conf")
             hgt_dir = os.path.join(temp_dir, "hgt")
             # HGT dir is expected to be created by the caller
-            pathlib.Path(hgt_dir).mkdir()
+            Path(hgt_dir).mkdir()
             out_file_name = os.path.join(hgt_dir, "N42E004.hgt")
             gdrive_file_mock = MagicMock()
             hgt_size = 100
@@ -61,11 +60,11 @@ class TestSonny:
                 assert out_file.read() == "0" * hgt_size
             gauth_mock.assert_called_once_with(
                 settings={
-                    "client_config_file": os.path.join(conf_dir, "client-secret.json"),
+                    "client_config_file": os.path.join(conf_dir, CLIENT_SECRET_FILE),
                     "save_credentials": True,
                     "save_credentials_backend": "file",
                     "save_credentials_file": os.path.join(
-                        conf_dir, "gdrive-credentials.json"
+                        conf_dir, SAVED_CREDENTIALS_FILE
                     ),
                     "get_refresh_token": True,
                     "oauth_scope": ["https://www.googleapis.com/auth/drive.readonly"],
@@ -80,8 +79,6 @@ class TestSonny:
             )
 
     @staticmethod
-    @patch("pyhgtmap.sources.sonny.GoogleAuth")
-    @patch("pyhgtmap.sources.sonny.GoogleDrive")
     def test_download_missing_file_not_found(
         gdrive_mock: MagicMock, gauth_mock: MagicMock
     ) -> None:
@@ -91,7 +88,7 @@ class TestSonny:
             conf_dir = os.path.join(temp_dir, "conf")
             hgt_dir = os.path.join(temp_dir, "hgt")
             # HGT dir is expected to be created by the caller
-            pathlib.Path(hgt_dir).mkdir()
+            Path(hgt_dir).mkdir()
             out_file_name = os.path.join(hgt_dir, "N42E004.hgt")
             # Not found -> empty list returned by gdrive API
             gdrive_mock.return_value.ListFile.return_value.GetList.return_value = []
@@ -112,3 +109,32 @@ class TestSonny:
                     "and mimeType='application/x-zip-compressed' and title='N42E004.zip'"
                 }
             )
+
+    @staticmethod
+    def test_auth_expired_token(
+        gdrive_mock: MagicMock, gauth_mock: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # First call is an exception due to expired token
+        gauth_mock.return_value.CommandLineAuth.side_effect = [
+            RefreshError("Access token refresh failed: invalid_grant: Bad Request"),
+            True,
+        ]
+        with TemporaryDirectory() as temp_dir:
+            # Prepare
+            conf_dir = os.path.join(temp_dir, "conf")
+            # Create fake saved credentials file
+            Path(conf_dir).mkdir()
+            Path(conf_dir, SAVED_CREDENTIALS_FILE).touch()
+            hgt_dir = os.path.join(temp_dir, "hgt")
+            sonny = Sonny(hgt_dir, conf_dir)
+
+            # Test
+            _ = sonny.gdrive
+
+            # Check
+            # Ensure auth retried
+            assert gauth_mock.call_count == 2
+            assert gauth_mock.return_value.CommandLineAuth.call_count == 2
+            # The mock didn't recreate the file
+            assert not Path(conf_dir, SAVED_CREDENTIALS_FILE).exists()
+            assert "GDrive API token expired?" in caplog.text
