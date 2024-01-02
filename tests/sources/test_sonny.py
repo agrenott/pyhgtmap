@@ -2,13 +2,28 @@ import os
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock
+from typing import Generator
+from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 
 import pytest
 from pydrive2.auth import RefreshError
 
 from pyhgtmap.sources.sonny import CLIENT_SECRET_FILE, SAVED_CREDENTIALS_FILE, Sonny
+
+
+@pytest.fixture
+def gauth_mock() -> Generator[MagicMock, None, None]:
+    """Mock pyhgtmap.sources.sonny.GoogleAuth"""
+    with patch("pyhgtmap.sources.sonny.GoogleAuth") as gauth_mock:
+        yield gauth_mock
+
+
+@pytest.fixture
+def gdrive_mock() -> Generator[MagicMock, None, None]:
+    """Mock pyhgtmap.sources.sonny.GoogleDrive"""
+    with patch("pyhgtmap.sources.sonny.GoogleDrive") as gdrive_mock:
+        yield gdrive_mock
 
 
 def get_hgt_zipped_file(file_base_name: str, file_size: int) -> BytesIO:
