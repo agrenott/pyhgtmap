@@ -92,11 +92,12 @@ e
     @patch("pyhgtmap.sources.viewfinder.urlopen", autospec=True)
     def test_init_from_web(urlopen_mock: MagicMock) -> None:
         with TemporaryDirectory() as temp_dir:
-            urlopen_mock.return_value.read.return_value = open(
+            with open(
                 os.path.join(
                     TEST_DATA_PATH, "coverage_map_viewfinderpanoramas_org3.htm"
                 )
-            ).read()
+            ) as html_file:
+                urlopen_mock.return_value.read.return_value = html_file.read()
             index = ViewFinderIndex(temp_dir, 3)
 
             index.init_from_web()
@@ -176,7 +177,7 @@ e
         assert not index._entries
         assert index.entries == expected_index
         # Call it a second time to validate caching
-        index.entries
+        index.entries  # noqa: B018
         index.load.assert_called_once_with()
         # Load from file successful, no need to download from web
         index.init_from_web.assert_not_called()
@@ -198,7 +199,7 @@ e
         assert not index._entries
         assert index.entries == expected_index
         # Call it a second time to validate caching
-        index.entries
+        index.entries  # noqa: B018
         index.load.assert_called_once_with()
         index.init_from_web.assert_called_once_with()
 

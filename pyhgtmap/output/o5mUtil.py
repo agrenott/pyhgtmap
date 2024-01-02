@@ -44,7 +44,7 @@ class Output(output.Output):
         writeTimestamp=False,
     ) -> None:
         super().__init__()
-        self.outf = open(filename, "wb")
+        self.outf = open(filename, "wb")  # noqa: SIM115 # TODO: use context handler
         self.bbox = bbox
         self.elevClassifier = elevClassifier
         self.stringTable = StringTable()

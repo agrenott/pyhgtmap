@@ -37,11 +37,12 @@ def parsePolygon(filename):
     http://download.geofabrik.de/clipbounds/clipbounds.tgz
     and returns it as list of (<lon>, <lat>) tuples.
     """
-    lines = [
-        line.strip().lower()
-        for line in open(filename).read().split("\n")
-        if line.strip()
-    ]
+    with open(filename) as polygon_file:
+        lines = [
+            line.strip().lower()
+            for line in polygon_file.read().split("\n")
+            if line.strip()
+        ]
     polygons = []
     curPolygon = []
     for line in lines:
@@ -98,7 +99,7 @@ def parseHgtFilename(
         minLat = -1 * int(latValue)
     else:
         raise filenameError(
-            "something wrong with latitude coding in" " filename {0:s}".format(filename)
+            "something wrong with latitude coding in filename {0:s}".format(filename)
         )
     maxLat = minLat + 1
     if lonSwitch == "E" and lonValue.isdigit():
@@ -107,8 +108,7 @@ def parseHgtFilename(
         minLon = -1 * int(lonValue)
     else:
         raise filenameError(
-            "something wrong with longitude coding in"
-            " filename {0:s}".format(filename)
+            "something wrong with longitude coding in filename {0:s}".format(filename)
         )
     maxLon = minLon + 1
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
@@ -118,7 +118,7 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
     try:
         from osgeo import osr
     except ModuleNotFoundError:
-        raise ImportError(GEOTIFF_ERROR)
+        raise ImportError(GEOTIFF_ERROR) from None
 
     n = osr.SpatialReference()
     n.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -134,7 +134,7 @@ def getTransform(o, reverse=False) -> Optional[TransformFunType]:
             t = osr.CoordinateTransformation(o, n)
 
         def transform(
-            points: Iterable[Tuple[float, float]]
+            points: Iterable[Tuple[float, float]],
         ) -> Iterable[Tuple[float, float]]:
             return [
                 p[:2]
@@ -151,7 +151,7 @@ def parseGeotiffBbox(
     try:
         from osgeo import gdal, osr
     except ModuleNotFoundError:
-        raise ImportError(GEOTIFF_ERROR)
+        raise ImportError(GEOTIFF_ERROR) from None
     try:
         g = gdal.Open(filename)
         geoTransform = g.GetGeoTransform()
@@ -168,7 +168,7 @@ def parseGeotiffBbox(
         numOfCols = g.RasterXSize
         numOfRows = g.RasterYSize
     except Exception:
-        raise hgtError("Can't handle geotiff file {!s}".format(filename))
+        raise hgtError("Can't handle geotiff file {!s}".format(filename)) from None
     lonIncrement = geoTransform[1]
     latIncrement = geoTransform[5]
     minLon = geoTransform[0] + 0.5 * lonIncrement
@@ -415,7 +415,7 @@ class hgtFile:
         try:
             from osgeo import gdal, osr
         except ModuleNotFoundError:
-            raise ImportError(GEOTIFF_ERROR)
+            raise ImportError(GEOTIFF_ERROR) from None
 
         try:
             g = gdal.Open(self.fullFilename)
@@ -571,10 +571,7 @@ class hgtFile:
                 """
                 if maxNodes == 0:
                     return False
-                if estimNumOfNodes(data) > maxNodes:
-                    return True
-                else:
-                    return False
+                return estimNumOfNodes(data) > maxNodes
 
             def getChops(unchoppedData, unchoppedBbox):
                 """returns a data chop and the according bbox. This function is

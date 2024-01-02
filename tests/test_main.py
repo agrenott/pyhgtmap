@@ -1,6 +1,7 @@
 import optparse
 import os
 from unittest.mock import MagicMock, patch
+
 from pyhgtmap import main
 
 from . import TEST_DATA_PATH

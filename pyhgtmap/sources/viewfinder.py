@@ -3,11 +3,10 @@ import logging
 import os
 from pathlib import Path, PurePath
 from typing import Dict, List
+from urllib.request import urlopen
 from zipfile import ZipFile
 
 from bs4 import BeautifulSoup
-from urllib.request import urlopen
-
 
 from . import Source
 
@@ -40,14 +39,11 @@ def inner_areas(coord_tag: str) -> List[str]:
     names: List[str] = []
     for lon in range(west, east):
         for lat in range(south, north):
-            if lon < 0:
-                lon_name = "W{0:0>3d}".format(-lon)
-            else:
-                lon_name = "E{0:0>3d}".format(lon)
-            if south < 0:
-                lat_name = "S{0:0>2d}".format(-lat)
-            else:
-                lat_name = "N{0:0>2d}".format(lat)
+            lon_name = "W{0:0>3d}".format(-lon) if lon < 0 else "E{0:0>3d}".format(lon)
+            lat_name = (
+                "S{0:0>2d}".format(-lat) if south < 0 else "N{0:0>2d}".format(lat)
+            )
+
             name = "".join([lat_name, lon_name])
             names.append(name)
     return names

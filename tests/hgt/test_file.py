@@ -70,8 +70,8 @@ def handle_optional_geotiff_support() -> Generator[None, None, None]:
             raise
         # GDAL not available, ensure the proper errror message is raised
         assert (
-            "GeoTiff optional support not enabled; please install with 'pip install pyhgtmap[geotiff]'"
-            == ex.msg
+            ex.msg
+            == "GeoTiff optional support not enabled; please install with 'pip install pyhgtmap[geotiff]'"
         )
 
 
