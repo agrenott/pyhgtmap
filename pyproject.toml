@@ -65,7 +65,6 @@ dependencies = [
   "pytest-mpl~=0.16.1",
   "types-beautifulsoup4>=4",
   "coverage~=7.2.1",
-  "black>=23.1.0",
   "mypy>=1.0.1",
   "mypy-extensions~=1.0.0",
   "ruff>=0.0.259",
@@ -74,15 +73,16 @@ dependencies = [
 [tool.hatch.envs.default.scripts]
 all = ["style", "typing", "test_cov"]
 fmt = [
-  "black {args:pyhgtmap tests tools}",
-  "ruff --fix {args:pyhgtmap tests tools}",
+  # Sort imports - https://docs.astral.sh/ruff/formatter/#sorting-imports
+  "ruff check --select I --fix {args:pyhgtmap tests tools}",
+  "ruff format {args:pyhgtmap tests tools}",
   "style",
 ]
 style = [
-  "ruff {args:pyhgtmap tests tools}",
-  "black --check --diff {args:pyhgtmap tests tools}",
+  "ruff check {args:pyhgtmap tests tools}",
+  "ruff format --check --diff {args:pyhgtmap tests tools}",
 ]
-test = "pytest {args}"
+test = "pytest {args:tests}"
 test_cov = [
   "coverage run -m pytest --mpl",
   "coverage combine",
@@ -98,15 +98,6 @@ python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 # Env for optional geotiff dependencies
 # To allow using system's GDAL, which is painful to install
 system-packages = true
-
-[tool.black]
-
-[tool.isort]
-atomic = true
-known_first_party = ["pyhgtmap"]
-line_length = 88
-profile = "black"
-skip_gitignore = true
 
 [tool.mypy]
 files = ["tests", "pyhgtmap", "tools"]

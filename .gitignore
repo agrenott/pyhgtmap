@@ -1,4 +1,5 @@
 venv*/
+.venv/
 .vscode/
 .pytest_cache/
 __pycache__/
@@ -15,3 +16,5 @@ coverage.xml
 .hatch/
 dist/
 .*_cache/
+tests/data/
+work/

@@ -147,14 +147,18 @@ class hgtTile:
             + ".xyz"
         )
         try:
-            plotFile = open(filename, "w")
+            with open(filename, "w") as plotFile:
+                for latIndex, row in enumerate(self.zData):
+                    lat = self.maxLat - latIndex * self.latIncrement
+                    for lonIndex, height in enumerate(row):
+                        lon = self.minLon + lonIndex * self.lonIncrement
+                        plotFile.write(
+                            "{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height)
+                        )
         except Exception:
-            raise IOError("could not open plot file {0:s} for writing".format(filename))
-        for latIndex, row in enumerate(self.zData):
-            lat = self.maxLat - latIndex * self.latIncrement
-            for lonIndex, height in enumerate(row):
-                lon = self.minLon + lonIndex * self.lonIncrement
-                plotFile.write("{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height))
+            raise IOError(
+                "could not open plot file {0:s} for writing".format(filename)
+            ) from None
 
     def _get_contours(
         self,

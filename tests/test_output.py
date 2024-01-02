@@ -2,13 +2,14 @@
 
 import os
 import tempfile
+from contextlib import suppress
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 
-import numpy
-import numpy.typing
 import npyosmium
 import npyosmium.io
 import npyosmium.osm
+import numpy
+import numpy.typing
 import pytest
 
 from pyhgtmap.hgt.tile import TileContours
@@ -24,17 +25,15 @@ class OSMDecoder(npyosmium.SimpleHandler):
         self.ways: Dict[int, Any] = {}
 
     def node(self, n: npyosmium.osm.Node) -> None:
-        try:
+        with suppress(Exception):
             self.nodes[n.id] = (n.location.lat, n.location.lon)
-        except Exception:
-            pass
 
     def way(self, w: npyosmium.osm.Way) -> None:
         self.ways[w.id] = ([node.ref for node in w.nodes], [tag for tag in w.tags])
 
 
 def arrays_from_lists(
-    coordinates_lists: List[List[Tuple[int, int]]]
+    coordinates_lists: List[List[Tuple[int, int]]],
 ) -> List[numpy.typing.NDArray]:
     """Helper to convert list of lists into array of arrays."""
     return [
@@ -167,7 +166,8 @@ class TestOutputOsm:
             osm_output.done()
 
             # Check file output
-            contents: str = open(osm_file_name).read()
+            with open(osm_file_name) as osm_file:
+                contents: str = osm_file.read()
             assert (
                 contents
                 == """<?xml version="1.0" encoding="utf-8"?>

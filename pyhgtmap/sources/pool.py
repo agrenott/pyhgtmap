@@ -36,7 +36,7 @@ class Pool:
 
     def available_sources(self) -> Generator[str, None, None]:
         """Returns available sources' nicknames."""
-        return (str(key) for key in self._inner_registry.keys())
+        return (str(key) for key in self._inner_registry)
 
 
 # Force import of all implementations to register them in the pool

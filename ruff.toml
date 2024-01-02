@@ -1,34 +1,30 @@
 
 ignore = [
-  # black auto-formats lines, trust it
+  # ruff/black auto-formats lines, trust it
   "E501",
 ]
 
 select = [
-  #   "A",
-  #   "B",
-  #   "C",
-  #   "DTZ",
-  "E", #   "EM",
-  "F", #   "FBT",
-  #   "I",
-  #   "ICN",
-  #   "ISC",
-  #   "N",
-  #   "PLC",
-  #   "PLE",
-  #   "PLR",
-  #   "PLW",
-  #   "Q",
-  #   "RUF",
-  #   "S",
-  #   "SIM",
-  #   "T",
-  #   "TID",
-  #   "UP",
-  #   "W",
-  #   "YTT",
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    #"UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
 ]
 target-version = "py39"
 # Ignore files not refactored yet
 exclude = ["NASASRTMUtil.py", "configUtil.py"]
+
+
+# Same as black
+line-length = 88
+
+[lint.isort]
+known-first-party = ["pyhgtmap"]

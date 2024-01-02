@@ -15,10 +15,8 @@ def make_osm_filename(
     """generate a filename for the output osm file. This is done using the bbox
     of the current hgt file.
     """
-    if opts.outputPrefix:
-        prefix = "{0:s}_".format(opts.outputPrefix)
-    else:
-        prefix = ""
+
+    prefix = "{0:s}_".format(opts.outputPrefix) if opts.outputPrefix else ""
     srcNameMiddles = [
         os.path.split(os.path.split(srcName)[0])[1].lower()
         for srcName in input_files_names

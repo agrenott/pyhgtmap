@@ -180,7 +180,9 @@ class TestHgtFilesProcessor:
                     (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False)
                 ]
                 # Instrument method without changing its behavior
-                processor.process_tile_internal = Mock(side_effect=processor.process_tile_internal)  # type: ignore
+                processor.process_tile_internal = Mock(  # type: ignore
+                    side_effect=processor.process_tile_internal
+                )
                 processor.process_files(files_list)
                 out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
@@ -251,7 +253,9 @@ class TestHgtFilesProcessor:
                 # Increase step size to speed up test case
                 options.contourStepSize = 500
                 # Instrument method without changing its behavior
-                processor.process_tile_internal = Mock(side_effect=processor.process_tile_internal)  # type: ignore
+                processor.process_tile_internal = Mock(  # type: ignore
+                    side_effect=processor.process_tile_internal
+                )
                 processor.process_files(files_list)
                 out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
@@ -343,13 +347,12 @@ class TestHgtFilesProcessor:
         tile_mock = MagicMock()
         tile_mock.get_contours.return_value = tile_contours
         tile_mock.__str__.return_value = "Tile (28.00, 42.50, 29.00, 43.00)"  # type: ignore
-        with tempfile.TemporaryDirectory() as tempdir_name:
-            with cwd(tempdir_name):
-                caplog.set_level(logging.INFO, logger="pyhgtmap.hgt.processor")
-                processor.process_tile_internal("empty.pbf", tile_mock)
-                # NO file must be generated
-                assert not os.path.exists("empty.pbf")
-                assert (
-                    "Tile (28.00, 42.50, 29.00, 43.00) doesn't contain any node, skipping."
-                    in caplog.text
-                )
+        with tempfile.TemporaryDirectory() as tempdir_name, cwd(tempdir_name):
+            caplog.set_level(logging.INFO, logger="pyhgtmap.hgt.processor")
+            processor.process_tile_internal("empty.pbf", tile_mock)
+            # NO file must be generated
+            assert not os.path.exists("empty.pbf")
+            assert (
+                "Tile (28.00, 42.50, 29.00, 43.00) doesn't contain any node, skipping."
+                in caplog.text
+            )

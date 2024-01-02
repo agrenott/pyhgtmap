@@ -45,7 +45,7 @@ class Output(pyhgtmap.output.Output):
 
             self.outF = Gzip.open(fName, "wb", gzip)
         else:
-            self.outF = open(fName, "wb")
+            self.outF = open(fName, "wb")  # noqa: SIM115 # TODO: use context handler
         self.osmVersion = "{0:.1f}".format(osmVersion)
         if osmVersion > 0.5:
             self.versionString = ' version="1"'
@@ -175,10 +175,7 @@ def writeXML(
     <opts> are the options coming from pyhgtmap.
     """
     IDCounter = pyhgtmap.output.Id(start_node_id)
-    if osm_version > 0.5:
-        versionString = ' version="1"'
-    else:
-        versionString = ""
+    versionString = ' version="1"' if osm_version > 0.5 else ""
     ways = []
     for elevation, contour_list in tile_contours.contours.items():
         if not contour_list:
