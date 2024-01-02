@@ -5,7 +5,7 @@ import pathlib
 from typing import Dict, List, Optional, cast
 from zipfile import ZipFile
 
-from pydrive2.auth import GoogleAuth
+from pydrive2.auth import GoogleAuth, RefreshError
 from pydrive2.drive import GoogleDrive
 from pydrive2.files import GoogleDriveFile
 
@@ -14,6 +14,9 @@ from . import Source
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 __all__ = ["Sonny"]
+
+CLIENT_SECRET_FILE = "client-secret.json"
+SAVED_CREDENTIALS_FILE = "gdrive-credentials.json"
 
 
 class Sonny(Source):
@@ -51,23 +54,38 @@ class Sonny(Source):
         pathlib.Path(self.config_dir).mkdir(parents=True, exist_ok=True)
 
         if self._gdrive is None:
+            credentials_file = os.path.join(self.config_dir, SAVED_CREDENTIALS_FILE)
             # pydrive2 settings
             settings = {
-                "client_config_file": os.path.join(
-                    self.config_dir, "client-secret.json"
-                ),
+                "client_config_file": os.path.join(self.config_dir, CLIENT_SECRET_FILE),
                 "save_credentials": True,
                 "save_credentials_backend": "file",
-                "save_credentials_file": os.path.join(
-                    self.config_dir, "gdrive-credentials.json"
-                ),
+                "save_credentials_file": credentials_file,
                 "get_refresh_token": True,
                 # Sadly, "heavy" permissions are required to access public files...
                 # ref. https://issuetracker.google.com/issues/168687448
                 "oauth_scope": ["https://www.googleapis.com/auth/drive.readonly"],
             }
-            gauth = GoogleAuth(settings=settings)
-            gauth.CommandLineAuth()
+            try:
+                gauth = GoogleAuth(settings=settings)
+                gauth.CommandLineAuth()
+            except RefreshError:
+                if not pathlib.Path(credentials_file).exists():
+                    # Credentials not stored, not the expected root cause
+                    raise
+
+                # Google test tokens expire after 7 days. See:
+                # - https://github.com/iterative/PyDrive2/issues/184
+                # - https://stackoverflow.com/questions/76006880/why-does-pydrive-stop-refreshing-the-access-token-after-a-while
+                LOGGER.warning(
+                    "GDrive API token expired? Trying to delete saved credentials and force new authentication"
+                )
+                # Delete saved credentials and retry full auth
+                pathlib.Path.unlink(pathlib.Path(credentials_file))
+                # Must start from a new instance to force configuration refresh
+                gauth = GoogleAuth(settings=settings)
+                gauth.CommandLineAuth()
+
             self._gdrive = GoogleDrive(gauth)
             LOGGER.debug("Connected to Google Drive API")
 
