@@ -8,8 +8,7 @@ import numpy
 import pytest
 
 from pyhgtmap import hgt
-from pyhgtmap.hgt.file import calcHgtArea, hgtFile, polygon_mask
-from pyhgtmap.hgt.tile import hgtTile
+from pyhgtmap.hgt.file import calcHgtArea, clip_polygons, hgtFile, hgtTile, polygon_mask
 
 from .. import TEST_DATA_PATH
 
@@ -289,3 +288,69 @@ def test_calcHgtArea(file_name: str) -> None:
             [(os.path.join(TEST_DATA_PATH, file_name), False)], 0, 0
         )
         assert bbox == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
+
+
+def test_clip_polygons() -> None:
+    clip_polygon: List[Tuple[float, float]] = [
+        (-0.1, 48.900000000009435),
+        (-0.1, 50.1),
+        (1.1, 50.1),
+        (1.1, 48.900000000009435),
+        (-0.1, 48.900000000009435),
+    ]
+    # Multi-polygons in input
+    polygons: List[List[Tuple[float, float]]] = [
+        # Real intersection is a polygon + a line; line must be discarded properly
+        [
+            (2.3, 51.6),
+            (2.5, 51.3),
+            (2.4, 50.9),
+            (1.3, 50.1),
+            (0.7, 50.1),
+            (0.4, 49.9),
+            (-0.5, 50.0),
+            (-0.9, 49.8),
+            (-2.2, 49.7),
+            (-2.9, 49.8),
+        ],
+        # No intersection
+        [
+            (-14.6, 57.6),
+            (-14.6, 57.9),
+            (-13.9, 58.4),
+            (-13.2, 58.3),
+            (-12.8, 57.9),
+            (-12.9, 57.1),
+            (-13.4, 56.8),
+            (-14.2, 56.9),
+            (-14.6, 57.3),
+            (-14.6, 57.6),
+        ],
+        # Single point intersection
+        [
+            (2, 52),
+            (2, 50.1),
+            (1.1, 50.1),
+            (1.1, 52),
+            (2, 52),
+        ],
+        # Single line intersection
+        [
+            (2, 48),
+            (2, 50),
+            (1.1, 50),
+            (1.1, 48),
+            (2, 48),
+        ],
+    ]
+
+    clipped_polygons = clip_polygons(polygons, clip_polygon)
+    assert clipped_polygons == [
+        [
+            (0.4, 49.9),
+            (-0.1, 49.955555555555556),
+            (-0.1, 50.1),
+            (0.7, 50.1),
+            (0.4, 49.9),
+        ]
+    ]

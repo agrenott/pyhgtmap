@@ -143,6 +143,15 @@ Here is an example originating from a "view1" source with 10m step (lon6.00_7.00
 
 This project uses ![hatch](https://hatch.pypa.io/latest/).
 
+(Mini)Conda can be used to easily setup given version of Python and GDAL:
+```bash
+conda create -n python39 -c conda-forge python=3.9
+conda activate python39
+conda install -c conda-forge gdal hatch
+hatch -e geotiff shell
+# To start VSCode using the proper python env
+code .
+```
 The one-liner for formatting and local validation:
 ```bash
 hatch run fmt && hatch run all

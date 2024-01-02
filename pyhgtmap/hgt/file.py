@@ -230,6 +230,39 @@ def calcHgtArea(
 BBOX_EXPAND_EPSILON = 0.1
 
 
+def clip_polygons(
+    polygons: List[List[Tuple[float, float]]],
+    clip_polygon: Iterable[Tuple[float, float]],
+) -> List[List[Tuple[float, float]]]:
+    """
+    Clips a list of polygons to a given clip polygon.
+
+    Args:
+        polygons: A list of polygons to be clipped.
+        clip_polygon: The clip polygon to be used for clipping.
+
+    Returns:
+        A list of clipped polygons.
+    """
+    bbox_shape = shapely.Polygon(clip_polygon)
+    clipped_polygons: List[List[Tuple[float, float]]] = []
+    for p in polygons:
+        # Intersect each input polygon with the clip one
+        clipped_p = shapely.intersection(shapely.Polygon(p), bbox_shape)
+        # Resulting intersection(s) might have several forms
+        if isinstance(clipped_p, (shapely.MultiPolygon, shapely.GeometryCollection)):
+            # Keep only polygons intersections
+            clipped_polygons += [
+                [(x, y) for x, y in poly.exterior.coords]
+                for poly in clipped_p.geoms
+                if isinstance(poly, shapely.Polygon) and not poly.is_empty
+            ]
+        elif isinstance(clipped_p, shapely.Polygon) and not clipped_p.is_empty:
+            clipped_polygons.append([(x, y) for x, y in clipped_p.exterior.coords])
+
+    return clipped_polygons
+
+
 def polygon_mask(
     x_data: numpy.ndarray,
     y_data: numpy.ndarray,
@@ -261,18 +294,8 @@ def polygon_mask(
     if transform is not None:
         xyPoints = transform(xyPoints)
         bbox_points = transform(bbox_points)
-    bbox_shape = shapely.Polygon(bbox_points)
-    clipped_polygons = []
-    for p in polygons:
-        clipped_p = shapely.intersection(shapely.Polygon(p), bbox_shape)
-        if isinstance(clipped_p, shapely.MultiPolygon):
-            clipped_polygons += [
-                [(x, y) for x, y in poly.exterior.coords]
-                for poly in clipped_p.geoms
-                if not poly.is_empty
-            ]
-        elif not clipped_p.is_empty:
-            clipped_polygons.append([(x, y) for x, y in clipped_p.exterior.coords])
+
+    clipped_polygons = clip_polygons(polygons, bbox_points)
 
     if not clipped_polygons:
         # Empty intersection: data is fully masked
