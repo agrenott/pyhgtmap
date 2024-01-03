@@ -8,16 +8,14 @@ from pyhgtmap.hgt.tile import TileContours
 
 logger = logging.getLogger(__name__)
 
+
 # First node ID, number of nodes, closed loop, elevation
-WayType = NamedTuple(
-    "WayType",
-    [
-        ("first_node_id", int),
-        ("nb_nodes", int),
-        ("closed_loop", bool),
-        ("elevation", int),
-    ],
-)
+class WayType(NamedTuple):
+    first_node_id: int
+    nb_nodes: int
+    closed_loop: bool
+    elevation: int
+
 
 # Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
 WaysType = NDArray[
@@ -90,7 +88,7 @@ class Output:
         raise NotImplementedError
 
 
-class Id(object):
+class Id:
     """a counter, constructed with the first number to return.
 
     Count using the getId method.

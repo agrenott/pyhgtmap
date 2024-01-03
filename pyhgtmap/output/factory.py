@@ -16,7 +16,7 @@ def make_osm_filename(
     of the current hgt file.
     """
 
-    prefix = "{0:s}_".format(opts.outputPrefix) if opts.outputPrefix else ""
+    prefix = f"{opts.outputPrefix:s}_" if opts.outputPrefix else ""
     srcNameMiddles = [
         os.path.split(os.path.split(srcName)[0])[1].lower()
         for srcName in input_files_names
@@ -42,9 +42,7 @@ def make_osm_filename(
             break
     else:
         srcTag = ",".join([s for s in opts.dataSource if s in set(srcNameMiddles)])
-        osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(
-            srcTag
-        )
+        osmName = hgt.makeBBoxString(borders).format(prefix) + f"_{srcTag:s}.osm"
     if opts.gzip:
         osmName += ".gz"
     elif opts.pbf:
@@ -54,7 +52,7 @@ def make_osm_filename(
     return osmName
 
 
-bboxStringtypes = (type(str()), type(bytes()), type(bytearray()))
+bboxStringtypes = (str, bytes, bytearray)
 
 
 def makeBoundsString(bbox: Any) -> str:
@@ -66,7 +64,7 @@ def makeBoundsString(bbox: Any) -> str:
     """
     if type(bbox) in bboxStringtypes and bbox.count(":") == 3:
         bbox = bbox.split(":")
-    minlon, minlat, maxlon, maxlat = [float(i) for i in bbox]
+    minlon, minlat, maxlon, maxlat = (float(i) for i in bbox)
     return '<bounds minlat="{0:.7f}" minlon="{1:.7f}" maxlat="{2:.7f}" maxlon="{3:.7f}"/>'.format(
         minlat, minlon, maxlat, maxlon
     )

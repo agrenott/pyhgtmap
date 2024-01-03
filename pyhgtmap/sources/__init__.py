@@ -55,7 +55,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
         wanted_size: int = 2 * (3600 // resolution + 1) ** 2
         found_size: int = os.path.getsize(file_name)
         if found_size != wanted_size:
-            raise IOError(
+            raise OSError(
                 f"Wrong size: expected {wanted_size}, found {found_size} for {file_name}"
             )
 
@@ -75,7 +75,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
             self.check_cached_file(file_name, resolution)
             LOGGER.debug("%s: using existing file %s.", area, file_name)
 
-        except IOError:
+        except OSError:
             try:
                 # Missing file or corrupted, download it
                 pathlib.Path(self.get_cache_dir(resolution)).mkdir(
@@ -84,7 +84,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
                 self.show_banner()
                 self.download_missing_file(area, resolution, file_name)
                 self.check_cached_file(file_name, resolution)
-            except (FileNotFoundError, IOError):
+            except (OSError, FileNotFoundError):
                 LOGGER.warning(
                     "No file found for area %s with resolution %d in '%s' source",
                     area,

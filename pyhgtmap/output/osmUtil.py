@@ -46,13 +46,13 @@ class Output(pyhgtmap.output.Output):
             self.outF = Gzip.open(fName, "wb", gzip)
         else:
             self.outF = open(fName, "wb")  # noqa: SIM115 # TODO: use context handler
-        self.osmVersion = "{0:.1f}".format(osmVersion)
+        self.osmVersion = f"{osmVersion:.1f}"
         if osmVersion > 0.5:
             self.versionString = ' version="1"'
         else:
             self.versionString = ""
         if timestamp:
-            self.timestampString = ' timestamp="{0:s}"'.format(makeUtcTimestamp())
+            self.timestampString = f' timestamp="{makeUtcTimestamp():s}"'
         else:
             self.timestampString = ""
         self.elevClassifier = elevClassifier

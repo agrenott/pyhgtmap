@@ -29,7 +29,7 @@ def simplify_path(
     return deduped_path
 
 
-class ContoursGenerator(object):
+class ContoursGenerator:
     def __init__(
         self,
         cntr: contourpy.ContourGenerator,

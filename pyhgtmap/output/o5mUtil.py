@@ -1,6 +1,3 @@
-# -*- encoding: utf-8 -*-
-
-
 import time
 from typing import Callable, Tuple
 
@@ -12,7 +9,7 @@ from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
 HUNDREDNANO = 10000000
 
 
-class StringTable(object):
+class StringTable:
     def __init__(self):
         self.table = []
         self.maxStringRef = 15000

@@ -7,7 +7,7 @@ TransformFunType = Callable[
 
 
 def makeBBoxString(bbox: Tuple[float, float, float, float]) -> str:
-    return "{{0:s}}lon{0[0]:.2f}_{0[2]:.2f}lat{0[1]:.2f}_{0[3]:.2f}".format(bbox)
+    return f"{{0:s}}lon{bbox[0]:.2f}_{bbox[2]:.2f}lat{bbox[1]:.2f}_{bbox[3]:.2f}"
 
 
 def transformLonLats(

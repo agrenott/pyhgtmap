@@ -71,9 +71,7 @@ class TestViewFinderIndex:
             ]
             index.save()
 
-            with open(
-                os.path.join(temp_dir, "viewfinderHgtIndex_1.txt"), "r"
-            ) as index_file:
+            with open(os.path.join(temp_dir, "viewfinderHgtIndex_1.txt")) as index_file:
                 assert (
                     index_file.read()
                     == """# VIEW1 index file, VERSION=2
@@ -106,9 +104,7 @@ e
                 "http://viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org3.htm"
             )
             urlopen_mock.return_value.read.assert_called_once_with()
-            with open(
-                os.path.join(temp_dir, "viewfinderHgtIndex_3.txt"), "r"
-            ) as index_file:
+            with open(os.path.join(temp_dir, "viewfinderHgtIndex_3.txt")) as index_file:
                 content = index_file.read()
                 assert (
                     "# VIEW3 index file, VERSION=4\n[http://viewfinderpanoramas.org/A21.zip]\nN00W055\nN00W056\n"

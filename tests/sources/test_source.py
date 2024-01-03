@@ -99,7 +99,7 @@ class TestSource:
                 spec=source.check_cached_file,
                 # First call raises exception, second one nothing as file should have been downloaded
                 side_effect=[
-                    IOError("File not found in cache"),
+                    OSError("File not found in cache"),
                     None,
                 ],
             )
@@ -131,8 +131,8 @@ class TestSource:
             spec=source.check_cached_file,
             # Called twice, failing for both as the downloaded file is corrupted
             side_effect=[
-                IOError("File not found in cache"),
-                IOError("Corrupted file"),
+                OSError("File not found in cache"),
+                OSError("Corrupted file"),
             ],
         )
         source.download_missing_file = MagicMock(spec=source.download_missing_file)  # type: ignore[method-assign]
@@ -157,7 +157,7 @@ class TestSource:
         area = "N42E004"
         source.check_cached_file = MagicMock(  # type: ignore[method-assign]
             spec=source.check_cached_file,
-            side_effect=IOError("File not found in cache"),  # Raises exception
+            side_effect=OSError("File not found in cache"),  # Raises exception
         )
         source.download_missing_file = MagicMock(  # type: ignore[method-assign]
             spec=source.download_missing_file,
@@ -182,7 +182,7 @@ class TestSource:
 
         source.check_cached_file = MagicMock(  # type: ignore[method-assign]
             spec=source.check_cached_file,
-            side_effect=IOError("File not found in cache"),  # Raises exception
+            side_effect=OSError("File not found in cache"),  # Raises exception
         )
         source.download_missing_file = MagicMock(  # type: ignore[method-assign]
             spec=source.download_missing_file,

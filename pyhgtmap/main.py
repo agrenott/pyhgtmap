@@ -440,7 +440,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     )
     opts, args = parser.parse_args(sys_args)
     if opts.version:
-        print("pyhgtmap {0:s}".format(__version__))
+        print(f"pyhgtmap {__version__:s}")
         sys.exit(0)
     if opts.hgtdir:  # Set custom ./hgt/ directory
         NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
@@ -462,8 +462,8 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     else:
         # unsupported SRTM data version
         sys.stderr.write(
-            "Unsupported SRTM data version '{0:.1f}'.  See the"
-            " --srtm-version option for details.\n\n".format(opts.srtmVersion)
+            f"Unsupported SRTM data version '{opts.srtmVersion:.1f}'.  See the"
+            " --srtm-version option for details.\n\n"
         )
         parser.print_help()
         sys.exit(1)
@@ -483,7 +483,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         opts.dataSource = [el.strip() for el in opts.dataSource.lower().split(",")]
         for s in opts.dataSource:
             if s[:5] not in ["view1", "view3", "srtm1", "srtm3", "sonn1", "sonn3"]:
-                print("Unknown data source: {0:s}".format(s))
+                print(f"Unknown data source: {s:s}")
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:
                 while s in opts.dataSource:
@@ -494,10 +494,8 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         # No explicit source nor input provided, try to download using default
         opts.dataSource = []
         if opts.viewfinder != 0:
-            opts.dataSource.append("view{0:d}".format(opts.viewfinder))
-        opts.dataSource.append(
-            "srtm{0:d}v{1:.1f}".format(opts.srtmResolution, opts.srtmVersion)
-        )
+            opts.dataSource.append(f"view{opts.viewfinder:d}")
+        opts.dataSource.append(f"srtm{opts.srtmResolution:d}v{opts.srtmVersion:.1f}")
     else:
         # Input files provided, no download source
         opts.dataSource = []
@@ -533,10 +531,10 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         try:
             os.stat(opts.polygon)
         except OSError:
-            print("Couldn't find polygon file: {0:s}".format(opts.polygon))
+            print(f"Couldn't find polygon file: {opts.polygon:s}")
             sys.exit(1)
         if not os.path.isfile(opts.polygon):
-            print("Polygon file '{0:s}' is not a regular file".format(opts.polygon))
+            print(f"Polygon file '{opts.polygon:s}' is not a regular file")
             sys.exit(1)
         opts.area, opts.polygon = parsePolygon(opts.polygon)
     elif opts.downloadOnly and not opts.area:
@@ -575,9 +573,7 @@ def main_internal(sys_args: List[str]) -> None:
             opts.area, opts.polygon, opts.srtmCorrx, opts.srtmCorry, opts.dataSource
         )
         if len(hgtDataFiles) == 0:
-            print(
-                "No files for this area {0:s} from desired source(s).".format(opts.area)
-            )
+            print(f"No files for this area {opts.area:s} from desired source(s).")
             sys.exit(0)
         elif opts.downloadOnly:
             sys.exit(0)

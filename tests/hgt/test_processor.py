@@ -46,15 +46,11 @@ class OSMDecoder(npyosmium.SimpleHandler):
             self.max_way_id = w.id
 
 
-IdBoundaries = NamedTuple(
-    "IdBoundaries",
-    [
-        ("min_node_id", int),
-        ("max_node_id", int),
-        ("min_way_id", int),
-        ("max_way_id", int),
-    ],
-)
+class IdBoundaries(NamedTuple):
+    min_node_id: int
+    max_node_id: int
+    min_way_id: int
+    max_way_id: int
 
 
 def run_in_spawned_process(function: Callable, *args, **kwargs) -> None:

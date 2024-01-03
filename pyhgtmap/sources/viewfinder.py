@@ -30,7 +30,7 @@ def inner_areas(coord_tag: str) -> List[str]:
     # Width of the map widget in the web page
     MAP_WIDTH = 1800
     viewfinder_map_ratio: float = MAP_WIDTH / 360.0
-    left, top, right, bottom = [int(c) for c in coord_tag.split(",")]
+    left, top, right, bottom = (int(c) for c in coord_tag.split(","))
     # TODO: what is this "+0.5"? If it's to get a slightly wider are, shouldn't it be +/-?
     west = int(left / viewfinder_map_ratio + 0.5) - 180
     east = int(right / viewfinder_map_ratio + 0.5) - 180
@@ -39,10 +39,8 @@ def inner_areas(coord_tag: str) -> List[str]:
     names: List[str] = []
     for lon in range(west, east):
         for lat in range(south, north):
-            lon_name = "W{0:0>3d}".format(-lon) if lon < 0 else "E{0:0>3d}".format(lon)
-            lat_name = (
-                "S{0:0>2d}".format(-lat) if south < 0 else "N{0:0>2d}".format(lat)
-            )
+            lon_name = f"W{-lon:0>3d}" if lon < 0 else f"E{lon:0>3d}"
+            lat_name = f"S{-lat:0>2d}" if south < 0 else f"N{lat:0>2d}"
 
             name = "".join([lat_name, lon_name])
             names.append(name)
@@ -86,7 +84,7 @@ class ViewFinderIndex:
 
     def load(self) -> None:
         """Load index from local file"""
-        with open(self._index_file_name, "r") as index_file:
+        with open(self._index_file_name) as index_file:
             current_url = None
             for line in index_file:
                 if line.startswith("#"):

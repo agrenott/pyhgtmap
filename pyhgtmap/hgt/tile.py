@@ -13,17 +13,13 @@ meters2Feet = 1.0 / 0.3048
 logger = logging.getLogger(__name__)
 
 
-TileContours = NamedTuple(
-    "TileContours",
-    [
-        # Total number of unique nodes
-        ("nb_nodes", int),
-        # Total number of ways
-        ("nb_ways", int),
-        # Contour lines per elevation
-        ("contours", Dict[int, List[numpy.ndarray]]),
-    ],
-)
+class TileContours(NamedTuple):
+    # Total number of unique nodes
+    nb_nodes: int
+    # Total number of ways
+    nb_ways: int
+    # Contour lines per elevation
+    contours: Dict[int, List[numpy.ndarray]]
 
 
 class hgtTile:
@@ -152,12 +148,10 @@ class hgtTile:
                     lat = self.maxLat - latIndex * self.latIncrement
                     for lonIndex, height in enumerate(row):
                         lon = self.minLon + lonIndex * self.lonIncrement
-                        plotFile.write(
-                            "{0:.7f} {1:.7f} {2:d}\n".format(lon, lat, height)
-                        )
+                        plotFile.write(f"{lon:.7f} {lat:.7f} {height:d}\n")
         except Exception:
-            raise IOError(
-                "could not open plot file {0:s} for writing".format(filename)
+            raise OSError(
+                f"could not open plot file {filename:s} for writing"
             ) from None
 
     def _get_contours(

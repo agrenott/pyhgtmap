@@ -71,7 +71,7 @@ def parsePolygon(filename):
     minLat = latList[0]
     maxLat = latList[-1]
     return (
-        "{0:.7f}:{1:.7f}:{2:.7f}:{3:.7f}".format(minLon, minLat, maxLon, maxLat),
+        f"{minLon:.7f}:{minLat:.7f}:{maxLon:.7f}:{maxLat:.7f}",
         polygons,
     )
 
@@ -99,7 +99,7 @@ def parseHgtFilename(
         minLat = -1 * int(latValue)
     else:
         raise filenameError(
-            "something wrong with latitude coding in filename {0:s}".format(filename)
+            f"something wrong with latitude coding in filename {filename:s}"
         )
     maxLat = minLat + 1
     if lonSwitch == "E" and lonValue.isdigit():
@@ -108,7 +108,7 @@ def parseHgtFilename(
         minLon = -1 * int(lonValue)
     else:
         raise filenameError(
-            "something wrong with longitude coding in filename {0:s}".format(filename)
+            f"something wrong with longitude coding in filename {filename:s}"
         )
     maxLon = minLon + 1
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
@@ -168,7 +168,7 @@ def parseGeotiffBbox(
         numOfCols = g.RasterXSize
         numOfRows = g.RasterYSize
     except Exception:
-        raise hgtError("Can't handle geotiff file {!s}".format(filename)) from None
+        raise hgtError(f"Can't handle geotiff file {filename!s}") from None
     lonIncrement = geoTransform[1]
     latIncrement = geoTransform[5]
     minLon = geoTransform[0] + 0.5 * lonIncrement

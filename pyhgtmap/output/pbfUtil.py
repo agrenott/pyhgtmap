@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 import logging
 import os
 import time
@@ -64,7 +62,7 @@ class Output(pyhgtmap.output.Output):
         )
         osm_header.set(
             key="generator",
-            value="pyhgtmap {0:s}".format(pyhgtmap_version),
+            value=f"pyhgtmap {pyhgtmap_version:s}",
         )
 
         return osm_header
