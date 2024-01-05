@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 import time
-from typing import Callable, List, Tuple
+from typing import TYPE_CHECKING, Callable
 
 import npyosmium
 import npyosmium.io
@@ -11,7 +13,10 @@ import numpy
 import numpy.typing
 
 import pyhgtmap.output
-from pyhgtmap.hgt.tile import TileContours
+
+if TYPE_CHECKING:
+    from pyhgtmap.hgt.tile import TileContours
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +36,7 @@ class Output(pyhgtmap.output.Output):
         filename,
         osmVersion,
         pyhgtmap_version,
-        bbox: Tuple[float, float, float, float],
+        bbox: tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
     ):
         super().__init__()
@@ -40,7 +45,9 @@ class Output(pyhgtmap.output.Output):
         if os.path.exists(filename):
             os.remove(filename)
         self.osm_writer = npyosmium.SimpleWriter(
-            filename, BUFFER_SIZE, self.makeHeader(pyhgtmap_version)
+            filename,
+            BUFFER_SIZE,
+            self.makeHeader(pyhgtmap_version),
         )
         # self.outf = open(filename, "wb")
         self.granularity = 100
@@ -57,8 +64,9 @@ class Output(pyhgtmap.output.Output):
         left, bottom, right, top = self.bbox
         osm_header.add_box(
             npyosmium.osm.Box(
-                npyosmium.osm.Location(left, bottom), npyosmium.osm.Location(right, top)
-            )
+                npyosmium.osm.Location(left, bottom),
+                npyosmium.osm.Location(right, top),
+            ),
         )
         osm_header.set(
             key="generator",
@@ -74,7 +82,7 @@ class Output(pyhgtmap.output.Output):
         The waylist is split up to make sure the pbf blobs will not be too big.
         """
         for ind, way in enumerate(ways):
-            closed_loop_id: List[int] = (
+            closed_loop_id: list[int] = (
                 [way["first_node_id"]] if way["closed_loop"] else []
             )
             osm_way = npyosmium.osm.mutable.Way(
@@ -85,7 +93,7 @@ class Output(pyhgtmap.output.Output):
                     ("contour_ext", self.elevClassifier(way["elevation"])),
                 ),
                 nodes=list(
-                    range(way["first_node_id"], way["first_node_id"] + way["nb_nodes"])
+                    range(way["first_node_id"], way["first_node_id"] + way["nb_nodes"]),
                 )
                 + closed_loop_id,
             )
@@ -104,10 +112,10 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, pyhgtmap.output.WaysType]:
+    ) -> tuple[int, pyhgtmap.output.WaysType]:
         logger.debug(f"writeNodes - startId: {start_node_id}")
 
-        ways: List[pyhgtmap.output.WayType] = []
+        ways: list[pyhgtmap.output.WayType] = []
         next_node_id: int = start_node_id
 
         for elevation, contour_list in tile_contours.contours.items():
@@ -125,8 +133,11 @@ class Output(pyhgtmap.output.Output):
 
                 ways.append(
                     pyhgtmap.output.WayType(
-                        next_node_id, len(contour), is_closed_way, elevation
-                    )
+                        next_node_id,
+                        len(contour),
+                        is_closed_way,
+                        elevation,
+                    ),
                 )
                 # Bump ID for next iteration
                 next_node_id += len(contour)

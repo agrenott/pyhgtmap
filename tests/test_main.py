@@ -1,16 +1,20 @@
-import optparse
 import os
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 from pyhgtmap import main
 
 from . import TEST_DATA_PATH
 
+if TYPE_CHECKING:
+    import optparse
+
 
 @patch("pyhgtmap.main.NASASRTMUtil")
 @patch("pyhgtmap.main.HgtFilesProcessor")
 def test_main_download_from_poly(
-    HgtFilesProcessor_mock: MagicMock, NASASRTMUtil_mock: MagicMock
+    HgtFilesProcessor_mock: MagicMock,
+    NASASRTMUtil_mock: MagicMock,
 ) -> None:
     """Only polygon option is used, without files; download tiles."""
     # Prepare
@@ -49,14 +53,15 @@ def test_main_download_from_poly(
     assert parsed_options.area == "-6.9372070:41.2386600:9.9000000:51.4288000"
 
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
-        [("hgt/VIEW1/N45E006.hgt", True), ("hgt/VIEW1/N46E006.hgt", True)]
+        [("hgt/VIEW1/N45E006.hgt", True), ("hgt/VIEW1/N46E006.hgt", True)],
     )
 
 
 @patch("pyhgtmap.main.NASASRTMUtil")
 @patch("pyhgtmap.main.HgtFilesProcessor")
 def test_main_manual_input_poly(
-    HgtFilesProcessor_mock: MagicMock, NASASRTMUtil_mock: MagicMock
+    HgtFilesProcessor_mock: MagicMock,
+    NASASRTMUtil_mock: MagicMock,
 ) -> None:
     """Polygon option is used, with manual files; polygon must be applied to files."""
     # Prepare
@@ -81,7 +86,7 @@ def test_main_manual_input_poly(
     assert parsed_options.area == "7:45:8:48"
     # Polygon check must be enabled for all files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
-        [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)]
+        [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)],
     )
 
 
@@ -115,14 +120,15 @@ def test_main_manual_input_poly_no_source(
     assert parsed_options.area == "7:45:8:48"
     # Polygon check must be enabled for all files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
-        [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)]
+        [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)],
     )
 
 
 @patch("pyhgtmap.main.NASASRTMUtil")
 @patch("pyhgtmap.main.HgtFilesProcessor")
 def test_main_manual_input_no_poly(
-    HgtFilesProcessor_mock: MagicMock, NASASRTMUtil_mock: MagicMock
+    HgtFilesProcessor_mock: MagicMock,
+    NASASRTMUtil_mock: MagicMock,
 ) -> None:
     """Polygon option is NOT used, with manual files."""
     # Prepare
@@ -145,5 +151,5 @@ def test_main_manual_input_no_poly(
     assert parsed_options.area == "7:45:8:48"
     # Polygon check must NOT be enabled for any files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
-        [("N45E007.hgt", False), ("N46E007.hgt", False), ("N47E007.hgt", False)]
+        [("N45E007.hgt", False), ("N46E007.hgt", False), ("N47E007.hgt", False)],
     )

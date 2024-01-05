@@ -1,14 +1,15 @@
 """Common HGT sources utilities: Source base class and registry."""
 
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from class_registry import AutoRegister, ClassRegistry
 
-__all__: List[str] = []
+__all__: list[str] = []
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 SOURCES_TYPES_REGISTRY = ClassRegistry(attr_name="NICKNAME", unique=True)
 
 
-class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore # Mypy does not understand dynamically-computed metaclasses
+class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore[misc] # Mypy does not understand dynamically-computed metaclasses
     """HGT source base class"""
 
     # Source's 'nickname', used to identify it from the command line and
@@ -29,7 +30,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
     BANNER: str
 
     # Resolutions supported by this source in arc-seconds
-    SUPPORTED_RESOLUTIONS: List[int] = [1, 3]
+    SUPPORTED_RESOLUTIONS: tuple[int, ...] = (1, 3)
 
     def __init__(self, cache_dir_root: str, config_dir: str) -> None:
         """
@@ -56,10 +57,10 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
         found_size: int = os.path.getsize(file_name)
         if found_size != wanted_size:
             raise OSError(
-                f"Wrong size: expected {wanted_size}, found {found_size} for {file_name}"
+                f"Wrong size: expected {wanted_size}, found {found_size} for {file_name}",
             )
 
-    def get_file(self, area: str, resolution: int) -> Optional[str]:
+    def get_file(self, area: str, resolution: int) -> str | None:
         """Get HGT file corresponding to requested area, from cache if already downloaded.
 
         Args:
@@ -79,7 +80,8 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
             try:
                 # Missing file or corrupted, download it
                 pathlib.Path(self.get_cache_dir(resolution)).mkdir(
-                    parents=True, exist_ok=True
+                    parents=True,
+                    exist_ok=True,
                 )
                 self.show_banner()
                 self.download_missing_file(area, resolution, file_name)
@@ -103,7 +105,10 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
 
     @abstractmethod
     def download_missing_file(
-        self, area: str, resolution: int, output_file_name: str
+        self,
+        area: str,
+        resolution: int,
+        output_file_name: str,
     ) -> None:
         """Actually download and save HGT file into cache.
 

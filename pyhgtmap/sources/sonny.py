@@ -1,22 +1,35 @@
+from __future__ import annotations
+
 import io
 import logging
 import os
 import pathlib
-from typing import Dict, List, Optional, cast
+from typing import TYPE_CHECKING, cast
 from zipfile import ZipFile
 
 from pydrive2.auth import GoogleAuth, RefreshError
 from pydrive2.drive import GoogleDrive
-from pydrive2.files import GoogleDriveFile
 
 from . import Source
+
+if TYPE_CHECKING:
+    from pydrive2.files import GoogleDriveFile
+
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 __all__ = ["Sonny"]
 
-CLIENT_SECRET_FILE = "client-secret.json"
+CLIENT_SECRET_FILE = "client-secret.json"  # noqa: S105 # This is NOT a password!
 SAVED_CREDENTIALS_FILE = "gdrive-credentials.json"
+
+
+# Root Sonny's Google Drive folders IDs for Europe DTMs, for various resolutions
+# TODO: does this change often? Should it be configurable/self-discovered from website?
+FOLDER_IDS: dict[int, str] = {
+    1: "0BxphPoRgwhnoWkRoTFhMbTM3RDA",
+    3: "0BxphPoRgwhnoekRQZUZJT2ZRX2M",
+}
 
 
 class Sonny(Source):
@@ -31,13 +44,6 @@ class Sonny(Source):
         "consider visiting https://sonny.4lima.de/ to support the author."
     )
 
-    # Root Sonny's Google Drive folders IDs for Europe DTMs, for various resolutions
-    # TODO: does this change often? Should it be configurable/self-discovered from website?
-    FOLDER_IDS: Dict[int, str] = {
-        1: "0BxphPoRgwhnoWkRoTFhMbTM3RDA",
-        3: "0BxphPoRgwhnoekRQZUZJT2ZRX2M",
-    }
-
     def __init__(self, cache_dir_root: str, config_dir: str) -> None:
         """
         Args:
@@ -45,7 +51,7 @@ class Sonny(Source):
             config_dir (str): Root directory to store configuration (if any)
         """
         super().__init__(cache_dir_root, config_dir)
-        self._gdrive: Optional[GoogleDrive] = None
+        self._gdrive: GoogleDrive | None = None
 
     @property
     def gdrive(self) -> GoogleDrive:
@@ -78,7 +84,7 @@ class Sonny(Source):
                 # - https://github.com/iterative/PyDrive2/issues/184
                 # - https://stackoverflow.com/questions/76006880/why-does-pydrive-stop-refreshing-the-access-token-after-a-while
                 LOGGER.warning(
-                    "GDrive API token expired? Trying to delete saved credentials and force new authentication"
+                    "GDrive API token expired? Trying to delete saved credentials and force new authentication",
                 )
                 # Delete saved credentials and retry full auth
                 pathlib.Path.unlink(pathlib.Path(credentials_file))
@@ -92,29 +98,34 @@ class Sonny(Source):
         return self._gdrive
 
     def download_missing_file(
-        self, area: str, resolution: int, output_file_name: str
+        self,
+        area: str,
+        resolution: int,
+        output_file_name: str,
     ) -> None:
         # Find file by name (called title in GDrive), matching requested area
-        files: List[GoogleDriveFile] = self.gdrive.ListFile(
+        files: list[GoogleDriveFile] = self.gdrive.ListFile(
             {
-                "q": f"'{Sonny.FOLDER_IDS[resolution]}' in parents and "
-                f"trashed=false and mimeType='application/x-zip-compressed' and title='{area}.zip'"
-            }
+                "q": f"'{FOLDER_IDS[resolution]}' in parents and "
+                f"trashed=false and mimeType='application/x-zip-compressed' and title='{area}.zip'",
+            },
         ).GetList()
         if not files:
             raise FileNotFoundError(f"No file available for area {area}")
         if len(files) > 1:
             # Hopefully shouldn't happen...
             LOGGER.warning(
-                "More than one file matching for area %s; using first one...", area
+                "More than one file matching for area %s; using first one...",
+                area,
             )
 
         # Actually download and extract file on the fly
         zipped_buffer = files[0].GetContentIOBuffer(remove_bom=True)
         # We expect the name to match the archive & area one
         with ZipFile(
-            io.BytesIO(cast(bytes, zipped_buffer.read()))
+            io.BytesIO(cast(bytes, zipped_buffer.read())),
         ) as zip_archive, zip_archive.open(f"{area}.hgt") as hgt_file_in, open(
-            output_file_name, mode="wb"
+            output_file_name,
+            mode="wb",
         ) as hgt_file_out:
             hgt_file_out.write(hgt_file_in.read())

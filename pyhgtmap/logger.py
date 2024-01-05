@@ -11,8 +11,8 @@ def configure_logging(logLevel) -> None:
     handler = colorlog.StreamHandler()
     handler.setFormatter(
         colorlog.ColoredFormatter(
-            "%(log_color)s%(asctime)s - %(name)s:%(lineno)d:%(levelname)s - %(process)d - %(message)s"
-        )
+            "%(log_color)s%(asctime)s - %(name)s:%(lineno)d:%(levelname)s - %(process)d - %(message)s",
+        ),
     )
 
     log_level = getattr(logging, logLevel)

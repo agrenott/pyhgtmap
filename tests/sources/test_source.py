@@ -15,7 +15,10 @@ class SomeTestSource(Source):
     BANNER = "Please support my test banner!"
 
     def download_missing_file(
-        self, area: str, resolution: int, output_file_name: str
+        self,
+        area: str,
+        resolution: int,
+        output_file_name: str,
     ) -> None:
         pass
 
@@ -80,11 +83,13 @@ class TestSource:
 
         # Check
         source.check_cached_file.assert_called_once_with(
-            f"cache_dir/TEST3/{area}.hgt", 3
+            f"cache_dir/TEST3/{area}.hgt",
+            3,
         )
         source.download_missing_file.assert_not_called()
         assert file_name == os.path.join(
-            source.get_cache_dir(resolution), f"{area}.hgt"
+            source.get_cache_dir(resolution),
+            f"{area}.hgt",
         )
 
     @staticmethod
@@ -111,13 +116,17 @@ class TestSource:
             # Check
             assert os.path.isdir(os.path.join(cache_dir, "TEST3"))
             source.check_cached_file.assert_called_with(
-                f"{cache_dir}/TEST3/{area}.hgt", 3
+                f"{cache_dir}/TEST3/{area}.hgt",
+                3,
             )
             source.download_missing_file.assert_called_once_with(
-                area, 3, f"{cache_dir}/TEST3/{area}.hgt"
+                area,
+                3,
+                f"{cache_dir}/TEST3/{area}.hgt",
             )
             assert file_name == os.path.join(
-                source.get_cache_dir(resolution), f"{area}.hgt"
+                source.get_cache_dir(resolution),
+                f"{area}.hgt",
             )
 
     @staticmethod
@@ -144,7 +153,9 @@ class TestSource:
         source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
         assert source.check_cached_file.call_count == 2
         source.download_missing_file.assert_called_once_with(
-            area, 3, f"cache_dir/TEST3/{area}.hgt"
+            area,
+            3,
+            f"cache_dir/TEST3/{area}.hgt",
         )
         assert file_name is None
 
@@ -170,7 +181,9 @@ class TestSource:
         # Check
         source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
         source.download_missing_file.assert_called_once_with(
-            area, 3, f"cache_dir/TEST3/{area}.hgt"
+            area,
+            3,
+            f"cache_dir/TEST3/{area}.hgt",
         )
         assert file_name is None
 

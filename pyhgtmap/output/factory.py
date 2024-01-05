@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import os
-from typing import Any, List, Tuple
+from typing import Any
 
 import pyhgtmap
 import pyhgtmap.output
@@ -10,7 +12,9 @@ from . import make_elev_classifier
 
 
 def make_osm_filename(
-    borders: Tuple[float, float, float, float], opts, input_files_names: List[str]
+    borders: tuple[float, float, float, float],
+    opts,
+    input_files_names: list[str],
 ) -> str:
     """generate a filename for the output osm file. This is done using the bbox
     of the current hgt file.
@@ -65,13 +69,13 @@ def makeBoundsString(bbox: Any) -> str:
     if type(bbox) in bboxStringtypes and bbox.count(":") == 3:
         bbox = bbox.split(":")
     minlon, minlat, maxlon, maxlat = (float(i) for i in bbox)
-    return '<bounds minlat="{0:.7f}" minlon="{1:.7f}" maxlat="{2:.7f}" maxlon="{3:.7f}"/>'.format(
-        minlat, minlon, maxlat, maxlon
-    )
+    return f'<bounds minlat="{minlat:.7f}" minlon="{minlon:.7f}" maxlat="{maxlat:.7f}" maxlon="{maxlon:.7f}"/>'
 
 
 def get_osm_output(
-    opts, input_files_names: List[str], bounds: Tuple[float, float, float, float]
+    opts,
+    input_files_names: list[str],
+    bounds: tuple[float, float, float, float],
 ) -> Output:
     """Return the proper OSM Output generator."""
     outputFilename = make_osm_filename(bounds, opts, input_files_names)
