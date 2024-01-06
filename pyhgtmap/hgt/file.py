@@ -158,6 +158,8 @@ def parseGeotiffBbox(
 ) -> tuple[float, float, float, float]:
     try:
         from osgeo import gdal, osr
+
+        gdal.UseExceptions()
     except ModuleNotFoundError:
         raise ImportError(GEOTIFF_ERROR) from None
     try:
@@ -472,6 +474,8 @@ class hgtFile:
         """init this hgtFile instance with data from a geotiff image."""
         try:
             from osgeo import gdal, osr
+
+            gdal.UseExceptions()
         except ModuleNotFoundError:
             raise ImportError(GEOTIFF_ERROR) from None
 
