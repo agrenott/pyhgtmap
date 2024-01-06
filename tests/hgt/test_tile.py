@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
@@ -9,7 +8,8 @@ import matplotlib.pyplot as plt
 import numpy
 import pytest
 
-from pyhgtmap.hgt.file import hgtFile
+from pyhgtmap.cli import Configuration
+from pyhgtmap.hgt.file import HgtFile
 from tests import TEST_DATA_PATH
 
 if TYPE_CHECKING:
@@ -20,21 +20,21 @@ HGT_SIZE: int = 1201
 
 def toulon_tiles(
     smooth_ratio: float,
-    custom_options: SimpleNamespace | None = None,
+    custom_options: Configuration | None = None,
 ) -> list[hgtTile]:
-    hgt_file = hgtFile(
+    hgt_file = HgtFile(
         os.path.join(TEST_DATA_PATH, "N43E006.hgt"),
         0,
         0,
         smooth_ratio=smooth_ratio,
     )
     # Fake command line parser output
-    options = custom_options or SimpleNamespace(
+    options = custom_options or Configuration(
         area=None,
         maxNodesPerTile=0,
         contourStepSize=20,
     )
-    tiles: list[hgtTile] = hgt_file.makeTiles(options)
+    tiles: list[hgtTile] = hgt_file.make_tiles(options)
     return tiles
 
 
@@ -56,15 +56,15 @@ class TestHgtTile:
         elevations, contour_data = toulon_tiles_raw[0].contourLines()
         assert elevations == range(0, 1940, 20)
         assert contour_data
-        # Get the countours for 20m elevation
+        # Get the contours for 20m elevation
         contour_list_20 = contour_data.trace(20)[0]
         assert len(contour_list_20) == 145
         assert len(contour_list_20[0]) == 5
 
-        # Get the countours for 1920m elevation
+        # Get the contours for 1920m elevation
         contour_list_1920 = contour_data.trace(1920)[0]
         assert len(contour_list_1920) == 1
-        # Float numbers are not striclty equals
+        # Float numbers are not strictly equals
         numpy.testing.assert_allclose(
             contour_list_1920[0],
             numpy.array(
@@ -89,15 +89,15 @@ class TestHgtTile:
         assert tile_contours.nb_nodes == 1264395
         assert tile_contours.nb_ways == 10798
         assert tile_contours.contours
-        # Get the countours for 20m elevation
+        # Get the contours for 20m elevation
         contour_list_20 = tile_contours.contours[20]
         assert len(contour_list_20) == 145
         assert len(contour_list_20[0]) == 5
 
-        # Get the countours for 1920m elevation
+        # Get the contours for 1920m elevation
         contour_list_1920 = tile_contours.contours[1920]
         assert len(contour_list_1920) == 1
-        # Float numbers are not striclty equals
+        # Float numbers are not strictly equals
         numpy.testing.assert_allclose(
             contour_list_1920[0],
             numpy.array(
@@ -128,7 +128,7 @@ class TestHgtTile:
         tile.contourLines.assert_called_once_with(20, 0, False, None, None, None)
 
     @staticmethod
-    # Test contours generation with several rdp_espilon values
+    # Test contours generation with several rdp_epsilon values
     # Results must be close enough not to trigger an exception with mpl plugin
     @pytest.mark.parametrize(
         "rdp_epsilon",
@@ -145,9 +145,9 @@ class TestHgtTile:
     def test_draw_contours_Toulon(
         toulon_tiles_raw: list[hgtTile],
         rdp_epsilon: float | None,
-    ) -> plt.Figure:
+    ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
         """Rather an end-to-end test.
-        Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
+        Print contours in Toulon's area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
         To compare output, run `pytest --mpl`
         """
         return TestHgtTile._test_draw_contours(toulon_tiles_raw, rdp_epsilon)
@@ -159,9 +159,9 @@ class TestHgtTile:
     )
     def test_draw_contours_smoothed_Toulon(
         toulon_tiles_smoothed: list[hgtTile],
-    ) -> plt.Figure:
+    ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
         """Rather an end-to-end test.
-        Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
+        Print contours in Toulon's area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
         To compare output, run `pytest --mpl`
         """
         return TestHgtTile._test_draw_contours(toulon_tiles_smoothed, 0.00001)
@@ -170,7 +170,7 @@ class TestHgtTile:
     def _test_draw_contours(
         tiles: list[hgtTile],
         rdp_epsilon: float | None,
-    ) -> plt.Figure:
+    ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
         """Internal contour testing method."""
         elevations, contour_data = tiles[0].contourLines(rdpEpsilon=rdp_epsilon)
         dpi = 100

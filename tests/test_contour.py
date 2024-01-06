@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy
 import pytest
 
-from pyhgtmap import contour
+from pyhgtmap import Polygon, contour
 
 
 @pytest.mark.parametrize(
@@ -49,13 +49,13 @@ from pyhgtmap import contour
     ],
 )
 def test_simplify_path(
-    input_path: list[tuple[float, float]],
+    input_path: Polygon,
     rdp_epsilon: float,
-    expected_path: list[tuple[float, float]],
+    expected_path: Polygon,
 ) -> None:
     numpy.testing.assert_array_equal(
         contour.simplify_path(numpy.array(input_path), rdp_epsilon),
-        expected_path,
+        expected_path,  # type: ignore[reportGeneralTypeIssues] # pylance
     )
 
 

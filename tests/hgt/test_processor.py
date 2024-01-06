@@ -9,7 +9,6 @@ import shutil
 import sys
 import tempfile
 from contextlib import contextmanager
-from types import SimpleNamespace
 from typing import Callable, Generator, NamedTuple
 from unittest import mock
 from unittest.mock import MagicMock, Mock
@@ -19,6 +18,7 @@ import npyosmium.io
 import npyosmium.osm
 import pytest
 
+from pyhgtmap.cli import Configuration
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.hgt.tile import TileContours
 from tests import TEST_DATA_PATH
@@ -127,13 +127,13 @@ def check_no_id_overlap(osm_files_names: list[str]) -> None:
 
 
 @pytest.fixture()
-def default_options() -> SimpleNamespace:
+def default_options() -> Configuration:
     """Default command line options."""
-    return SimpleNamespace(
+    return Configuration(
         area=None,
         maxNodesPerTile=500000,
         maxNodesPerWay=2000,
-        contourStepSize=20,
+        contourStepSize="20",
         srtmCorrx=0,
         srtmCorry=0,
         polygon=None,
@@ -160,7 +160,7 @@ class TestHgtFilesProcessor:
             8,  # Multi-processes mode
         ],
     )
-    def test_process_files(nb_jobs: int, default_options: SimpleNamespace) -> None:
+    def test_process_files(nb_jobs: int, default_options: Configuration) -> None:
         """E2E test."""
         # Run in spawned child process, as osmium threads doesn't suuport being used
         # once in main process and then in forked process (causing deadlock situation).
@@ -227,7 +227,7 @@ class TestHgtFilesProcessor:
     )
     def test_process_files_single_output(
         nb_jobs: int,
-        default_options: SimpleNamespace,
+        default_options: Configuration,
     ) -> None:
         """E2E test."""
         # Run in spawned child process, as osmium threads doesn't suuport being used
@@ -287,7 +287,7 @@ class TestHgtFilesProcessor:
                 shutil.move(coverage_file, ".")
 
     @staticmethod
-    def test_get_osm_output(default_options: SimpleNamespace) -> None:
+    def test_get_osm_output(default_options: Configuration) -> None:
         processor = HgtFilesProcessor(
             1,
             node_start_id=100,
@@ -311,7 +311,7 @@ class TestHgtFilesProcessor:
             assert output1 is not output2
 
     @staticmethod
-    def test_get_osm_output_single_output(default_options: SimpleNamespace) -> None:
+    def test_get_osm_output_single_output(default_options: Configuration) -> None:
         # Enable single output mode
         default_options.maxNodesPerTile = 0
         processor = HgtFilesProcessor(
@@ -336,7 +336,7 @@ class TestHgtFilesProcessor:
             assert output1 is output2
 
     @staticmethod
-    def test_node_id_overflow(default_options: SimpleNamespace) -> None:
+    def test_node_id_overflow(default_options: Configuration) -> None:
         # Ensure node ID doesn't overflow limit of int32
         processor = HgtFilesProcessor(
             1,
@@ -348,7 +348,7 @@ class TestHgtFilesProcessor:
         assert processor.get_and_inc_counter(processor.next_node_id, 1) == 2147483648
 
     @staticmethod
-    def test_way_id_overflow(default_options: SimpleNamespace) -> None:
+    def test_way_id_overflow(default_options: Configuration) -> None:
         # Ensure way ID doesn't overflow limit of int32
         processor = HgtFilesProcessor(
             1,
@@ -361,7 +361,7 @@ class TestHgtFilesProcessor:
 
     @staticmethod
     def test_process_tile_internal_empty_contour(
-        default_options: SimpleNamespace,
+        default_options: Configuration,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Ensure no empty output file is generated when there's no contour."""

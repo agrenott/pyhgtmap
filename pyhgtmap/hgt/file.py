@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from contextlib import suppress
-from typing import Iterable, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy
 import numpy.typing
@@ -15,6 +15,10 @@ from scipy import ndimage
 from pyhgtmap.hgt import TransformFunType, transformLonLats
 
 from .tile import hgtTile
+
+if TYPE_CHECKING:
+    from pyhgtmap import Polygon, PolygonsList
+    from pyhgtmap.cli import Configuration
 
 meters2Feet = 1.0 / 0.3048
 
@@ -35,7 +39,7 @@ class elevationError(hgtError):
     """is raised when trying to deal with elevations out of range."""
 
 
-def parsePolygon(filename):
+def parse_polygons_file(filename: str) -> tuple[str, PolygonsList]:
     """reads polygons from a file like one included in
     http://download.geofabrik.de/clipbounds/clipbounds.tgz
     and returns it as list of (<lon>, <lat>) tuples.
@@ -46,8 +50,8 @@ def parsePolygon(filename):
             for line in polygon_file.read().split("\n")
             if line.strip()
         ]
-    polygons = []
-    curPolygon = []
+    polygons: PolygonsList = []
+    curPolygon: Polygon = []
     for line in lines:
         if line in [str(i) for i in range(1, lines.count("end"))]:
             # new polygon begins
@@ -79,7 +83,7 @@ def parsePolygon(filename):
     )
 
 
-def parseHgtFilename(
+def parse_hgt_filename(
     filename: str,
     corrx: float,
     corry: float,
@@ -150,7 +154,7 @@ def getTransform(o, reverse=False) -> TransformFunType | None:
         return transform
 
 
-def parseGeotiffBbox(
+def parse_geotiff_bbox(
     filename: str,
     corrx: float,
     corry: float,
@@ -237,9 +241,9 @@ def parseFileForBbox(
 ) -> tuple[float, float, float, float]:
     fileExt: str = os.path.splitext(fullFilename)[1].lower().replace(".", "")
     if fileExt == "hgt":
-        return parseHgtFilename(os.path.split(fullFilename)[1], corrx, corry)
+        return parse_hgt_filename(os.path.split(fullFilename)[1], corrx, corry)
     elif fileExt in ("tif", "tiff", "vrt"):
-        return parseGeotiffBbox(fullFilename, corrx, corry, doTransform)
+        return parse_geotiff_bbox(fullFilename, corrx, corry, doTransform)
     raise ValueError(f"Unsupported extension {fileExt}")
 
 
@@ -260,9 +264,9 @@ BBOX_EXPAND_EPSILON = 0.1
 
 
 def clip_polygons(
-    polygons: list[list[tuple[float, float]]],
+    polygons: PolygonsList,
     clip_polygon: Iterable[tuple[float, float]],
-) -> list[list[tuple[float, float]]]:
+) -> PolygonsList:
     """
     Clips a list of polygons to a given clip polygon.
 
@@ -274,7 +278,7 @@ def clip_polygons(
         A list of clipped polygons.
     """
     bbox_shape = shapely.Polygon(clip_polygon)
-    clipped_polygons: list[list[tuple[float, float]]] = []
+    clipped_polygons: PolygonsList = []
     for p in polygons:
         # Intersect each input polygon with the clip one
         clipped_p = shapely.intersection(shapely.Polygon(p), bbox_shape)
@@ -295,7 +299,7 @@ def clip_polygons(
 def polygon_mask(
     x_data: numpy.ndarray,
     y_data: numpy.ndarray,
-    polygons: list[list[tuple[float, float]]],
+    polygons: PolygonsList,
     transform: TransformFunType | None,
 ) -> numpy.ndarray:
     """return a mask on self.zData corresponding to all polygons in self.polygons.
@@ -361,7 +365,7 @@ def super_sample(
     return out_data, out_mask
 
 
-class hgtFile:
+class HgtFile:
     """is a handle for SRTM data files"""
 
     def __init__(
@@ -369,7 +373,7 @@ class hgtFile:
         filename,
         corrx,
         corry,
-        polygons: list[list[tuple[float, float]]] | None = None,
+        polygons: PolygonsList | None = None,
         checkPoly=False,
         voidMax: int = -0x8000,
         feetSteps=False,
@@ -385,11 +389,13 @@ class hgtFile:
         self.filename = os.path.split(filename)[-1]
         self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
         # Assigned by initAsXxx
-        self.polygons: list[list[tuple[float, float]]] | None
+        self.polygons: PolygonsList | None
         if self.fileExt == "hgt":
-            self.initAsHgt(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
+            self.init_as_hgt(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
         elif self.fileExt in ("tif", "tiff", "vrt"):
-            self.initAsGeotiff(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
+            self.init_as_geotiff(
+                corrx, corry, polygons, checkPoly, voidMax, smooth_ratio
+            )
 
         # Best effort stats display
         with suppress(Exception):
@@ -411,11 +417,11 @@ class hgtFile:
         self.transform: TransformFunType | None
         self.reverseTransform: TransformFunType | None
 
-    def initAsHgt(
+    def init_as_hgt(
         self,
         corrx: float,
         corry: float,
-        polygons: list[list[tuple[float, float]]] | None,
+        polygons: PolygonsList | None,
         checkPoly: bool,
         voidMax: int,
         smooth_ratio: float,
@@ -462,7 +468,7 @@ class hgtFile:
             self.transform = None
             self.reverseTransform = None
 
-    def initAsGeotiff(
+    def init_as_geotiff(
         self,
         corrx,
         corry,
@@ -523,7 +529,7 @@ class hgtFile:
         """determines the bounding box of self.filename using parseHgtFilename()."""
         return parseFileForBbox(self.fullFilename, corrx, corry, doTransform=False)
 
-    def makeTiles(self, opts) -> list[hgtTile]:
+    def make_tiles(self, opts: Configuration) -> list[hgtTile]:
         """generate tiles from self.zData according to the given <opts>.area and
         return them as list of hgtTile objects.
         """
@@ -531,7 +537,7 @@ class hgtFile:
         maxNodes = opts.maxNodesPerTile
         step = int(opts.contourStepSize) or 20
 
-        def truncateData(area, inputData):
+        def truncate_data(area, inputData):
             """truncates a numpy array.
             returns (<min lon>, <min lat>, <max lon>, <max lat>) and an array of the
             truncated height data.
@@ -605,10 +611,10 @@ class hgtFile:
             else:
                 return (self.minLon, self.minLat, self.maxLon, self.maxLat), inputData
 
-        def chopData(inputBbox, inputData, depth=0):
+        def chop_data(inputBbox, inputData, depth=0):
             """chops data and appends chops to tiles if small enough."""
 
-            def estimNumOfNodes(data):
+            def estim_num_of_nodes(data) -> int:
                 """simple estimation of the number of nodes. The number of nodes is
                 estimated by summing over all absolute differences of contiguous
                 points in the zData matrix which is previously divided by the step
@@ -629,7 +635,7 @@ class hgtFile:
                 estimatedNumOfNodes = numpy.nansum(xHelpData) + numpy.nansum(yHelpData)
                 return estimatedNumOfNodes
 
-            def tooManyNodes(data):
+            def too_many_nodes(data) -> bool:
                 """returns True if the estimated number of nodes is greater than
                 <maxNodes> and False otherwise.  <maxNodes> defaults to 1000000,
                 which is an approximate limit for correct handling of osm files
@@ -637,13 +643,13 @@ class hgtFile:
                 """
                 if maxNodes == 0:
                     return False
-                return estimNumOfNodes(data) > maxNodes
+                return estim_num_of_nodes(data) > maxNodes
 
-            def getChops(unchoppedData, unchoppedBbox):
+            def get_chops(unchoppedData, unchoppedBbox):
                 """returns a data chop and the according bbox. This function is
                 recursively called until all tiles are estimated to be small enough.
 
-                One could cut the input data either horizonally or vertically depending
+                One could cut the input data either horizontally or vertically depending
                 on the shape of the input data in order to achieve more quadratic tiles.
                 However, generating contour lines from horizontally cut data appears to be
                 significantly faster.
@@ -684,10 +690,10 @@ class hgtFile:
                     # this tile is full of void values, so discard this tile
                     return
 
-            if tooManyNodes(inputData):
-                chops = getChops(inputData, inputBbox)
+            if too_many_nodes(inputData):
+                chops = get_chops(inputData, inputBbox)
                 for choppedBbox, choppedData in chops:
-                    chopData(choppedBbox, choppedData, depth + 1)
+                    chop_data(choppedBbox, choppedData, depth + 1)
             else:
                 if self.polygons:
                     tileXData = numpy.arange(
@@ -730,6 +736,6 @@ class hgtFile:
                 )
 
         tiles: list[hgtTile] = []
-        bbox, truncatedData = truncateData(area, self.zData)
-        chopData(bbox, truncatedData)
+        bbox, truncatedData = truncate_data(area, self.zData)
+        chop_data(bbox, truncatedData)
         return tiles
