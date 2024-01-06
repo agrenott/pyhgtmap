@@ -1,9 +1,11 @@
 """Validate the various output formats"""
 
+from __future__ import annotations
+
 import os
 import tempfile
 from contextlib import suppress
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Iterable
 
 import npyosmium
 import npyosmium.io
@@ -21,30 +23,30 @@ class OSMDecoder(npyosmium.SimpleHandler):
 
     def __init__(self) -> None:
         super().__init__()
-        self.nodes: Dict[int, Any] = {}
-        self.ways: Dict[int, Any] = {}
+        self.nodes: dict[int, Any] = {}
+        self.ways: dict[int, Any] = {}
 
     def node(self, n: npyosmium.osm.Node) -> None:
         with suppress(Exception):
             self.nodes[n.id] = (n.location.lat, n.location.lon)
 
     def way(self, w: npyosmium.osm.Way) -> None:
-        self.ways[w.id] = ([node.ref for node in w.nodes], [tag for tag in w.tags])
+        self.ways[w.id] = ([node.ref for node in w.nodes], list(w.tags))
 
 
 def arrays_from_lists(
-    coordinates_lists: List[List[Tuple[int, int]]],
-) -> List[numpy.typing.NDArray]:
+    coordinates_lists: list[list[tuple[int, int]]],
+) -> list[numpy.typing.NDArray]:
     """Helper to convert list of lists into array of arrays."""
     return [
         numpy.array(
-            [numpy.array(coordinates, dtype=numpy.float64) for coordinates in way]
+            [numpy.array(coordinates, dtype=numpy.float64) for coordinates in way],
         )
         for way in coordinates_lists
     ]
 
 
-@pytest.fixture
+@pytest.fixture()
 def tile_contours() -> TileContours:
     return TileContours(
         nb_nodes=8,
@@ -57,7 +59,7 @@ def tile_contours() -> TileContours:
                     [(1, 1), (1, 2), (2, 2), (2, 1), (1, 1)],
                     # Open one
                     [(3, 1), (3, 2)],
-                ]
+                ],
             ),
             # Elevation 50
             50: arrays_from_lists([[(4, 1), (4, 2)]]),
@@ -69,18 +71,18 @@ def tile_contours() -> TileContours:
     )
 
 
-@pytest.fixture
-def bounding_box() -> Tuple[float, float, float, float]:
+@pytest.fixture()
+def bounding_box() -> tuple[float, float, float, float]:
     """Bounding box of all fake data nodes"""
     return (1, 1, 4, 2)
 
 
-@pytest.fixture
+@pytest.fixture()
 def elev_classifier() -> Callable[[int], str]:
     return make_elev_classifier(100, 50)
 
 
-@pytest.fixture
+@pytest.fixture()
 def elevations() -> Iterable[int]:
     return [0, 50, 100, 150]
 
@@ -159,7 +161,10 @@ class TestOutputOsm:
 
             # Write OSM file
             next_node_id, ways = osm_output.write_nodes(
-                tile_contours, ' time="some time"', 1000, 0.6
+                tile_contours,
+                ' time="some time"',
+                1000,
+                0.6,
             )
             assert next_node_id == 1008
             osm_output.write_ways(ways, 2000)
@@ -206,7 +211,7 @@ class TestOutputPbf:
     def test_produce_pbf(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: Tuple[float, float, float, float],
+        bounding_box: tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:
@@ -221,7 +226,10 @@ class TestOutputPbf:
 
             # Write OSM file
             next_node_id, ways = osm_output.write_nodes(
-                tile_contours, ' time="some time"', 1000, 0.6
+                tile_contours,
+                ' time="some time"',
+                1000,
+                0.6,
             )
             assert next_node_id == 1008
             osm_output.write_ways(ways, 2000)
@@ -237,7 +245,7 @@ class TestOutputPbf:
     def test_node_id_overflow(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: Tuple[float, float, float, float],
+        bounding_box: tuple[float, float, float, float],
     ) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             osm_file_name = os.path.join(tempdir, "output.osm.pbf")
@@ -250,7 +258,10 @@ class TestOutputPbf:
             )
             start = 2147483647
             next_node_id, ways = osm_output.write_nodes(
-                tile_contours, ' time="some time"', start, 0.6
+                tile_contours,
+                ' time="some time"',
+                start,
+                0.6,
             )
 
             # Check int32 boundary has been passed without issue
@@ -262,7 +273,7 @@ class TestOutputO5m:
     def test_produce_o5m(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: Tuple[float, float, float, float],
+        bounding_box: tuple[float, float, float, float],
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:
@@ -277,7 +288,10 @@ class TestOutputO5m:
 
             # Write OSM file
             next_node_id, ways = osm_output.write_nodes(
-                tile_contours, ' time="some time"', 1000, 0.6
+                tile_contours,
+                ' time="some time"',
+                1000,
+                0.6,
             )
             assert next_node_id == 1008
             osm_output.write_ways(ways, 2000)

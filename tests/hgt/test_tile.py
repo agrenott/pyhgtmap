@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import matplotlib.pyplot as plt
@@ -8,40 +10,47 @@ import numpy
 import pytest
 
 from pyhgtmap.hgt.file import hgtFile
-from pyhgtmap.hgt.tile import TileContours, hgtTile
+from tests import TEST_DATA_PATH
 
-from .. import TEST_DATA_PATH
+if TYPE_CHECKING:
+    from pyhgtmap.hgt.tile import TileContours, hgtTile
 
 HGT_SIZE: int = 1201
 
 
 def toulon_tiles(
-    smooth_ratio: float, custom_options: Optional[SimpleNamespace] = None
-) -> List[hgtTile]:
+    smooth_ratio: float,
+    custom_options: SimpleNamespace | None = None,
+) -> list[hgtTile]:
     hgt_file = hgtFile(
-        os.path.join(TEST_DATA_PATH, "N43E006.hgt"), 0, 0, smooth_ratio=smooth_ratio
+        os.path.join(TEST_DATA_PATH, "N43E006.hgt"),
+        0,
+        0,
+        smooth_ratio=smooth_ratio,
     )
     # Fake command line parser output
     options = custom_options or SimpleNamespace(
-        area=None, maxNodesPerTile=0, contourStepSize=20
+        area=None,
+        maxNodesPerTile=0,
+        contourStepSize=20,
     )
-    tiles: List[hgtTile] = hgt_file.makeTiles(options)
+    tiles: list[hgtTile] = hgt_file.makeTiles(options)
     return tiles
 
 
-@pytest.fixture
-def toulon_tiles_raw() -> List[hgtTile]:
+@pytest.fixture()
+def toulon_tiles_raw() -> list[hgtTile]:
     return toulon_tiles(smooth_ratio=1)
 
 
-@pytest.fixture
-def toulon_tiles_smoothed() -> List[hgtTile]:
+@pytest.fixture()
+def toulon_tiles_smoothed() -> list[hgtTile]:
     return toulon_tiles(smooth_ratio=3)
 
 
 class TestHgtTile:
     @staticmethod
-    def test_contourLines(toulon_tiles_raw: List[hgtTile]) -> None:
+    def test_contourLines(toulon_tiles_raw: list[hgtTile]) -> None:
         """Test contour lines extraction from hgt file."""
         assert toulon_tiles_raw
         elevations, contour_data = toulon_tiles_raw[0].contourLines()
@@ -67,12 +76,12 @@ class TestHgtTile:
                     [6.6375, 43.8948913],
                     [6.63714286, 43.895],
                     [6.63732143, 43.89583333],
-                ]
+                ],
             ),
         )
 
     @staticmethod
-    def test_get_contours(toulon_tiles_raw: List[hgtTile]) -> None:
+    def test_get_contours(toulon_tiles_raw: list[hgtTile]) -> None:
         """Test contour lines extraction from hgt file."""
         assert toulon_tiles_raw
         tile_contours: TileContours = toulon_tiles_raw[0].get_contours()
@@ -100,18 +109,18 @@ class TestHgtTile:
                     [6.6375, 43.8948913],
                     [6.63714286, 43.895],
                     [6.63732143, 43.89583333],
-                ]
+                ],
             ),
         )
 
     @staticmethod
-    def test_get_contours_cache(toulon_tiles_raw: List[hgtTile]) -> None:
+    def test_get_contours_cache(toulon_tiles_raw: list[hgtTile]) -> None:
         """Ensure get_contours caching works properly."""
         # tile = hgtTile()
         assert toulon_tiles_raw
         tile = toulon_tiles_raw[0]
         # Encapsulate the method in a mock, delegating to the actual method
-        tile.contourLines = Mock(side_effect=tile.contourLines)  # type: ignore
+        tile.contourLines = Mock(side_effect=tile.contourLines)  # type: ignore[method-assign]
         # Call get_contours twice
         toulon_tiles_raw[0].get_contours()
         toulon_tiles_raw[0].get_contours()
@@ -130,10 +139,12 @@ class TestHgtTile:
         ],
     )
     @pytest.mark.mpl_image_compare(
-        baseline_dir=TEST_DATA_PATH, filename="toulon_ref.png"
+        baseline_dir=TEST_DATA_PATH,
+        filename="toulon_ref.png",
     )
     def test_draw_contours_Toulon(
-        toulon_tiles_raw: List[hgtTile], rdp_epsilon: Optional[float]
+        toulon_tiles_raw: list[hgtTile],
+        rdp_epsilon: float | None,
     ) -> plt.Figure:
         """Rather an end-to-end test.
         Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
@@ -143,10 +154,11 @@ class TestHgtTile:
 
     @staticmethod
     @pytest.mark.mpl_image_compare(
-        baseline_dir=TEST_DATA_PATH, filename="toulon_ref_smoothed.png"
+        baseline_dir=TEST_DATA_PATH,
+        filename="toulon_ref_smoothed.png",
     )
     def test_draw_contours_smoothed_Toulon(
-        toulon_tiles_smoothed: List[hgtTile],
+        toulon_tiles_smoothed: list[hgtTile],
     ) -> plt.Figure:
         """Rather an end-to-end test.
         Print contours in Toulons area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
@@ -156,7 +168,8 @@ class TestHgtTile:
 
     @staticmethod
     def _test_draw_contours(
-        tiles: List[hgtTile], rdp_epsilon: Optional[float]
+        tiles: list[hgtTile],
+        rdp_epsilon: float | None,
     ) -> plt.Figure:
         """Internal contour testing method."""
         elevations, contour_data = tiles[0].contourLines(rdpEpsilon=rdp_epsilon)

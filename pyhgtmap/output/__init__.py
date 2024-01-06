@@ -1,23 +1,24 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, List, NamedTuple, Tuple
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Tuple
 
 import numpy
 from nptyping import NDArray, Structure
 
-from pyhgtmap.hgt.tile import TileContours
+if TYPE_CHECKING:
+    from pyhgtmap.hgt.tile import TileContours
 
 logger = logging.getLogger(__name__)
 
+
 # First node ID, number of nodes, closed loop, elevation
-WayType = NamedTuple(
-    "WayType",
-    [
-        ("first_node_id", int),
-        ("nb_nodes", int),
-        ("closed_loop", bool),
-        ("elevation", int),
-    ],
-)
+class WayType(NamedTuple):
+    first_node_id: int
+    nb_nodes: int
+    closed_loop: bool
+    elevation: int
+
 
 # Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
 WaysType = NDArray[
@@ -49,7 +50,7 @@ class Output:
 
     def __init__(self) -> None:
         self.timestampString: str
-        self.ways_pending_write: List[Tuple[WaysType, int]] = []
+        self.ways_pending_write: list[tuple[WaysType, int]] = []
 
     def write_nodes(
         self,
@@ -57,7 +58,7 @@ class Output:
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, WaysType]:
+    ) -> tuple[int, WaysType]:
         """
         Write nodes and prepare associated ways.
         Return (latest_node_id, [ways]) tuple.
@@ -90,7 +91,7 @@ class Output:
         raise NotImplementedError
 
 
-class Id(object):
+class Id:
     """a counter, constructed with the first number to return.
 
     Count using the getId method.
@@ -105,7 +106,7 @@ class Id(object):
 
 
 # Helper functions
-def _makePoints(path, IDCounter, precision: int) -> Tuple[List[NodeType], List[int]]:
+def _makePoints(path, IDCounter, precision: int) -> tuple[list[NodeType], list[int]]:
     ids, nodes = [], []
     for lon, lat in path:
         IDCounter.curId += 1
@@ -120,10 +121,13 @@ def _makePoints(path, IDCounter, precision: int) -> Tuple[List[NodeType], List[i
 
 
 def make_nodes_ways(
-    contourList: List, elevation: int, IDCounter, precision: int
-) -> Tuple[List, List[WayType]]:
-    ways: List[WayType] = []
-    nodes: List = []
+    contourList: list,
+    elevation: int,
+    IDCounter,
+    precision: int,
+) -> tuple[list, list[WayType]]:
+    ways: list[WayType] = []
+    nodes: list = []
     for path in contourList:
         newNodes, nodeRefs = _makePoints(path, IDCounter, precision)
         nodes.extend(newNodes)
@@ -134,7 +138,7 @@ def make_nodes_ways(
     return nodes, ways
 
 
-def build_efficient_ways(ways: List[WayType]) -> WaysType:
+def build_efficient_ways(ways: list[WayType]) -> WaysType:
     """Convert a list of ways (tuples) into a more efficient numpy array."""
     return numpy.array(
         ways,
@@ -144,6 +148,6 @@ def build_efficient_ways(ways: List[WayType]) -> WaysType:
                 ("nb_nodes", int),
                 ("closed_loop", bool),
                 ("elevation", int),
-            ]
+            ],
         ),
-    )  # type: ignore  # not supported by pylance
+    )  # type: ignore[reportGeneralTypeIssues]  # not supported by pylance

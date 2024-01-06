@@ -1,18 +1,20 @@
-# -*- encoding: utf-8 -*-
+from __future__ import annotations
 
-
+import ast
 import time
-from typing import Callable, Tuple
+from typing import TYPE_CHECKING, Callable
 
 import pyhgtmap.output
 from pyhgtmap import output
-from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
+
+if TYPE_CHECKING:
+    from pyhgtmap.hgt.tile import TileContours
 
 HUNDREDNANO = 10000000
 
 
-class StringTable(object):
+class StringTable:
     def __init__(self):
         self.table = []
         self.maxStringRef = 15000
@@ -39,7 +41,7 @@ class Output(output.Output):
         filename,
         osmVersion,
         pyhgtmap_version,
-        bbox: Tuple[float, float, float, float],
+        bbox: tuple[float, float, float, float],
         elevClassifier: Callable[[int], str],
         writeTimestamp=False,
     ) -> None:
@@ -217,7 +219,8 @@ class Output(output.Output):
         eleTag = self.makeStringPair("ele", str(elevation))
         contourTag = self.makeStringPair("contour", "elevation")
         elevClassifierTag = self.makeStringPair(
-            "contour_ext", self.elevClassifier(elevation)
+            "contour_ext",
+            self.elevClassifier(elevation),
         )
         data.append(self.stringTable.stringOrIndex(eleTag))
         data.append(self.stringTable.stringOrIndex(contourTag))
@@ -232,7 +235,7 @@ class Output(output.Output):
             [
                 1,
             ]
-            * (length - 1)
+            * (length - 1),
         )
         if isCycle:
             nodeIdDeltas.append(-(length - 1))
@@ -243,7 +246,7 @@ class Output(output.Output):
 
     def write(self, nodeString):
         """wrapper imitating osmUtil.Output's write method."""
-        startNodeId, nodes = eval(nodeString.strip())
+        startNodeId, nodes = ast.literal_eval(nodeString.strip())
         self.writeNodesO5m(nodes, startNodeId)
 
     def flush(self) -> None:
@@ -263,7 +266,7 @@ class Output(output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, output.WaysType]:
+    ) -> tuple[int, output.WaysType]:
         return writeNodes(self, tile_contours, timestamp_string, start_node_id)
 
 
@@ -272,7 +275,7 @@ def writeNodes(
     tile_contours: TileContours,
     timestampString,  # dummy option
     start_node_id,
-) -> Tuple[int, output.WaysType]:
+) -> tuple[int, output.WaysType]:
     IDCounter = pyhgtmap.output.Id(start_node_id)
     ways = []
     nodes = []
@@ -281,7 +284,10 @@ def writeNodes(
         if not contourList:
             continue
         newNodes, newWays = pyhgtmap.output.make_nodes_ways(
-            contourList, elevation, IDCounter, HUNDREDNANO
+            contourList,
+            elevation,
+            IDCounter,
+            HUNDREDNANO,
         )
         ways.extend(newWays)
         nodes.extend(newNodes)

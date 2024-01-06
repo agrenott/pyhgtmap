@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 import shutil
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, cast
+from typing import cast
 from unittest.mock import MagicMock, call, patch
 from zipfile import ZipFile
 
@@ -15,6 +17,9 @@ from pyhgtmap.sources.viewfinder import (
     fetch_and_extract_zip,
 )
 from tests import TEST_DATA_PATH
+
+# Ignoring accesses to private members, as it's sued to validate the caching mechanism
+# ruff: noqa: SLF001
 
 
 class TestViewFinderIndex:
@@ -71,9 +76,7 @@ class TestViewFinderIndex:
             ]
             index.save()
 
-            with open(
-                os.path.join(temp_dir, "viewfinderHgtIndex_1.txt"), "r"
-            ) as index_file:
+            with open(os.path.join(temp_dir, "viewfinderHgtIndex_1.txt")) as index_file:
                 assert (
                     index_file.read()
                     == """# VIEW1 index file, VERSION=2
@@ -94,8 +97,9 @@ e
         with TemporaryDirectory() as temp_dir:
             with open(
                 os.path.join(
-                    TEST_DATA_PATH, "coverage_map_viewfinderpanoramas_org3.htm"
-                )
+                    TEST_DATA_PATH,
+                    "coverage_map_viewfinderpanoramas_org3.htm",
+                ),
             ) as html_file:
                 urlopen_mock.return_value.read.return_value = html_file.read()
             index = ViewFinderIndex(temp_dir, 3)
@@ -103,12 +107,10 @@ e
             index.init_from_web()
 
             urlopen_mock.assert_called_once_with(
-                "http://viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org3.htm"
+                "http://viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org3.htm",
             )
             urlopen_mock.return_value.read.assert_called_once_with()
-            with open(
-                os.path.join(temp_dir, "viewfinderHgtIndex_3.txt"), "r"
-            ) as index_file:
+            with open(os.path.join(temp_dir, "viewfinderHgtIndex_3.txt")) as index_file:
                 content = index_file.read()
                 assert (
                     "# VIEW3 index file, VERSION=4\n[http://viewfinderpanoramas.org/A21.zip]\nN00W055\nN00W056\n"
@@ -194,7 +196,8 @@ e
         # Simulate a failed load from file and successful load from web
         index.load = MagicMock(spec=index.load, side_effect=FileNotFoundError)  # type: ignore[method-assign]
         index.init_from_web = MagicMock(  # type: ignore[method-assign]
-            spec=index.init_from_web, side_effect=fill_index
+            spec=index.init_from_web,
+            side_effect=fill_index,
         )
         assert not index._entries
         assert index.entries == expected_index
@@ -204,7 +207,7 @@ e
         index.init_from_web.assert_called_once_with()
 
 
-def fake_view_zip_file(inner_files: List[str]) -> BytesIO:
+def fake_view_zip_file(inner_files: list[str]) -> BytesIO:
     """Generate a fake viewfinder zone ZIP file with provided content."""
     output_file = BytesIO()
     with ZipFile(output_file, "w") as zip_file:
@@ -226,12 +229,12 @@ def test_fetch_and_extract_zip(urlopen_mock: MagicMock) -> None:
                 "L12/N01W064.hgt",
                 "L12/N01W065.HGT",  # Uppercase extension
                 "V42/Z55/N01W066.hgt",  # Sub-sub-directory
-            ]
+            ],
         ).read()
 
         # Test
         url = "http://example.com/zone.zip"
-        extracted_areas: List[str] = fetch_and_extract_zip(url, temp_dir)
+        extracted_areas: list[str] = fetch_and_extract_zip(url, temp_dir)
 
         # Check
         urlopen_mock.assert_called_once_with(url)
@@ -262,7 +265,9 @@ class TestViewFinder:
 
         with pytest.raises(FileNotFoundError):
             source.download_missing_file(
-                area, 3, os.path.join(cache_dir_name, f"{area}.hgt")
+                area,
+                3,
+                os.path.join(cache_dir_name, f"{area}.hgt"),
             )
 
         index3.get_urls_for_area.assert_called_once_with(area)
@@ -278,9 +283,9 @@ class TestViewFinder:
             area = "S43E007"
             index3 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {3: cast(ViewFinderIndex, index3)}
-            index3.get_urls_for_area.return_value = ["url1", "url2"]
+            index3.get_urls_for_area.return_value = ["http://url1", "http://url2"]
             urlopen_mock.return_value.read.return_value = fake_view_zip_file(
-                ["A01/S43E007.hgt", "A01/S43E008.hgt"]
+                ["A01/S43E007.hgt", "A01/S43E008.hgt"],
             ).read()
 
             # Test
@@ -289,8 +294,8 @@ class TestViewFinder:
             # Check
             index3.get_urls_for_area.assert_called_once_with(area)
             # Index must be updated
-            index3.update.assert_called_once_with("url1", ["S43E007", "S43E008"])
-            urlopen_mock.assert_called_once_with("url1")
+            index3.update.assert_called_once_with("http://url1", ["S43E007", "S43E008"])
+            urlopen_mock.assert_called_once_with("http://url1")
             # All files from zone are kept
             assert Path(temp_dir, "S43E007.hgt").is_file()
             assert Path(temp_dir, "S43E008.hgt").is_file()
@@ -305,7 +310,7 @@ class TestViewFinder:
             area = "S43E010"
             index3 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {3: cast(ViewFinderIndex, index3)}
-            index3.get_urls_for_area.return_value = ["url1", "url2"]
+            index3.get_urls_for_area.return_value = ["http://url1", "http://url2"]
             urlopen_mock.return_value.read.side_effect = [
                 fake_view_zip_file(["A01/S43E007.hgt", "A01/S43E008.hgt"]).read(),
                 fake_view_zip_file(["B01/S43E009.hgt", "B01/S43E010.hgt"]).read(),
@@ -318,10 +323,13 @@ class TestViewFinder:
             index3.get_urls_for_area.assert_called_once_with(area)
             # Index must be updated
             assert index3.update.call_args_list == [
-                call("url1", ["S43E007", "S43E008"]),
-                call("url2", ["S43E009", "S43E010"]),
+                call("http://url1", ["S43E007", "S43E008"]),
+                call("http://url2", ["S43E009", "S43E010"]),
             ]
-            assert urlopen_mock.call_args_list == [call("url1"), call("url2")]
+            assert urlopen_mock.call_args_list == [
+                call("http://url1"),
+                call("http://url2"),
+            ]
             # All files from zone are kept
             assert Path(temp_dir, "S43E007.hgt").is_file()
             assert Path(temp_dir, "S43E008.hgt").is_file()
@@ -338,21 +346,23 @@ class TestViewFinder:
             area = "S43E007"
             index1 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {1: cast(ViewFinderIndex, index1)}
-            index1.get_urls_for_area.return_value = ["url1"]
+            index1.get_urls_for_area.return_value = ["http://url1"]
             urlopen_mock.return_value.read.return_value = fake_view_zip_file(
-                ["A01/S43E008.hgt"]
+                ["A01/S43E008.hgt"],
             ).read()
 
             # Test
             with pytest.raises(FileNotFoundError):
                 source.download_missing_file(
-                    area, 1, os.path.join(temp_dir, f"{area}.hgt")
+                    area,
+                    1,
+                    os.path.join(temp_dir, f"{area}.hgt"),
                 )
 
             # Check
             index1.get_urls_for_area.assert_called_once_with(area)
             # Index must be updated
-            index1.update.assert_called_once_with("url1", ["S43E008"])
-            urlopen_mock.assert_called_once_with("url1")
+            index1.update.assert_called_once_with("http://url1", ["S43E008"])
+            urlopen_mock.assert_called_once_with("http://url1")
             # All files from zone are kept
             assert Path(temp_dir, "S43E008.hgt").is_file()

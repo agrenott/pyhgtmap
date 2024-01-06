@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import datetime
 import time
-from io import IOBase
-from typing import Callable, Tuple
+from typing import TYPE_CHECKING, Callable
 
 import numpy
 
 import pyhgtmap.output
-from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.varint import writableString
+
+if TYPE_CHECKING:
+    from io import IOBase
+
+    from pyhgtmap.hgt.tile import TileContours
 
 
 def makeUtcTimestamp():
@@ -46,13 +51,13 @@ class Output(pyhgtmap.output.Output):
             self.outF = Gzip.open(fName, "wb", gzip)
         else:
             self.outF = open(fName, "wb")  # noqa: SIM115 # TODO: use context handler
-        self.osmVersion = "{0:.1f}".format(osmVersion)
+        self.osmVersion = f"{osmVersion:.1f}"
         if osmVersion > 0.5:
             self.versionString = ' version="1"'
         else:
             self.versionString = ""
         if timestamp:
-            self.timestampString = ' timestamp="{0:s}"'.format(makeUtcTimestamp())
+            self.timestampString = f' timestamp="{makeUtcTimestamp():s}"'
         else:
             self.timestampString = ""
         self.elevClassifier = elevClassifier
@@ -63,9 +68,7 @@ class Output(pyhgtmap.output.Output):
     def _writePreamble(self):
         self.write('<?xml version="1.0" encoding="utf-8"?>\n')
         self.write(
-            '<osm version="{0:s}" generator="pyhgtmap {1:s}">\n'.format(
-                self.osmVersion, self.pyhgtmap_version
-            )
+            f'<osm version="{self.osmVersion:s}" generator="pyhgtmap {self.pyhgtmap_version:s}">\n',
         )
         self.write(self.boundsTag + "\n")
 
@@ -89,10 +92,10 @@ class Output(pyhgtmap.output.Output):
                 nodeIds.append(nodeIds[0])
             nodeRefs = ('<nd ref="{:d}"/>\n' * len(nodeIds)).format(*nodeIds)
             self.write(
-                '<way id="{0:d}"{1:s}{2:s}>{3:s}'
-                '<tag k="ele" v="{4:d}"/>'
+                '<way id="{:d}"{:s}{:s}>{:s}'
+                '<tag k="ele" v="{:d}"/>'
                 '<tag k="contour" v="elevation"/>'
-                '<tag k="contour_ext" v="{5:s}"/>'
+                '<tag k="contour_ext" v="{:s}"/>'
                 "</way>\n".format(
                     IDCounter.curId - 1,
                     self.versionString,
@@ -100,7 +103,7 @@ class Output(pyhgtmap.output.Output):
                     nodeRefs,
                     elevation,
                     self.elevClassifier(elevation),
-                )
+                ),
             )
 
     def write_nodes(
@@ -109,9 +112,13 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> Tuple[int, pyhgtmap.output.WaysType]:
+    ) -> tuple[int, pyhgtmap.output.WaysType]:
         return writeXML(
-            self, tile_contours, timestamp_string, start_node_id, osm_version
+            self,
+            tile_contours,
+            timestamp_string,
+            start_node_id,
+            osm_version,
         )
 
 
@@ -125,13 +132,13 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
     for lon, lat in path:
         IDCounter.curId += 1
         content.append(
-            '<node id="{0:d}" lat="{1:.7f}" lon="{2:.7f}"{3:s}{4:s}/>'.format(
+            '<node id="{:d}" lat="{:.7f}" lon="{:.7f}"{:s}{:s}/>'.format(
                 IDCounter.curId - 1,
                 lat,
                 lon,
                 versionString,
                 timestampString,
-            )
+            ),
         )
         ids.append(IDCounter.curId - 1)
     if numpy.all(path[0] == path[-1]):  # close contour
@@ -145,7 +152,12 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
 
 
 def _writeContourNodes(
-    output, contourList, elevation, IDCounter, versionString, timestampString
+    output,
+    contourList,
+    elevation,
+    IDCounter,
+    versionString,
+    timestampString,
 ):
     """calls _makePoints() to write nodes to <output> and collects information
     about the paths in contourList, namely the node ids for each path, which is
@@ -162,8 +174,12 @@ def _writeContourNodes(
 
 
 def writeXML(
-    output, tile_contours: TileContours, timestampString, start_node_id, osm_version
-) -> Tuple[int, pyhgtmap.output.WaysType]:
+    output,
+    tile_contours: TileContours,
+    timestampString,
+    start_node_id,
+    osm_version,
+) -> tuple[int, pyhgtmap.output.WaysType]:
     """emits node OSM XML to <output> and collects path information.
 
     <output> may be anything having a write method.  For now, its used with
@@ -188,7 +204,7 @@ def writeXML(
                 IDCounter,
                 versionString,
                 timestampString,
-            )
+            ),
         )
         # output.flush()
     newId = IDCounter.getId()

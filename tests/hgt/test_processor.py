@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import glob
 import itertools
 import logging
@@ -8,7 +10,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Callable, Generator, List, NamedTuple, Tuple
+from typing import Callable, Generator, NamedTuple
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -19,8 +21,7 @@ import pytest
 
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.hgt.tile import TileContours
-
-from .. import TEST_DATA_PATH
+from tests import TEST_DATA_PATH
 
 
 class OSMDecoder(npyosmium.SimpleHandler):
@@ -46,15 +47,11 @@ class OSMDecoder(npyosmium.SimpleHandler):
             self.max_way_id = w.id
 
 
-IdBoundaries = NamedTuple(
-    "IdBoundaries",
-    [
-        ("min_node_id", int),
-        ("max_node_id", int),
-        ("min_way_id", int),
-        ("max_way_id", int),
-    ],
-)
+class IdBoundaries(NamedTuple):
+    min_node_id: int
+    max_node_id: int
+    min_way_id: int
+    max_way_id: int
 
 
 def run_in_spawned_process(function: Callable, *args, **kwargs) -> None:
@@ -64,7 +61,8 @@ def run_in_spawned_process(function: Callable, *args, **kwargs) -> None:
     # Queue must be created from the same context as Process, otherwise segfault happens...
     exception_queue = ctx.SimpleQueue()
     p = ctx.Process(
-        target=run_in_process_child, args=[function, exception_queue, *args]
+        target=run_in_process_child,
+        args=[function, exception_queue, *args],
     )
     p.start()
     p.join()
@@ -75,7 +73,9 @@ def run_in_spawned_process(function: Callable, *args, **kwargs) -> None:
 
 
 def run_in_process_child(
-    function: Callable, exception_queue: multiprocessing.SimpleQueue, *args
+    function: Callable,
+    exception_queue: multiprocessing.SimpleQueue,
+    *args,
 ) -> None:
     """Catch and propagate exception to parent process if any."""
     try:
@@ -98,8 +98,8 @@ def cwd(path) -> Generator[None, None, None]:
         os.chdir(oldpwd)
 
 
-def check_no_id_overlap(osm_files_names: List[str]) -> None:
-    ids_boundaries: List[IdBoundaries] = []
+def check_no_id_overlap(osm_files_names: list[str]) -> None:
+    ids_boundaries: list[IdBoundaries] = []
     for out_file_name in osm_files_names:
         osm_decoder = OSMDecoder()
 
@@ -110,21 +110,23 @@ def check_no_id_overlap(osm_files_names: List[str]) -> None:
                 osm_decoder.max_node_id,
                 osm_decoder.min_way_id,
                 osm_decoder.max_way_id,
-            )
+            ),
         )
 
     result = sorted(ids_boundaries)
     for boundaries_1, boundaries_2 in itertools.combinations(result, 2):
         # Manually instrument asserts, as pytest assert rewriting doesn't work in spawned process
         assert min(boundaries_1.max_node_id, boundaries_2.max_node_id) < max(
-            boundaries_1.min_node_id, boundaries_2.min_node_id
+            boundaries_1.min_node_id,
+            boundaries_2.min_node_id,
         ), f"Overlap of nodes boundaries {boundaries_1} and {boundaries_2}"
         assert min(boundaries_1.max_way_id, boundaries_2.max_way_id) < max(
-            boundaries_1.min_way_id, boundaries_2.min_way_id
+            boundaries_1.min_way_id,
+            boundaries_2.min_way_id,
         ), f"Overlap of ways boundaries {boundaries_1} and {boundaries_2}"
 
 
-@pytest.fixture
+@pytest.fixture()
 def default_options() -> SimpleNamespace:
     """Default command line options."""
     return SimpleNamespace(
@@ -165,26 +167,31 @@ class TestHgtFilesProcessor:
         # Spanwing test case ensures child process doesn't share osmium context with previous
         # runs.
         run_in_spawned_process(
-            TestHgtFilesProcessor._test_process_files, nb_jobs, default_options
+            TestHgtFilesProcessor._test_process_files,
+            nb_jobs,
+            default_options,
         )
 
     @staticmethod
     def _test_process_files(nb_jobs: int, options) -> None:
         # Test with default command line options
         processor = HgtFilesProcessor(
-            nb_jobs, node_start_id=100, way_start_id=200, options=options
+            nb_jobs,
+            node_start_id=100,
+            way_start_id=200,
+            options=options,
         )
         with tempfile.TemporaryDirectory() as tempdir_name:
             with cwd(tempdir_name):
-                files_list: List[Tuple[str, bool]] = [
-                    (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False)
+                files_list: list[tuple[str, bool]] = [
+                    (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False),
                 ]
                 # Instrument method without changing its behavior
-                processor.process_tile_internal = Mock(  # type: ignore
-                    side_effect=processor.process_tile_internal
+                processor.process_tile_internal = Mock(  # type: ignore[method-assign]
+                    side_effect=processor.process_tile_internal,
                 )
                 processor.process_files(files_list)
-                out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
+                out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
                 assert out_files_names == [
                     "lon6.00_7.00lat43.00_43.50_local-source.osm.pbf",
@@ -195,7 +202,7 @@ class TestHgtFilesProcessor:
                 if nb_jobs == 1:
                     # process_tile_internal called in main process when parallelization is not used
                     assert processor.process_tile_internal.call_count == len(
-                        out_files_names
+                        out_files_names,
                     )
                 else:
                     # process_tile_internal is NOT called in parent process, but in children
@@ -219,7 +226,8 @@ class TestHgtFilesProcessor:
         ],
     )
     def test_process_files_single_output(
-        nb_jobs: int, default_options: SimpleNamespace
+        nb_jobs: int,
+        default_options: SimpleNamespace,
     ) -> None:
         """E2E test."""
         # Run in spawned child process, as osmium threads doesn't suuport being used
@@ -239,12 +247,15 @@ class TestHgtFilesProcessor:
     def _test_process_files_single_output(nb_jobs: int, options) -> None:
         # Test with default command line options
         processor = HgtFilesProcessor(
-            nb_jobs, node_start_id=100, way_start_id=200, options=options
+            nb_jobs,
+            node_start_id=100,
+            way_start_id=200,
+            options=options,
         )
         with tempfile.TemporaryDirectory() as tempdir_name:
             with cwd(tempdir_name):
                 # Use 2 files as input, to validate merging into a common output
-                files_list: List[Tuple[str, bool]] = [
+                files_list: list[tuple[str, bool]] = [
                     (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False),
                     (os.path.join(TEST_DATA_PATH, "N43E007.hgt"), False),
                 ]
@@ -253,11 +264,11 @@ class TestHgtFilesProcessor:
                 # Increase step size to speed up test case
                 options.contourStepSize = 500
                 # Instrument method without changing its behavior
-                processor.process_tile_internal = Mock(  # type: ignore
-                    side_effect=processor.process_tile_internal
+                processor.process_tile_internal = Mock(  # type: ignore[method-assign]
+                    side_effect=processor.process_tile_internal,
                 )
                 processor.process_files(files_list)
-                out_files_names: List[str] = sorted(glob.glob("*.osm.pbf"))
+                out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
                 # We may have more files generated (eg. .coverage ones)
                 assert out_files_names == [
                     "lon6.00_8.00lat43.00_44.00_local-source.osm.pbf",
@@ -278,7 +289,10 @@ class TestHgtFilesProcessor:
     @staticmethod
     def test_get_osm_output(default_options: SimpleNamespace) -> None:
         processor = HgtFilesProcessor(
-            1, node_start_id=100, way_start_id=200, options=default_options
+            1,
+            node_start_id=100,
+            way_start_id=200,
+            options=default_options,
         )
         with mock.patch("pyhgtmap.hgt.processor.get_osm_output") as get_osm_output_mock:
             # Return a different Mock on each call
@@ -292,7 +306,7 @@ class TestHgtFilesProcessor:
                 [
                     mock.call(default_options, ["file1.hgt"], (0, 1, 2, 3)),
                     mock.call(default_options, ["file2.hgt"], (4, 5, 6, 7)),
-                ]
+                ],
             )
             assert output1 is not output2
 
@@ -301,7 +315,10 @@ class TestHgtFilesProcessor:
         # Enable single output mode
         default_options.maxNodesPerTile = 0
         processor = HgtFilesProcessor(
-            1, node_start_id=100, way_start_id=200, options=default_options
+            1,
+            node_start_id=100,
+            way_start_id=200,
+            options=default_options,
         )
         with mock.patch("pyhgtmap.hgt.processor.get_osm_output") as get_osm_output_mock:
             # Return a different Mock on each call
@@ -312,7 +329,9 @@ class TestHgtFilesProcessor:
             # One single output must be allocated, and return on consecutive calls
             assert get_osm_output_mock.call_count == 1
             get_osm_output_mock.assert_called_once_with(
-                default_options, ["file1.hgt"], (0, 1, 2, 3)
+                default_options,
+                ["file1.hgt"],
+                (0, 1, 2, 3),
             )
             assert output1 is output2
 
@@ -320,7 +339,10 @@ class TestHgtFilesProcessor:
     def test_node_id_overflow(default_options: SimpleNamespace) -> None:
         # Ensure node ID doesn't overflow limit of int32
         processor = HgtFilesProcessor(
-            1, node_start_id=2147483647, way_start_id=200, options=default_options
+            1,
+            node_start_id=2147483647,
+            way_start_id=200,
+            options=default_options,
         )
         assert processor.get_and_inc_counter(processor.next_node_id, 1) == 2147483647
         assert processor.get_and_inc_counter(processor.next_node_id, 1) == 2147483648
@@ -329,24 +351,31 @@ class TestHgtFilesProcessor:
     def test_way_id_overflow(default_options: SimpleNamespace) -> None:
         # Ensure way ID doesn't overflow limit of int32
         processor = HgtFilesProcessor(
-            1, node_start_id=100, way_start_id=2147483647, options=default_options
+            1,
+            node_start_id=100,
+            way_start_id=2147483647,
+            options=default_options,
         )
         assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483647
         assert processor.get_and_inc_counter(processor.next_way_id, 1) == 2147483648
 
     @staticmethod
     def test_process_tile_internal_empty_contour(
-        default_options: SimpleNamespace, caplog: pytest.LogCaptureFixture
+        default_options: SimpleNamespace,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Ensure no empty output file is generated when there's no contour."""
         processor = HgtFilesProcessor(
-            1, node_start_id=100, way_start_id=200, options=default_options
+            1,
+            node_start_id=100,
+            way_start_id=200,
+            options=default_options,
         )
         # Empty tile
         tile_contours = TileContours(nb_nodes=0, nb_ways=0, contours={})
         tile_mock = MagicMock()
         tile_mock.get_contours.return_value = tile_contours
-        tile_mock.__str__.return_value = "Tile (28.00, 42.50, 29.00, 43.00)"  # type: ignore
+        tile_mock.__str__.return_value = "Tile (28.00, 42.50, 29.00, 43.00)"  # type: ignore[attr-defined]
         with tempfile.TemporaryDirectory() as tempdir_name, cwd(tempdir_name):
             caplog.set_level(logging.INFO, logger="pyhgtmap.hgt.processor")
             processor.process_tile_internal("empty.pbf", tile_mock)

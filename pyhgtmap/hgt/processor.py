@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
 import multiprocessing
-from multiprocessing.context import ForkProcess
 from multiprocessing.sharedctypes import Synchronized
-from typing import Callable, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Tuple, cast
 
 from pyhgtmap.hgt.file import hgtFile
-from pyhgtmap.hgt.tile import hgtTile
-from pyhgtmap.output import Output
 from pyhgtmap.output.factory import get_osm_output
+
+if TYPE_CHECKING:
+    from multiprocessing.context import ForkProcess
+
+    from pyhgtmap.hgt.tile import hgtTile
+    from pyhgtmap.output import Output
 
 logger = logging.getLogger(__name__)
 
@@ -36,20 +41,22 @@ class HgtFilesProcessor:
             options (optparse options): general options
         """
         self.next_node_id: Synchronized = cast(
-            Synchronized, multiprocessing.Value("L", node_start_id)
+            Synchronized,
+            multiprocessing.Value("L", node_start_id),
         )
         self.next_way_id: Synchronized = cast(
-            Synchronized, multiprocessing.Value("L", way_start_id)
+            Synchronized,
+            multiprocessing.Value("L", way_start_id),
         )
         self.available_children = multiprocessing.Semaphore(nb_jobs)
         self.parallel: bool = nb_jobs > 1
         # Not joined yet children
-        self.active_children: List[ForkProcess] = []
+        self.active_children: list[ForkProcess] = []
         # Errors raised by previously joined children
-        self.children_errors: List[Tuple[int, int]] = []
+        self.children_errors: list[tuple[int, int]] = []
         self.options = options
         # Common output file used in single output mode
-        self.common_osm_output: Optional[Output] = None
+        self.common_osm_output: Output | None = None
 
     @property
     def single_output(self) -> bool:
@@ -58,8 +65,8 @@ class HgtFilesProcessor:
 
     def get_osm_output(
         self,
-        hgt_files_names: List[str],
-        bounding_box: Tuple[float, float, float, float],
+        hgt_files_names: list[str],
+        bounding_box: tuple[float, float, float, float],
     ) -> Output:
         """Allocate or return already existing OSM output (for consecutive calls in single output mode)
 
@@ -122,10 +129,12 @@ class HgtFilesProcessor:
             # This is the actual critical section, to avoid duplicated node IDs
             logger.debug("Pending next_node_id_lock")
             tile_node_start_id: int = self.get_and_inc_counter(
-                self.next_node_id, tile_contours.nb_nodes
+                self.next_node_id,
+                tile_contours.nb_nodes,
             )
             tile_way_start_id: int = self.get_and_inc_counter(
-                self.next_way_id, tile_contours.nb_ways
+                self.next_way_id,
+                tile_contours.nb_ways,
             )
 
             # Writing nodes to output is the most time & resources consuming part
@@ -162,7 +171,7 @@ class HgtFilesProcessor:
                     tile_way_start_id,
                 )
         except ValueError:  # tiles with the same value on every element
-            logger.warn("Discarding invalid tile %s", tile)
+            logger.warning("Discarding invalid tile %s", tile)
 
     def run_in_child(self, func: Callable, *args) -> None:
         """
@@ -243,7 +252,7 @@ class HgtFilesProcessor:
                 self.children_errors.append((p.pid, p.exitcode))
             self.active_children.remove(p)
 
-    def process_files(self, files: List[Tuple[str, bool]]) -> None:
+    def process_files(self, files: list[tuple[str, bool]]) -> None:
         """Main entry point of this class, processing a bunch of HGT files.
 
         Args:

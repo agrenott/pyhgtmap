@@ -12,14 +12,14 @@ from pydrive2.auth import RefreshError
 from pyhgtmap.sources.sonny import CLIENT_SECRET_FILE, SAVED_CREDENTIALS_FILE, Sonny
 
 
-@pytest.fixture
+@pytest.fixture()
 def gauth_mock() -> Generator[MagicMock, None, None]:
     """Mock pyhgtmap.sources.sonny.GoogleAuth"""
     with patch("pyhgtmap.sources.sonny.GoogleAuth") as gauth_mock:
         yield gauth_mock
 
 
-@pytest.fixture
+@pytest.fixture()
 def gdrive_mock() -> Generator[MagicMock, None, None]:
     """Mock pyhgtmap.sources.sonny.GoogleDrive"""
     with patch("pyhgtmap.sources.sonny.GoogleDrive") as gdrive_mock:
@@ -42,11 +42,14 @@ class TestSonny:
     @staticmethod
     # Test both supported resolutions
     @pytest.mark.parametrize(
-        "resolution, folder_id",
+        ("resolution", "folder_id"),
         [(1, "0BxphPoRgwhnoWkRoTFhMbTM3RDA"), (3, "0BxphPoRgwhnoekRQZUZJT2ZRX2M")],
     )
     def test_download_missing_file(
-        gdrive_mock: MagicMock, gauth_mock: MagicMock, resolution: int, folder_id: str
+        gdrive_mock: MagicMock,
+        gauth_mock: MagicMock,
+        resolution: int,
+        folder_id: str,
     ) -> None:
         with TemporaryDirectory() as temp_dir:
             # Prepare
@@ -58,10 +61,11 @@ class TestSonny:
             gdrive_file_mock = MagicMock()
             hgt_size = 100
             gdrive_file_mock.GetContentIOBuffer.return_value = get_hgt_zipped_file(
-                "N42E004", hgt_size
+                "N42E004",
+                hgt_size,
             )
             gdrive_mock.return_value.ListFile.return_value.GetList.return_value = [
-                gdrive_file_mock
+                gdrive_file_mock,
             ]
 
             # Test
@@ -79,23 +83,25 @@ class TestSonny:
                     "save_credentials": True,
                     "save_credentials_backend": "file",
                     "save_credentials_file": os.path.join(
-                        conf_dir, SAVED_CREDENTIALS_FILE
+                        conf_dir,
+                        SAVED_CREDENTIALS_FILE,
                     ),
                     "get_refresh_token": True,
                     "oauth_scope": ["https://www.googleapis.com/auth/drive.readonly"],
-                }
+                },
             )
             gdrive_mock.assert_called_once_with(gauth_mock.return_value)
             gdrive_mock.return_value.ListFile.assert_called_once_with(
                 {
                     "q": f"'{folder_id}' in parents and trashed=false "
-                    "and mimeType='application/x-zip-compressed' and title='N42E004.zip'"
-                }
+                    "and mimeType='application/x-zip-compressed' and title='N42E004.zip'",
+                },
             )
 
     @staticmethod
     def test_download_missing_file_not_found(
-        gdrive_mock: MagicMock, gauth_mock: MagicMock
+        gdrive_mock: MagicMock,
+        gauth_mock: MagicMock,
     ) -> None:
         """Exception to be raised when file not found."""
         with TemporaryDirectory() as temp_dir:
@@ -111,7 +117,8 @@ class TestSonny:
             # Test
             sonny = Sonny(hgt_dir, conf_dir)
             with pytest.raises(
-                FileNotFoundError, match="No file available for area N42E004"
+                FileNotFoundError,
+                match="No file available for area N42E004",
             ):
                 sonny.download_missing_file("N42E004", 1, out_file_name)
 
@@ -121,13 +128,15 @@ class TestSonny:
             gdrive_mock.return_value.ListFile.assert_called_once_with(
                 {
                     "q": "'0BxphPoRgwhnoWkRoTFhMbTM3RDA' in parents and trashed=false "
-                    "and mimeType='application/x-zip-compressed' and title='N42E004.zip'"
-                }
+                    "and mimeType='application/x-zip-compressed' and title='N42E004.zip'",
+                },
             )
 
     @staticmethod
     def test_auth_expired_token(
-        gdrive_mock: MagicMock, gauth_mock: MagicMock, caplog: pytest.LogCaptureFixture
+        gdrive_mock: MagicMock,
+        gauth_mock: MagicMock,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # First call is an exception due to expired token
         gauth_mock.return_value.CommandLineAuth.side_effect = [

@@ -15,7 +15,10 @@ class SomeTestSource(Source):
     BANNER = "Please support my test banner!"
 
     def download_missing_file(
-        self, area: str, resolution: int, output_file_name: str
+        self,
+        area: str,
+        resolution: int,
+        output_file_name: str,
     ) -> None:
         pass
 
@@ -80,11 +83,13 @@ class TestSource:
 
         # Check
         source.check_cached_file.assert_called_once_with(
-            f"cache_dir/TEST3/{area}.hgt", 3
+            f"cache_dir/TEST3/{area}.hgt",
+            3,
         )
         source.download_missing_file.assert_not_called()
         assert file_name == os.path.join(
-            source.get_cache_dir(resolution), f"{area}.hgt"
+            source.get_cache_dir(resolution),
+            f"{area}.hgt",
         )
 
     @staticmethod
@@ -99,7 +104,7 @@ class TestSource:
                 spec=source.check_cached_file,
                 # First call raises exception, second one nothing as file should have been downloaded
                 side_effect=[
-                    IOError("File not found in cache"),
+                    OSError("File not found in cache"),
                     None,
                 ],
             )
@@ -111,13 +116,17 @@ class TestSource:
             # Check
             assert os.path.isdir(os.path.join(cache_dir, "TEST3"))
             source.check_cached_file.assert_called_with(
-                f"{cache_dir}/TEST3/{area}.hgt", 3
+                f"{cache_dir}/TEST3/{area}.hgt",
+                3,
             )
             source.download_missing_file.assert_called_once_with(
-                area, 3, f"{cache_dir}/TEST3/{area}.hgt"
+                area,
+                3,
+                f"{cache_dir}/TEST3/{area}.hgt",
             )
             assert file_name == os.path.join(
-                source.get_cache_dir(resolution), f"{area}.hgt"
+                source.get_cache_dir(resolution),
+                f"{area}.hgt",
             )
 
     @staticmethod
@@ -131,8 +140,8 @@ class TestSource:
             spec=source.check_cached_file,
             # Called twice, failing for both as the downloaded file is corrupted
             side_effect=[
-                IOError("File not found in cache"),
-                IOError("Corrupted file"),
+                OSError("File not found in cache"),
+                OSError("Corrupted file"),
             ],
         )
         source.download_missing_file = MagicMock(spec=source.download_missing_file)  # type: ignore[method-assign]
@@ -144,7 +153,9 @@ class TestSource:
         source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
         assert source.check_cached_file.call_count == 2
         source.download_missing_file.assert_called_once_with(
-            area, 3, f"cache_dir/TEST3/{area}.hgt"
+            area,
+            3,
+            f"cache_dir/TEST3/{area}.hgt",
         )
         assert file_name is None
 
@@ -157,7 +168,7 @@ class TestSource:
         area = "N42E004"
         source.check_cached_file = MagicMock(  # type: ignore[method-assign]
             spec=source.check_cached_file,
-            side_effect=IOError("File not found in cache"),  # Raises exception
+            side_effect=OSError("File not found in cache"),  # Raises exception
         )
         source.download_missing_file = MagicMock(  # type: ignore[method-assign]
             spec=source.download_missing_file,
@@ -170,7 +181,9 @@ class TestSource:
         # Check
         source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
         source.download_missing_file.assert_called_once_with(
-            area, 3, f"cache_dir/TEST3/{area}.hgt"
+            area,
+            3,
+            f"cache_dir/TEST3/{area}.hgt",
         )
         assert file_name is None
 
@@ -182,7 +195,7 @@ class TestSource:
 
         source.check_cached_file = MagicMock(  # type: ignore[method-assign]
             spec=source.check_cached_file,
-            side_effect=IOError("File not found in cache"),  # Raises exception
+            side_effect=OSError("File not found in cache"),  # Raises exception
         )
         source.download_missing_file = MagicMock(  # type: ignore[method-assign]
             spec=source.download_missing_file,

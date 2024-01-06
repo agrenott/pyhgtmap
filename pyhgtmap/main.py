@@ -1,11 +1,12 @@
 # import psyco
 # psyco.full()
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
 from optparse import OptionParser, Values
-from typing import List, Tuple
 
 from pyhgtmap import NASASRTMUtil, __version__, configUtil
 from pyhgtmap.hgt.file import calcHgtArea, parsePolygon
@@ -15,7 +16,7 @@ from pyhgtmap.logger import configure_logging
 logger = logging.getLogger(__name__)
 
 
-def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
+def parseCommandLine(sys_args: list[str]) -> tuple[Values, list[str]]:
     """parses the command line."""
     parser = OptionParser(
         usage="%prog [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
@@ -39,7 +40,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         "\nresolution, the 1 arc second SRTM data in version 3.0 can be used by"
         "\nspecifying --source=srtm1 in combination with --srtm-version=3.0. "
         "\nSRTM 1 arc second data is, however, only available for latitudes"
-        "\nbetween 59 degrees of latitude south and 60 degrees of latitude north."
+        "\nbetween 59 degrees of latitude south and 60 degrees of latitude north.",
     )
     parser.add_option(
         "-a",
@@ -70,7 +71,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     )
     parser.add_option(
         "--download-only",
-        help="only download needed files," "\ndon't write contour data.",
+        help="only download needed files,\ndon't write contour data.",
         action="store_true",
         default=False,
         dest="downloadOnly",
@@ -88,7 +89,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     parser.add_option(
         "-f",
         "--feet",
-        help="output contour lines in feet steps" "\nrather than in meters.",
+        help="output contour lines in feet steps\nrather than in meters.",
         action="store_true",
         default=False,
         dest="contourFeet",
@@ -106,7 +107,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     parser.add_option(
         "-o",
         "--output-prefix",
-        help="specify a prefix for the" "\nfilenames of the output osm file(s).",
+        help="specify a prefix for the\nfilenames of the output osm file(s).",
         dest="outputPrefix",
         metavar="PREFIX",
         action="store",
@@ -136,7 +137,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     parser.add_option(
         "-j",
         "--jobs",
-        help="number of jobs to be run" " in parallel (POSIX only)",
+        help="number of jobs to be run in parallel (POSIX only)",
         dest="nJobs",
         action="store",
         type="int",
@@ -440,7 +441,7 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     )
     opts, args = parser.parse_args(sys_args)
     if opts.version:
-        print("pyhgtmap {0:s}".format(__version__))
+        print(f"pyhgtmap {__version__:s}")
         sys.exit(0)
     if opts.hgtdir:  # Set custom ./hgt/ directory
         NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
@@ -462,42 +463,40 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     else:
         # unsupported SRTM data version
         sys.stderr.write(
-            "Unsupported SRTM data version '{0:.1f}'.  See the"
-            " --srtm-version option for details.\n\n".format(opts.srtmVersion)
+            f"Unsupported SRTM data version '{opts.srtmVersion:.1f}'.  See the"
+            " --srtm-version option for details.\n\n",
         )
         parser.print_help()
         sys.exit(1)
     if opts.srtmResolution not in [1, 3]:
         sys.stderr.write(
             "The --srtm option can only take '1' or '3' as values."
-            "  Defaulting to 3.\n"
+            "  Defaulting to 3.\n",
         )
         opts.srtmResolution = 3
     if opts.viewfinder not in [0, 1, 3]:
         sys.stderr.write(
             "The --viewfinder-mask option can only take '1' or '3' as values."
-            "  Won't use viewfinder data.\n"
+            "  Won't use viewfinder data.\n",
         )
         opts.viewfinder = 0
     if opts.dataSource:
         opts.dataSource = [el.strip() for el in opts.dataSource.lower().split(",")]
         for s in opts.dataSource:
             if s[:5] not in ["view1", "view3", "srtm1", "srtm3", "sonn1", "sonn3"]:
-                print("Unknown data source: {0:s}".format(s))
+                print(f"Unknown data source: {s:s}")
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:
                 while s in opts.dataSource:
-                    opts.dataSource[opts.dataSource.index(s)] = "{0:s}v{1:.1f}".format(
-                        s, opts.srtmVersion
-                    )
+                    opts.dataSource[
+                        opts.dataSource.index(s)
+                    ] = f"{s:s}v{opts.srtmVersion:.1f}"
     elif len(args) == 0:
         # No explicit source nor input provided, try to download using default
         opts.dataSource = []
         if opts.viewfinder != 0:
-            opts.dataSource.append("view{0:d}".format(opts.viewfinder))
-        opts.dataSource.append(
-            "srtm{0:d}v{1:.1f}".format(opts.srtmResolution, opts.srtmVersion)
-        )
+            opts.dataSource.append(f"view{opts.viewfinder:d}")
+        opts.dataSource.append(f"srtm{opts.srtmResolution:d}v{opts.srtmVersion:.1f}")
     else:
         # Input files provided, no download source
         opts.dataSource = []
@@ -508,23 +507,28 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     if needsEarthexplorerLogin:
         # we need earthexplorer login credentials handling then
         earthexplorerUser = configUtil.Config().setOrGet(
-            "earthexplorer_credentials", "user", opts.earthexplorerUser
+            "earthexplorer_credentials",
+            "user",
+            opts.earthexplorerUser,
         )
         earthexplorerPassword = configUtil.Config().setOrGet(
-            "earthexplorer_credentials", "password", opts.earthexplorerPassword
+            "earthexplorer_credentials",
+            "password",
+            opts.earthexplorerPassword,
         )
         if not all((earthexplorerUser, earthexplorerPassword)):
             print(
-                "Need earthexplorer login credentials to continue.  See the help for the"
+                "Need earthexplorer login credentials to continue.  See the help for the",
             )
             print(
-                "--earthexplorer-user and --earthexplorer-password options for details."
+                "--earthexplorer-user and --earthexplorer-password options for details.",
             )
             print("-" * 60)
             parser.print_help()
             sys.exit(1)
         NASASRTMUtil.NASASRTMUtilConfig.earthexplorerCredentials(
-            earthexplorerUser, earthexplorerPassword
+            earthexplorerUser,
+            earthexplorerPassword,
         )
     if len(args) == 0 and not opts.area and not opts.polygon:
         parser.print_help()
@@ -533,17 +537,17 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
         try:
             os.stat(opts.polygon)
         except OSError:
-            print("Couldn't find polygon file: {0:s}".format(opts.polygon))
+            print(f"Couldn't find polygon file: {opts.polygon:s}")
             sys.exit(1)
         if not os.path.isfile(opts.polygon):
-            print("Polygon file '{0:s}' is not a regular file".format(opts.polygon))
+            print(f"Polygon file '{opts.polygon:s}' is not a regular file")
             sys.exit(1)
         opts.area, opts.polygon = parsePolygon(opts.polygon)
     elif opts.downloadOnly and not opts.area:
         # no area, no polygon, so nothing to download
         sys.stderr.write(
             "Nothing to download.  Combine the --download-only option with"
-            "\neither one of the --area and --polygon options.\n"
+            "\neither one of the --area and --polygon options.\n",
         )
         sys.exit(1)
     if opts.disableRdp:
@@ -552,11 +556,11 @@ def parseCommandLine(sys_args: List[str]) -> Tuple[Values, List[str]]:
     return opts, args
 
 
-def main_internal(sys_args: List[str]) -> None:
+def main_internal(sys_args: list[str]) -> None:
     opts, args = parseCommandLine(sys_args)
     configure_logging(opts.logLevel)
 
-    hgtDataFiles: List[Tuple[str, bool]]
+    hgtDataFiles: list[tuple[str, bool]]
     if args:
         # Prefer using any manually provided source file
         use_poly_flag = opts.polygon is not None
@@ -566,24 +570,26 @@ def main_internal(sys_args: List[str]) -> None:
             if os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff", ".vrt")
         ]
         opts.area = ":".join(
-            [str(i) for i in calcHgtArea(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)]
+            [str(i) for i in calcHgtArea(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)],
         )
     else:
         # Download from area or polygon
         logger.debug(f"Downloading HGT files for area {opts.area}")
         hgtDataFiles = NASASRTMUtil.getFiles(
-            opts.area, opts.polygon, opts.srtmCorrx, opts.srtmCorry, opts.dataSource
+            opts.area,
+            opts.polygon,
+            opts.srtmCorrx,
+            opts.srtmCorry,
+            opts.dataSource,
         )
         if len(hgtDataFiles) == 0:
-            print(
-                "No files for this area {0:s} from desired source(s).".format(opts.area)
-            )
+            print(f"No files for this area {opts.area:s} from desired source(s).")
             sys.exit(0)
         elif opts.downloadOnly:
             sys.exit(0)
 
     HgtFilesProcessor(opts.nJobs, opts.startId, opts.startWayId, opts).process_files(
-        hgtDataFiles
+        hgtDataFiles,
     )
 
 

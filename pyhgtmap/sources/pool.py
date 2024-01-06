@@ -27,7 +27,9 @@ class Pool:
         self._inner_registry: ClassRegistry = SOURCES_TYPES_REGISTRY
         # Set common source parameters to be used on instantiation
         self._cached_registry = ClassRegistryInstanceCache(
-            self._inner_registry, cache_dir_root=cache_dir_root, config_dir=config_dir
+            self._inner_registry,
+            cache_dir_root=cache_dir_root,
+            config_dir=config_dir,
         )
 
     def get_source(self, nickname: str) -> Source:

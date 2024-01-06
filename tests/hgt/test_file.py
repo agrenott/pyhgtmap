@@ -1,41 +1,48 @@
+from __future__ import annotations
+
 import contextlib
 import importlib.util
 import os
 from types import SimpleNamespace
-from typing import Generator, List, Optional, Tuple
+from typing import Generator
 
 import numpy
 import pytest
 
 from pyhgtmap import hgt
 from pyhgtmap.hgt.file import calcHgtArea, clip_polygons, hgtFile, hgtTile, polygon_mask
-
-from .. import TEST_DATA_PATH
+from tests import TEST_DATA_PATH
 
 HGT_SIZE: int = 1201
 
 
 def toulon_tiles(
-    smooth_ratio: float, custom_options: Optional[SimpleNamespace] = None
-) -> List[hgtTile]:
+    smooth_ratio: float,
+    custom_options: SimpleNamespace | None = None,
+) -> list[hgtTile]:
     hgt_file = hgtFile(
-        os.path.join(TEST_DATA_PATH, "N43E006.hgt"), 0, 0, smooth_ratio=smooth_ratio
+        os.path.join(TEST_DATA_PATH, "N43E006.hgt"),
+        0,
+        0,
+        smooth_ratio=smooth_ratio,
     )
     # Fake command line parser output
     options = custom_options or SimpleNamespace(
-        area=None, maxNodesPerTile=0, contourStepSize=20
+        area=None,
+        maxNodesPerTile=0,
+        contourStepSize=20,
     )
-    tiles: List[hgtTile] = hgt_file.makeTiles(options)
+    tiles: list[hgtTile] = hgt_file.makeTiles(options)
     return tiles
 
 
-@pytest.fixture
-def toulon_tiles_raw() -> List[hgtTile]:
+@pytest.fixture()
+def toulon_tiles_raw() -> list[hgtTile]:
     return toulon_tiles(smooth_ratio=1)
 
 
-@pytest.fixture
-def toulon_tiles_smoothed() -> List[hgtTile]:
+@pytest.fixture()
+def toulon_tiles_smoothed() -> list[hgtTile]:
     return toulon_tiles(smooth_ratio=3)
 
 
@@ -68,7 +75,7 @@ def handle_optional_geotiff_support() -> Generator[None, None, None]:
             # GDAL module is available, do NOT ignore the exception
             raise
         # GDAL not available, ensure the proper errror message is raised
-        assert (
+        assert (  # noqa: PT017 # Test is more complex
             ex.msg
             == "GeoTiff optional support not enabled; please install with 'pip install pyhgtmap[geotiff]'"
         )
@@ -79,9 +86,11 @@ class TestHgtFile:
     def test_make_tiles_chopped() -> None:
         """Tiles chopped due to nodes threshold."""
         custom_options = SimpleNamespace(
-            area=None, maxNodesPerTile=500000, contourStepSize=20
+            area=None,
+            maxNodesPerTile=500000,
+            contourStepSize=20,
         )
-        tiles: List[hgtTile] = toulon_tiles(1, custom_options)
+        tiles: list[hgtTile] = toulon_tiles(1, custom_options)
         assert len(tiles) == 4
         assert [tile.get_stats() for tile in tiles] == [
             "tile with 601 x 1201 points, bbox: (6.00, 43.00, 7.00, 43.50); minimum elevation: -4.00; maximum elevation: 770.00",
@@ -101,9 +110,11 @@ class TestHgtFile:
     def test_make_tiles_chopped_with_area() -> None:
         """Tiles chopped due to nodes threshold and area."""
         custom_options = SimpleNamespace(
-            area="6.2:43.1:7.1:43.8", maxNodesPerTile=500000, contourStepSize=20
+            area="6.2:43.1:7.1:43.8",
+            maxNodesPerTile=500000,
+            contourStepSize=20,
         )
-        tiles: List[hgtTile] = toulon_tiles(1, custom_options)
+        tiles: list[hgtTile] = toulon_tiles(1, custom_options)
         # Result is cropped to the input area; less tiles are needed
         assert len(tiles) == 2
         assert [tile.get_stats() for tile in tiles] == [
@@ -128,7 +139,7 @@ class TestHgtFile:
         hgt_file.latIncrement, hgt_file.lonIncrement = 1, 1
         hgt_file.transform = None
         options = SimpleNamespace(area=None, maxNodesPerTile=0, contourStepSize=20)
-        tiles: List[hgtTile] = hgt_file.makeTiles(options)
+        tiles: list[hgtTile] = hgt_file.makeTiles(options)
         assert tiles == []
 
     @staticmethod
@@ -187,7 +198,7 @@ def test_polygon_mask() -> None:
 
     # Mask matching exactly the border of the data
     # Result is a bit strange as the behabior on boundary is unpredictable
-    polygon_full: List[Tuple[float, float]] = [(0, 0), (0, 5), (5, 5), (5, 0), (0, 0)]
+    polygon_full: list[tuple[float, float]] = [(0, 0), (0, 5), (5, 5), (5, 0), (0, 0)]
     mask_full = polygon_mask(x_data, y_data, [polygon_full], None)
     numpy.testing.assert_array_equal(
         mask_full,
@@ -199,12 +210,12 @@ def test_polygon_mask() -> None:
                 [True, False, False, False, False, True],
                 [True, False, False, False, False, True],
                 [True, False, False, False, False, True],
-            ]
+            ],
         ),
     )
 
     # Polygon bigger than data
-    polygon_bigger: List[Tuple[float, float]] = [
+    polygon_bigger: list[tuple[float, float]] = [
         (-1, -1),
         (-1, 6),
         (6, 6),
@@ -213,11 +224,12 @@ def test_polygon_mask() -> None:
     ]
     mask_bigger = polygon_mask(x_data, y_data, [polygon_bigger], None)
     numpy.testing.assert_array_equal(
-        mask_bigger, numpy.full((x_data.size, y_data.size), False)
+        mask_bigger,
+        numpy.full((x_data.size, y_data.size), False),
     )
 
     # Polygon splitting data
-    polygon_split: List[Tuple[float, float]] = [
+    polygon_split: list[tuple[float, float]] = [
         (-1, -1),
         (-1, 6),
         (2, 6),
@@ -235,12 +247,12 @@ def test_polygon_mask() -> None:
                 [False, False, False, False, True, True],
                 [False, False, False, True, True, True],
                 [False, False, False, True, True, True],
-            ]
+            ],
         ),
     )
 
     # Polygon resulting in several intersection polygons
-    polygon_multi: List[Tuple[float, float]] = [
+    polygon_multi: list[tuple[float, float]] = [
         (-1, -1),
         (-1, 2.5),
         (2.5, 2.5),
@@ -262,12 +274,12 @@ def test_polygon_mask() -> None:
                 [True, True, True, True, True, False],
                 [True, True, True, True, True, False],
                 [True, True, True, True, True, False],
-            ]
+            ],
         ),
     )
 
     # Polygon not intersecting data
-    polygon_out: List[Tuple[float, float]] = [
+    polygon_out: list[tuple[float, float]] = [
         (-1, -1),
         (-1, -2),
         (6, -2),
@@ -284,14 +296,16 @@ def test_polygon_mask() -> None:
 )
 def test_calcHgtArea(file_name: str) -> None:
     with handle_optional_geotiff_support():
-        bbox: Tuple[float, float, float, float] = calcHgtArea(
-            [(os.path.join(TEST_DATA_PATH, file_name), False)], 0, 0
+        bbox: tuple[float, float, float, float] = calcHgtArea(
+            [(os.path.join(TEST_DATA_PATH, file_name), False)],
+            0,
+            0,
         )
         assert bbox == (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
 
 
 def test_clip_polygons() -> None:
-    clip_polygon: List[Tuple[float, float]] = [
+    clip_polygon: list[tuple[float, float]] = [
         (-0.1, 48.900000000009435),
         (-0.1, 50.1),
         (1.1, 50.1),
@@ -299,7 +313,7 @@ def test_clip_polygons() -> None:
         (-0.1, 48.900000000009435),
     ]
     # Multi-polygons in input
-    polygons: List[List[Tuple[float, float]]] = [
+    polygons: list[list[tuple[float, float]]] = [
         # Real intersection is a polygon + a line; line must be discarded properly
         [
             (2.3, 51.6),
@@ -352,5 +366,5 @@ def test_clip_polygons() -> None:
             (-0.1, 50.1),
             (0.7, 50.1),
             (0.4, 49.9),
-        ]
+        ],
     ]

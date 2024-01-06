@@ -11,7 +11,10 @@ class DummySource(Source):
     NICKNAME = "dumm"
 
     def download_missing_file(
-        self, area: str, resolution: int, output_file_name: str
+        self,
+        area: str,
+        resolution: int,
+        output_file_name: str,
     ) -> None:
         pass
 
@@ -19,14 +22,18 @@ class DummySource(Source):
 def test_missing_nickname() -> None:
     """Source implementation MUST have NICKNAME set."""
     with pytest.raises(
-        AttributeError, match="type object 'InvalidSource' has no attribute 'NICKNAME'"
+        AttributeError,
+        match="type object 'InvalidSource' has no attribute 'NICKNAME'",
     ):
 
         class InvalidSource(Source):
             """Fake test source"""
 
             def download_missing_file(
-                self, area: str, resolution: int, output_file_name: str
+                self,
+                area: str,
+                resolution: int,
+                output_file_name: str,
             ) -> None:
                 pass
 
@@ -34,7 +41,8 @@ def test_missing_nickname() -> None:
 def test_dupe_nickname() -> None:
     """NICKNAME MUST be unique in the registry."""
     with pytest.raises(
-        RegistryKeyError, match="InvalidSource with key 'dumm' is already registered."
+        RegistryKeyError,
+        match="InvalidSource with key 'dumm' is already registered.",
     ):
 
         class InvalidSource(Source):
@@ -43,12 +51,15 @@ def test_dupe_nickname() -> None:
             NICKNAME = "dumm"
 
             def download_missing_file(
-                self, area: str, resolution: int, output_file_name: str
+                self,
+                area: str,
+                resolution: int,
+                output_file_name: str,
             ) -> None:
                 pass
 
 
-@pytest.fixture
+@pytest.fixture()
 def pool() -> Pool:
     return Pool("root_dir", "cfg_dir")
 
@@ -71,5 +82,5 @@ class TestPool:
         assert id(pool.get_source("dumm")) == id(pool.get_source("dumm"))
         # Objects from a new pool will be different
         assert id(Pool("root_dir", "cfg_dir").get_source("dumm")) != id(
-            pool.get_source("dumm")
+            pool.get_source("dumm"),
         )

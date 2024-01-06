@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from __future__ import annotations
 
 import numpy
 import pytest
@@ -7,7 +7,7 @@ from pyhgtmap import contour
 
 
 @pytest.mark.parametrize(
-    "input_path, rdp_epsilon,expected_path",
+    ("input_path", "rdp_epsilon", "expected_path"),
     [
         # Simplest path: nothing to remove, even with huge rdp_epsilon
         pytest.param([(0, 0), (1, 1)], 10, [(0, 0), (1, 1)], id="Simplest"),
@@ -49,12 +49,13 @@ from pyhgtmap import contour
     ],
 )
 def test_simplify_path(
-    input_path: List[Tuple[float, float]],
+    input_path: list[tuple[float, float]],
     rdp_epsilon: float,
-    expected_path: List[Tuple[float, float]],
+    expected_path: list[tuple[float, float]],
 ) -> None:
     numpy.testing.assert_array_equal(
-        contour.simplify_path(numpy.array(input_path), rdp_epsilon), expected_path
+        contour.simplify_path(numpy.array(input_path), rdp_epsilon),
+        expected_path,
     )
 
 
