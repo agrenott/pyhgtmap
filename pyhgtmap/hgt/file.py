@@ -14,11 +14,14 @@ from scipy import ndimage
 
 from pyhgtmap.hgt import TransformFunType, transformLonLats
 
-from .tile import hgtTile
+from .tile import HgtTile
 
 if TYPE_CHECKING:
-    from pyhgtmap import Polygon, PolygonsList
+    from pyhgtmap import BoudingBox, Polygon, PolygonsList
     from pyhgtmap.cli import Configuration
+
+    with suppress(ImportError):
+        from osgeo import osr
 
 meters2Feet = 1.0 / 0.3048
 
@@ -87,7 +90,7 @@ def parse_hgt_filename(
     filename: str,
     corrx: float,
     corry: float,
-) -> tuple[float, float, float, float]:
+) -> BoudingBox:
     """tries to extract borders from filename and returns them as a tuple
     of floats:
     (<min longitude>, <min latitude>, <max longitude>, <max latitude>)
@@ -123,7 +126,13 @@ def parse_hgt_filename(
     return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
 
 
-def getTransform(o, reverse=False) -> TransformFunType | None:
+def get_transform(
+    file_proj: osr.SpatialReference, reverse=False
+) -> TransformFunType | None:
+    """
+    Returns a function to transform coordinate system of a list of points,
+    from original projection to EPSG:4326 (or the otherway around).
+    """
     try:
         from osgeo import osr
     except ModuleNotFoundError:
@@ -132,15 +141,15 @@ def getTransform(o, reverse=False) -> TransformFunType | None:
     n = osr.SpatialReference()
     n.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     n.ImportFromEPSG(4326)
-    oAuth = o.GetAttrValue("AUTHORITY", 1)
+    oAuth = file_proj.GetAttrValue("AUTHORITY", 1)
     nAuth = n.GetAttrValue("AUTHORITY", 1)
     if nAuth == oAuth:
         return None
     else:
         if reverse:
-            t = osr.CoordinateTransformation(n, o)
+            t = osr.CoordinateTransformation(n, file_proj)
         else:
-            t = osr.CoordinateTransformation(o, n)
+            t = osr.CoordinateTransformation(file_proj, n)
 
         def transform(
             points: Iterable[tuple[float, float]],
@@ -159,7 +168,7 @@ def parse_geotiff_bbox(
     corrx: float,
     corry: float,
     doTransform: bool,
-) -> tuple[float, float, float, float]:
+) -> BoudingBox:
     try:
         from osgeo import gdal, osr
 
@@ -167,7 +176,7 @@ def parse_geotiff_bbox(
     except ModuleNotFoundError:
         raise ImportError(GEOTIFF_ERROR) from None
     try:
-        g = gdal.Open(filename)
+        g: gdal.Dataset = gdal.Open(filename)
         geoTransform = g.GetGeoTransform()
         if geoTransform[2] != 0 or geoTransform[4] != 0:
             sys.stderr.write(
@@ -191,7 +200,7 @@ def parse_geotiff_bbox(
     minLat = maxLat + (numOfRows - 1) * latIncrement
     maxLon = minLon + (numOfCols - 1) * lonIncrement
     # get the transformation function from fileProj to EPSG:4326 for this geotiff file
-    transform: TransformFunType | None = getTransform(fileProj)
+    transform: TransformFunType | None = get_transform(fileProj)
     if doTransform:
         # transformLonLats will return input values if transform is None
         minLon, minLat, maxLon, maxLat = transformLonLats(
@@ -218,7 +227,7 @@ def parse_geotiff_bbox(
         maxLon += corrx
         minLat += corry
         maxLat += corry
-        reverseTransform: TransformFunType | None = getTransform(
+        reverseTransform: TransformFunType | None = get_transform(
             fileProj,
             reverse=True,
         )
@@ -233,12 +242,12 @@ def parse_geotiff_bbox(
         return minLon, minLat, maxLon, maxLat
 
 
-def parseFileForBbox(
+def parse_file_for_bbox(
     fullFilename: str,
     corrx: float,
     corry: float,
     doTransform: bool,
-) -> tuple[float, float, float, float]:
+) -> BoudingBox:
     fileExt: str = os.path.splitext(fullFilename)[1].lower().replace(".", "")
     if fileExt == "hgt":
         return parse_hgt_filename(os.path.split(fullFilename)[1], corrx, corry)
@@ -247,12 +256,14 @@ def parseFileForBbox(
     raise ValueError(f"Unsupported extension {fileExt}")
 
 
-def calcHgtArea(
+def calc_hgt_area(
     filenames: list[tuple[str, bool]],
     corrx: float,
     corry: float,
-) -> tuple[float, float, float, float]:
-    bboxes = [parseFileForBbox(f[0], corrx, corry, doTransform=True) for f in filenames]
+) -> BoudingBox:
+    bboxes = [
+        parse_file_for_bbox(f[0], corrx, corry, doTransform=True) for f in filenames
+    ]
     minLon = sorted([b[0] for b in bboxes])[0]
     minLat = sorted([b[1] for b in bboxes])[0]
     maxLon = sorted([b[2] for b in bboxes])[-1]
@@ -370,9 +381,9 @@ class HgtFile:
 
     def __init__(
         self,
-        filename,
-        corrx,
-        corry,
+        filename: str,
+        corrx: float,
+        corry: float,
         polygons: PolygonsList | None = None,
         checkPoly=False,
         voidMax: int = -0x8000,
@@ -390,6 +401,14 @@ class HgtFile:
         self.fileExt = os.path.splitext(self.filename)[1].lower().replace(".", "")
         # Assigned by initAsXxx
         self.polygons: PolygonsList | None
+        self.zData: numpy.ma.masked_array
+        # Thjose represent the bounding box coordinates of the file,
+        # ** using the actual file's projection coordinates!!! **
+        self.minLon: float
+        self.minLat: float
+        self.maxLon: float
+        self.maxLat: float
+
         if self.fileExt == "hgt":
             self.init_as_hgt(corrx, corry, polygons, checkPoly, voidMax, smooth_ratio)
         elif self.fileExt in ("tif", "tiff", "vrt"):
@@ -436,19 +455,19 @@ class HgtFile:
         try:
             numOfDataPoints = os.path.getsize(self.fullFilename) / 2
             self.numOfRows = self.numOfCols = int(numOfDataPoints**0.5)
-            self.zData = (
+            raw_z_data = (
                 numpy.fromfile(self.fullFilename, dtype=">i2")
                 .reshape(self.numOfRows, self.numOfCols)
                 .astype("float32")
             )
 
             # Compute mask BEFORE zooming, due to zoom artifacts on void areas boundaries
-            voidMask = numpy.asarray(numpy.where(self.zData <= voidMax, True, False))
+            voidMask = numpy.asarray(numpy.where(raw_z_data <= voidMax, True, False))
             if smooth_ratio != 1:
-                self.zData, voidMask = super_sample(self.zData, voidMask, smooth_ratio)
-                self.numOfRows, self.numOfCols = self.zData.shape
+                raw_z_data, voidMask = super_sample(raw_z_data, voidMask, smooth_ratio)
+                self.numOfRows, self.numOfCols = raw_z_data.shape
             self.zData = numpy.ma.array(
-                self.zData,
+                raw_z_data,
                 mask=voidMask,
                 fill_value=float("NaN"),
             )
@@ -470,11 +489,11 @@ class HgtFile:
 
     def init_as_geotiff(
         self,
-        corrx,
-        corry,
-        polygon,
-        checkPoly,
-        voidMax,
+        corrx: float,
+        corry: float,
+        polygons: PolygonsList | None,
+        checkPoly: bool,
+        voidMax: int,
         smooth_ratio: float,
     ) -> None:
         """init this hgtFile instance with data from a geotiff image."""
@@ -486,7 +505,7 @@ class HgtFile:
             raise ImportError(GEOTIFF_ERROR) from None
 
         try:
-            g = gdal.Open(self.fullFilename)
+            g: gdal.Dataset = gdal.Open(self.fullFilename)
             geoTransform = g.GetGeoTransform()
             # we don't need to check for the geo transform, this was already done when
             # calculating the area name from main.py
@@ -496,14 +515,14 @@ class HgtFile:
             self.numOfCols = g.RasterXSize
             self.numOfRows = g.RasterYSize
             # init z data
-            self.zData = g.GetRasterBand(1).ReadAsArray().astype("float32")
+            raw_z_data = g.GetRasterBand(1).ReadAsArray().astype("float32")
             # Compute mask BEFORE zooming, due to zoom artifacts on void areas boundaries
-            voidMask = numpy.asarray(numpy.where(self.zData <= voidMax, True, False))
+            voidMask = numpy.asarray(numpy.where(raw_z_data <= voidMax, True, False))
             if smooth_ratio != 1:
-                self.zData, voidMask = super_sample(self.zData, voidMask, smooth_ratio)
-                self.numOfRows, self.numOfCols = self.zData.shape
+                raw_z_data, voidMask = super_sample(raw_z_data, voidMask, smooth_ratio)
+                self.numOfRows, self.numOfCols = raw_z_data.shape
             self.zData = numpy.ma.array(
-                self.zData,
+                raw_z_data,
                 mask=voidMask,
                 fill_value=float("NaN"),
             )
@@ -517,19 +536,19 @@ class HgtFile:
                 corry,
             )
             # get the transformation function from fileProj to EPSG:4326 for this geotiff file
-            self.transform = getTransform(fileProj)
-            self.reverseTransform = getTransform(fileProj, reverse=True)
+            self.transform = get_transform(fileProj)
+            self.reverseTransform = get_transform(fileProj, reverse=True)
         finally:
             if checkPoly:
-                self.polygons = polygon
+                self.polygons = polygons
             else:
                 self.polygons = None
 
-    def borders(self, corrx=0.0, corry=0.0) -> tuple[float, float, float, float]:
+    def borders(self, corrx=0.0, corry=0.0) -> BoudingBox:
         """determines the bounding box of self.filename using parseHgtFilename()."""
-        return parseFileForBbox(self.fullFilename, corrx, corry, doTransform=False)
+        return parse_file_for_bbox(self.fullFilename, corrx, corry, doTransform=False)
 
-    def make_tiles(self, opts: Configuration) -> list[hgtTile]:
+    def make_tiles(self, opts: Configuration) -> list[HgtTile]:
         """generate tiles from self.zData according to the given <opts>.area and
         return them as list of hgtTile objects.
         """
@@ -537,7 +556,9 @@ class HgtFile:
         maxNodes = opts.maxNodesPerTile
         step = int(opts.contourStepSize) or 20
 
-        def truncate_data(area, inputData):
+        def truncate_data(
+            area: str | None, inputData: numpy.ma.masked_array
+        ) -> tuple[BoudingBox, numpy.ma.masked_array]:
             """truncates a numpy array.
             returns (<min lon>, <min lat>, <max lon>, <max lat>) and an array of the
             truncated height data.
@@ -600,10 +621,10 @@ class HgtFile:
                 realMaxLon = self.maxLon + maxLonTruncIndex * self.lonIncrement
                 realMaxLat = self.maxLat - maxLatTruncIndex * self.latIncrement
                 if maxLonTruncIndex == 0:
-                    maxLonTruncIndex = None
+                    maxLonTruncIndex = None  # type: ignore[assignment]
                 if minLatTruncIndex == 0:
-                    minLatTruncIndex = None
-                zData = inputData[
+                    minLatTruncIndex = None  # type: ignore[assignment]
+                zData: numpy.ma.masked_array = inputData[
                     maxLatTruncIndex:minLatTruncIndex,
                     minLonTruncIndex:maxLonTruncIndex,
                 ]
@@ -611,10 +632,14 @@ class HgtFile:
             else:
                 return (self.minLon, self.minLat, self.maxLon, self.maxLat), inputData
 
-        def chop_data(inputBbox, inputData, depth=0):
+        def chop_data(
+            inputBbox: BoudingBox,
+            inputData: numpy.ma.masked_array,
+            depth=0,
+        ):
             """chops data and appends chops to tiles if small enough."""
 
-            def estim_num_of_nodes(data) -> int:
+            def estim_num_of_nodes(data: numpy.ma.masked_array) -> int:
                 """simple estimation of the number of nodes. The number of nodes is
                 estimated by summing over all absolute differences of contiguous
                 points in the zData matrix which is previously divided by the step
@@ -625,17 +650,13 @@ class HgtFile:
                 in areas with voids by approximately 0 ... 50 % although the
                 corresponding differences are explicitly set to 0.
                 """
-                # get rid of the void mask values
-                # the next line is obsolete since voids are now generally masked by nans
-                # helpData = numpy.where(data==-0x8000, float("NaN"), data) / step
-                # TODO: ndarray has no filled() method (anymore?!) - did this ever worked?
                 helpData = data.filled() / step
                 xHelpData = numpy.abs(helpData[:, 1:] - helpData[:, :-1])
                 yHelpData = numpy.abs(helpData[1:, :] - helpData[:-1, :])
                 estimatedNumOfNodes = numpy.nansum(xHelpData) + numpy.nansum(yHelpData)
                 return estimatedNumOfNodes
 
-            def too_many_nodes(data) -> bool:
+            def too_many_nodes(data: numpy.ma.masked_array) -> bool:
                 """returns True if the estimated number of nodes is greater than
                 <maxNodes> and False otherwise.  <maxNodes> defaults to 1000000,
                 which is an approximate limit for correct handling of osm files
@@ -645,7 +666,7 @@ class HgtFile:
                     return False
                 return estim_num_of_nodes(data) > maxNodes
 
-            def get_chops(unchoppedData, unchoppedBbox):
+            def get_chops(unchoppedData: numpy.ma.masked_array, unchoppedBbox):
                 """returns a data chop and the according bbox. This function is
                 recursively called until all tiles are estimated to be small enough.
 
@@ -654,10 +675,6 @@ class HgtFile:
                 However, generating contour lines from horizontally cut data appears to be
                 significantly faster.
                 """
-                """
-				if unchoppedData.shape[0] > unchoppedData.shape[1]:
-				"""
-                # number of rows > number of cols, horizontal cutting
                 (
                     unchoppedBboxMinLon,
                     unchoppedBboxMinLat,
@@ -712,7 +729,7 @@ class HgtFile:
                         self.polygons,
                         self.transform,
                     )
-                    tilePolygon = self.polygons
+                    tilePolygon: PolygonsList | None = self.polygons
                     if not numpy.any(tileMask):
                         # all points are inside the polygon
                         tilePolygon = None
@@ -723,19 +740,17 @@ class HgtFile:
                     tilePolygon = None
                     tileMask = None
                 tiles.append(
-                    hgtTile(
-                        {
-                            "bbox": inputBbox,
-                            "data": inputData,
-                            "increments": (self.lonIncrement, self.latIncrement),
-                            "polygon": tilePolygon,
-                            "mask": tileMask,
-                            "transform": self.transform,
-                        },
+                    HgtTile(
+                        bbox=inputBbox,
+                        data=inputData,
+                        increments=(self.lonIncrement, self.latIncrement),
+                        polygons=tilePolygon,
+                        mask=tileMask,
+                        transform=self.transform,
                     ),
                 )
 
-        tiles: list[hgtTile] = []
+        tiles: list[HgtTile] = []
         bbox, truncatedData = truncate_data(area, self.zData)
         chop_data(bbox, truncatedData)
         return tiles

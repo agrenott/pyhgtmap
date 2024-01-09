@@ -9,7 +9,7 @@ import sys
 
 from pyhgtmap import NASASRTMUtil
 from pyhgtmap.cli import parse_command_line
-from pyhgtmap.hgt.file import calcHgtArea
+from pyhgtmap.hgt.file import calc_hgt_area
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.logger import configure_logging
 
@@ -30,7 +30,10 @@ def main_internal(sys_args: list[str]) -> None:
             if os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff", ".vrt")
         ]
         opts.area = ":".join(
-            [str(i) for i in calcHgtArea(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)],
+            [
+                str(i)
+                for i in calc_hgt_area(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)
+            ],
         )
     else:
         # Download from area or polygon

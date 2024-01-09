@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy
 import pytest
 
-from pyhgtmap import Polygon, contour
+from pyhgtmap.hgt import contour
+
+if TYPE_CHECKING:
+    from pyhgtmap import Polygon
 
 
 @pytest.mark.parametrize(

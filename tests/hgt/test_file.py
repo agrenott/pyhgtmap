@@ -3,15 +3,24 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import os
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
 
 import numpy
 import pytest
 
 from pyhgtmap import Polygon, PolygonsList, hgt
 from pyhgtmap.cli import Configuration
-from pyhgtmap.hgt.file import HgtFile, calcHgtArea, clip_polygons, hgtTile, polygon_mask
+from pyhgtmap.hgt.file import (
+    HgtFile,
+    HgtTile,
+    calc_hgt_area,
+    clip_polygons,
+    polygon_mask,
+)
 from tests import TEST_DATA_PATH
+
+if TYPE_CHECKING:
+    from pyhgtmap import BoudingBox
 
 HGT_SIZE: int = 1201
 
@@ -19,7 +28,7 @@ HGT_SIZE: int = 1201
 def toulon_tiles(
     smooth_ratio: float,
     custom_options: Configuration | None = None,
-) -> list[hgtTile]:
+) -> list[HgtTile]:
     hgt_file = HgtFile(
         os.path.join(TEST_DATA_PATH, "N43E006.hgt"),
         0,
@@ -32,17 +41,17 @@ def toulon_tiles(
         maxNodesPerTile=0,
         contourStepSize=20,
     )
-    tiles: list[hgtTile] = hgt_file.make_tiles(options)
+    tiles: list[HgtTile] = hgt_file.make_tiles(options)
     return tiles
 
 
 @pytest.fixture()
-def toulon_tiles_raw() -> list[hgtTile]:
+def toulon_tiles_raw() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=1)
 
 
 @pytest.fixture()
-def toulon_tiles_smoothed() -> list[hgtTile]:
+def toulon_tiles_smoothed() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=3)
 
 
@@ -90,7 +99,7 @@ class TestHgtFile:
             maxNodesPerTile=500000,
             contourStepSize=20,
         )
-        tiles: list[hgtTile] = toulon_tiles(1, custom_options)
+        tiles: list[HgtTile] = toulon_tiles(1, custom_options)
         assert len(tiles) == 4
         assert [tile.get_stats() for tile in tiles] == [
             "tile with 601 x 1201 points, bbox: (6.00, 43.00, 7.00, 43.50); minimum elevation: -4.00; maximum elevation: 770.00",
@@ -114,7 +123,7 @@ class TestHgtFile:
             maxNodesPerTile=500000,
             contourStepSize=20,
         )
-        tiles: list[hgtTile] = toulon_tiles(1, custom_options)
+        tiles: list[HgtTile] = toulon_tiles(1, custom_options)
         # Result is cropped to the input area; less tiles are needed
         assert len(tiles) == 2
         assert [tile.get_stats() for tile in tiles] == [
@@ -139,7 +148,7 @@ class TestHgtFile:
         hgt_file.latIncrement, hgt_file.lonIncrement = 1, 1
         hgt_file.transform = None
         options = Configuration(area=None, maxNodesPerTile=0, contourStepSize=20)
-        tiles: list[hgtTile] = hgt_file.make_tiles(options)
+        tiles: list[HgtTile] = hgt_file.make_tiles(options)
         assert tiles == []
 
     @staticmethod
@@ -296,7 +305,7 @@ def test_polygon_mask() -> None:
 )
 def test_calcHgtArea(file_name: str) -> None:
     with handle_optional_geotiff_support():
-        bbox: tuple[float, float, float, float] = calcHgtArea(
+        bbox: BoudingBox = calc_hgt_area(
             [(os.path.join(TEST_DATA_PATH, file_name), False)],
             0,
             0,

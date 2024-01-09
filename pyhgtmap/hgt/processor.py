@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import multiprocessing
 from multiprocessing.sharedctypes import Synchronized
-from typing import TYPE_CHECKING, Callable, Tuple, cast
+from typing import TYPE_CHECKING, Callable, cast
 
+from pyhgtmap import BoudingBox
 from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from multiprocessing.context import ForkProcess
 
     from pyhgtmap.cli import Configuration
-    from pyhgtmap.hgt.tile import hgtTile
+    from pyhgtmap.hgt.tile import HgtTile
     from pyhgtmap.output import Output
 
 logger = logging.getLogger(__name__)
@@ -67,13 +68,13 @@ class HgtFilesProcessor:
     def get_osm_output(
         self,
         hgt_files_names: list[str],
-        bounding_box: tuple[float, float, float, float],
+        bounding_box: BoudingBox,
     ) -> Output:
         """Allocate or return already existing OSM output (for consecutive calls in single output mode)
 
         Args:
             hgt_files_names (List[str]): List of HGT input files names
-            bounding_box (Tuple[float, float, float, float]): Output bounding box
+            bounding_box (BoudingBox): Output bounding box
 
         Returns:
             Output: OSM Output wrapper
@@ -110,7 +111,7 @@ class HgtFilesProcessor:
             counter.value += inc_value
         return previous_value
 
-    def process_tile_internal(self, file_name: str, tile: hgtTile) -> None:
+    def process_tile_internal(self, file_name: str, tile: HgtTile) -> None:
         """Process a single output tile."""
         logger.debug("process_tile %s", tile)
         try:
@@ -186,7 +187,7 @@ class HgtFilesProcessor:
         finally:
             self.available_children.release()
 
-    def process_tile(self, file_name: str, tile: hgtTile) -> None:
+    def process_tile(self, file_name: str, tile: HgtTile) -> None:
         """Process given tile, in a dedicated process if parallelization is enabled.
 
         Args:
@@ -266,7 +267,7 @@ class HgtFilesProcessor:
             self.get_osm_output(
                 [file_tuple[0] for file_tuple in files],
                 cast(
-                    Tuple[float, float, float, float],
+                    BoudingBox,
                     [float(b) for b in self.options.area.split(":")],
                 ),
             )
