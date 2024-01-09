@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import annotations,print_function
 
 import base64
 import os
@@ -6,7 +6,7 @@ import sys
 import urllib
 import zipfile
 from http import cookiejar as cookielib
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import numpy
 from bs4 import BeautifulSoup
@@ -15,6 +15,8 @@ from matplotlib.path import Path as PolygonPath
 from pyhgtmap.configUtil import CONFIG_DIR
 from pyhgtmap.sources.pool import Pool
 
+if TYPE_CHECKING:
+    from pyhgtmap import PolygonsList
 
 class NASASRTMUtilConfigClass(object):
     """The config is stored in a class, to be configurable from outside
@@ -745,7 +747,7 @@ class SourcesPool:
 
 def getFiles(
     area: str,
-    polygon: Optional[List[List[Tuple[float, float]]]],
+    polygon: PolygonsList | None,
     corrx: float,
     corry: float,
     sources: List[str],

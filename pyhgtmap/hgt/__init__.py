@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, Tuple
+from typing import TYPE_CHECKING, Callable, Iterable, Tuple
+
+if TYPE_CHECKING:
+    from pyhgtmap import BoudingBox
 
 # Coordinates transformation function prototype
 TransformFunType = Callable[
@@ -9,7 +12,7 @@ TransformFunType = Callable[
 ]
 
 
-def makeBBoxString(bbox: tuple[float, float, float, float]) -> str:
+def makeBBoxString(bbox: BoudingBox) -> str:
     return f"{{0:s}}lon{bbox[0]:.2f}_{bbox[2]:.2f}lat{bbox[1]:.2f}_{bbox[3]:.2f}"
 
 
@@ -19,7 +22,7 @@ def transformLonLats(
     maxLon: float,
     maxLat: float,
     transform: TransformFunType | None,
-) -> tuple[float, float, float, float]:
+) -> BoudingBox:
     if transform is None:
         return minLon, minLat, maxLon, maxLat
     else:

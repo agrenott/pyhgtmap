@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 from contextlib import suppress
-from typing import Any, Callable, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Iterable
 
 import npyosmium
 import npyosmium.io
@@ -16,6 +16,9 @@ import pytest
 
 from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
+
+if TYPE_CHECKING:
+    from pyhgtmap import BoudingBox
 
 
 class OSMDecoder(npyosmium.SimpleHandler):
@@ -72,7 +75,7 @@ def tile_contours() -> TileContours:
 
 
 @pytest.fixture()
-def bounding_box() -> tuple[float, float, float, float]:
+def bounding_box() -> BoudingBox:
     """Bounding box of all fake data nodes"""
     return (1, 1, 4, 2)
 
@@ -211,7 +214,7 @@ class TestOutputPbf:
     def test_produce_pbf(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: tuple[float, float, float, float],
+        bounding_box: BoudingBox,
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:
@@ -245,7 +248,7 @@ class TestOutputPbf:
     def test_node_id_overflow(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: tuple[float, float, float, float],
+        bounding_box: BoudingBox,
     ) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             osm_file_name = os.path.join(tempdir, "output.osm.pbf")
@@ -273,7 +276,7 @@ class TestOutputO5m:
     def test_produce_o5m(
         tile_contours: TileContours,
         elev_classifier,
-        bounding_box: tuple[float, float, float, float],
+        bounding_box: BoudingBox,
     ) -> None:
         """Generate PBF file out of mocked data and check content."""
         with tempfile.TemporaryDirectory() as tempdir:

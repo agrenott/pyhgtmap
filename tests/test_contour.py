@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy
 import pytest
 
-from pyhgtmap import contour
+from pyhgtmap.hgt import contour
+
+if TYPE_CHECKING:
+    from pyhgtmap import Polygon
 
 
 @pytest.mark.parametrize(
@@ -49,13 +54,13 @@ from pyhgtmap import contour
     ],
 )
 def test_simplify_path(
-    input_path: list[tuple[float, float]],
+    input_path: Polygon,
     rdp_epsilon: float,
-    expected_path: list[tuple[float, float]],
+    expected_path: Polygon,
 ) -> None:
     numpy.testing.assert_array_equal(
         contour.simplify_path(numpy.array(input_path), rdp_epsilon),
-        expected_path,
+        expected_path,  # type: ignore[reportGeneralTypeIssues] # pylance
     )
 
 

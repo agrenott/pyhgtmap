@@ -15,6 +15,7 @@ import numpy.typing
 import pyhgtmap.output
 
 if TYPE_CHECKING:
+    from pyhgtmap import BoudingBox
     from pyhgtmap.hgt.tile import TileContours
 
 
@@ -36,7 +37,7 @@ class Output(pyhgtmap.output.Output):
         filename,
         osmVersion,
         pyhgtmap_version,
-        bbox: tuple[float, float, float, float],
+        bbox: BoudingBox,
         elevClassifier: Callable[[int], str],
     ):
         super().__init__()

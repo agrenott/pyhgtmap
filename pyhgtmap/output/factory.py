@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyhgtmap
 import pyhgtmap.output
@@ -10,10 +10,14 @@ from pyhgtmap.output import Output, o5mUtil, osmUtil, pbfUtil
 
 from . import make_elev_classifier
 
+if TYPE_CHECKING:
+    from pyhgtmap import BoudingBox
+    from pyhgtmap.cli import Configuration
+
 
 def make_osm_filename(
-    borders: tuple[float, float, float, float],
-    opts,
+    borders: BoudingBox,
+    opts: Configuration,
     input_files_names: list[str],
 ) -> str:
     """generate a filename for the output osm file. This is done using the bbox
@@ -45,6 +49,8 @@ def make_osm_filename(
             osmName = hgt.makeBBoxString(borders).format(prefix) + ".osm"
             break
     else:
+        if not opts.dataSource:
+            raise ValueError("opts.dataSource is not defined")
         srcTag = ",".join([s for s in opts.dataSource if s in set(srcNameMiddles)])
         osmName = hgt.makeBBoxString(borders).format(prefix) + f"_{srcTag:s}.osm"
     if opts.gzip:
@@ -73,9 +79,9 @@ def makeBoundsString(bbox: Any) -> str:
 
 
 def get_osm_output(
-    opts,
+    opts: Configuration,
     input_files_names: list[str],
-    bounds: tuple[float, float, float, float],
+    bounds: BoudingBox,
 ) -> Output:
     """Return the proper OSM Output generator."""
     outputFilename = make_osm_filename(bounds, opts, input_files_names)
