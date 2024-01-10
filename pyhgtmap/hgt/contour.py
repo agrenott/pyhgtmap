@@ -130,6 +130,8 @@ class ContoursGenerator:
         numOfPaths, numOfNodes = 0, 0
         resultPaths = []
         for path in rawPaths:
+            if self.transform:
+                path = numpy.array(self.transform(path))
             path = simplify_path(path, self.rdp_epsilon)
             splitPaths, numOfNodesAdd, numOfPathsAdd = self.splitList(path)
             resultPaths.extend(splitPaths)

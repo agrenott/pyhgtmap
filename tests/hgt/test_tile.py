@@ -52,6 +52,8 @@ def toulon_tiles_smoothed() -> list[HgtTile]:
 @pytest.fixture()
 def toulon_tiles_transformed() -> list[HgtTile]:
     """Toulon tiles in 3857 transformed coordinates."""
+    # Skip any test using this fixture if GDAL is not installed
+    pytest.importorskip("osgeo")
     return toulon_tiles(smooth_ratio=1, file_name="N43E006_3857.tiff")
 
 
@@ -159,19 +161,20 @@ class TestHgtTile:
         """
         return TestHgtTile._test_draw_contours(toulon_tiles_raw, rdp_epsilon)
 
-    # @staticmethod
-    # @pytest.mark.mpl_image_compare(
-    #     baseline_dir=TEST_DATA_PATH,
-    #     filename="toulon_ref.png",
-    # )
-    # def test_draw_contours_Toulon_transform(
-    #     toulon_tiles_transformed: list[HgtTile],
-    # ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
-    #     """Rather an end-to-end test.
-    #     Print contours in Toulon's area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
-    #     To compare output, run `pytest --mpl`
-    #     """
-    #     return TestHgtTile._test_draw_contours(toulon_tiles_transformed, None)
+    @staticmethod
+    @pytest.mark.mpl_image_compare(
+        baseline_dir=TEST_DATA_PATH,
+        # Transformed tiff result is slightly different from original HGT one
+        filename="toulon_ref_transformed.png",
+    )
+    def test_draw_contours_Toulon_transform(
+        toulon_tiles_transformed: list[HgtTile],
+    ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
+        """Rather an end-to-end test.
+        Print contours in Toulon's area to assert overall result, even if contours are not exactly the same (eg. algo evolution).
+        To compare output, run `pytest --mpl`
+        """
+        return TestHgtTile._test_draw_contours(toulon_tiles_transformed, None)
 
     @staticmethod
     @pytest.mark.mpl_image_compare(
@@ -193,12 +196,18 @@ class TestHgtTile:
         rdp_epsilon: float | None,
     ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
         """Internal contour testing method."""
-        elevations, contour_data = tiles[0].contourLines(rdpEpsilon=rdp_epsilon)
+        tile = tiles[0]
+        elevations, contour_data = tile.contourLines(rdpEpsilon=rdp_epsilon)
         dpi = 100
         # Get graph space close to original data size
         out_size = HGT_SIZE
         fig = plt.figure(figsize=(out_size / dpi, out_size / dpi), dpi=dpi)
-        plt.axis("off")
+        plt.axis("on")
+        # Fix the axes limits to the bbox
+        tile_bbox = tile.bbox()
+        plt.xlim(tile_bbox.min_lon, tile_bbox.max_lon)
+        plt.ylim(tile_bbox.min_lat, tile_bbox.max_lat)
+        plt.ticklabel_format(useOffset=False)
         plt.tight_layout(pad=0)
         for elev in range(0, 500, 100):
             for contour in contour_data.trace(elev)[0]:
