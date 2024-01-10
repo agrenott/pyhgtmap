@@ -9,7 +9,7 @@ from pyhgtmap import output
 from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
 
 if TYPE_CHECKING:
-    from pyhgtmap import BoudingBox
+    from pyhgtmap import BBox
     from pyhgtmap.hgt.tile import TileContours
 
 HUNDREDNANO = 10000000
@@ -42,7 +42,7 @@ class Output(output.Output):
         filename,
         osmVersion,
         pyhgtmap_version,
-        bbox: BoudingBox,
+        bbox: BBox,
         elevClassifier: Callable[[int], str],
         writeTimestamp=False,
     ) -> None:

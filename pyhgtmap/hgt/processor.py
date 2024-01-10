@@ -5,7 +5,7 @@ import multiprocessing
 from multiprocessing.sharedctypes import Synchronized
 from typing import TYPE_CHECKING, Callable, cast
 
-from pyhgtmap import BoudingBox
+from pyhgtmap import BBox
 from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
@@ -68,7 +68,7 @@ class HgtFilesProcessor:
     def get_osm_output(
         self,
         hgt_files_names: list[str],
-        bounding_box: BoudingBox,
+        bounding_box: BBox,
     ) -> Output:
         """Allocate or return already existing OSM output (for consecutive calls in single output mode)
 
@@ -267,7 +267,7 @@ class HgtFilesProcessor:
             self.get_osm_output(
                 [file_tuple[0] for file_tuple in files],
                 cast(
-                    BoudingBox,
+                    BBox,
                     [float(b) for b in self.options.area.split(":")],
                 ),
             )

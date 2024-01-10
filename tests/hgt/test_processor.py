@@ -18,6 +18,7 @@ import npyosmium.io
 import npyosmium.osm
 import pytest
 
+from pyhgtmap import BBox
 from pyhgtmap.cli import Configuration
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.hgt.tile import TileContours
@@ -297,8 +298,8 @@ class TestHgtFilesProcessor:
         with mock.patch("pyhgtmap.hgt.processor.get_osm_output") as get_osm_output_mock:
             # Return a different Mock on each call
             get_osm_output_mock.side_effect = lambda *args: Mock()
-            output1 = processor.get_osm_output(["file1.hgt"], (0, 1, 2, 3))
-            output2 = processor.get_osm_output(["file2.hgt"], (4, 5, 6, 7))
+            output1 = processor.get_osm_output(["file1.hgt"], BBox(0, 1, 2, 3))
+            output2 = processor.get_osm_output(["file2.hgt"], BBox(4, 5, 6, 7))
 
             # 2 different outputs must be allocated
             assert get_osm_output_mock.call_count == 2
@@ -323,8 +324,8 @@ class TestHgtFilesProcessor:
         with mock.patch("pyhgtmap.hgt.processor.get_osm_output") as get_osm_output_mock:
             # Return a different Mock on each call
             get_osm_output_mock.side_effect = lambda *args: Mock()
-            output1 = processor.get_osm_output(["file1.hgt"], (0, 1, 2, 3))
-            output2 = processor.get_osm_output(["file2.hgt"], (4, 5, 6, 7))
+            output1 = processor.get_osm_output(["file1.hgt"], BBox(0, 1, 2, 3))
+            output2 = processor.get_osm_output(["file2.hgt"], BBox(4, 5, 6, 7))
 
             # One single output must be allocated, and return on consecutive calls
             assert get_osm_output_mock.call_count == 1

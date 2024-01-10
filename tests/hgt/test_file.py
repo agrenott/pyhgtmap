@@ -20,7 +20,7 @@ from pyhgtmap.hgt.file import (
 from tests import TEST_DATA_PATH
 
 if TYPE_CHECKING:
-    from pyhgtmap import BoudingBox
+    from pyhgtmap import BBox
 
 HGT_SIZE: int = 1201
 
@@ -305,7 +305,7 @@ def test_polygon_mask() -> None:
 )
 def test_calcHgtArea(file_name: str) -> None:
     with handle_optional_geotiff_support():
-        bbox: BoudingBox = calc_hgt_area(
+        bbox: BBox = calc_hgt_area(
             [(os.path.join(TEST_DATA_PATH, file_name), False)],
             0,
             0,
