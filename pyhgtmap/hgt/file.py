@@ -12,12 +12,13 @@ import shapely
 from matplotlib.path import Path as PolygonPath
 from scipy import ndimage
 
+from pyhgtmap import BBox
 from pyhgtmap.hgt import TransformFunType, transformLonLats
 
 from .tile import HgtTile
 
 if TYPE_CHECKING:
-    from pyhgtmap import BoudingBox, Polygon, PolygonsList
+    from pyhgtmap import Polygon, PolygonsList
     from pyhgtmap.cli import Configuration
 
     with suppress(ImportError):
@@ -90,7 +91,7 @@ def parse_hgt_filename(
     filename: str,
     corrx: float,
     corry: float,
-) -> BoudingBox:
+) -> BBox:
     """tries to extract borders from filename and returns them as a tuple
     of floats:
     (<min longitude>, <min latitude>, <max longitude>, <max latitude>)
@@ -123,7 +124,7 @@ def parse_hgt_filename(
             f"something wrong with longitude coding in filename {filename:s}",
         )
     maxLon = minLon + 1
-    return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
+    return BBox(minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry)
 
 
 def get_transform(
@@ -168,7 +169,7 @@ def parse_geotiff_bbox(
     corrx: float,
     corry: float,
     doTransform: bool,
-) -> BoudingBox:
+) -> BBox:
     try:
         from osgeo import gdal, osr
 
@@ -210,7 +211,7 @@ def parse_geotiff_bbox(
             maxLat,
             transform,
         )
-        return minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry
+        return BBox(minLon + corrx, minLat + corry, maxLon + corrx, maxLat + corry)
     else:
         # we need to take care for corrx, corry values then, which are always expected
         # to be EPSG:4326, so transform, add corrections, and transform back to
@@ -239,7 +240,7 @@ def parse_geotiff_bbox(
             maxLat,
             reverseTransform,
         )
-        return minLon, minLat, maxLon, maxLat
+        return BBox(minLon, minLat, maxLon, maxLat)
 
 
 def parse_file_for_bbox(
@@ -247,7 +248,7 @@ def parse_file_for_bbox(
     corrx: float,
     corry: float,
     doTransform: bool,
-) -> BoudingBox:
+) -> BBox:
     fileExt: str = os.path.splitext(fullFilename)[1].lower().replace(".", "")
     if fileExt == "hgt":
         return parse_hgt_filename(os.path.split(fullFilename)[1], corrx, corry)
@@ -260,7 +261,7 @@ def calc_hgt_area(
     filenames: list[tuple[str, bool]],
     corrx: float,
     corry: float,
-) -> BoudingBox:
+) -> BBox:
     bboxes = [
         parse_file_for_bbox(f[0], corrx, corry, doTransform=True) for f in filenames
     ]
@@ -268,7 +269,7 @@ def calc_hgt_area(
     minLat = sorted([b[1] for b in bboxes])[0]
     maxLon = sorted([b[2] for b in bboxes])[-1]
     maxLat = sorted([b[3] for b in bboxes])[-1]
-    return minLon, minLat, maxLon, maxLat
+    return BBox(minLon, minLat, maxLon, maxLat)
 
 
 BBOX_EXPAND_EPSILON = 0.1
@@ -544,7 +545,7 @@ class HgtFile:
             else:
                 self.polygons = None
 
-    def borders(self, corrx=0.0, corry=0.0) -> BoudingBox:
+    def borders(self, corrx=0.0, corry=0.0) -> BBox:
         """determines the bounding box of self.filename using parseHgtFilename()."""
         return parse_file_for_bbox(self.fullFilename, corrx, corry, doTransform=False)
 
@@ -558,7 +559,7 @@ class HgtFile:
 
         def truncate_data(
             area: str | None, inputData: numpy.ma.masked_array
-        ) -> tuple[BoudingBox, numpy.ma.masked_array]:
+        ) -> tuple[BBox, numpy.ma.masked_array]:
             """truncates a numpy array.
             returns (<min lon>, <min lat>, <max lon>, <max lat>) and an array of the
             truncated height data.
@@ -628,12 +629,14 @@ class HgtFile:
                     maxLatTruncIndex:minLatTruncIndex,
                     minLonTruncIndex:maxLonTruncIndex,
                 ]
-                return (realMinLon, realMinLat, realMaxLon, realMaxLat), zData
+                return BBox(realMinLon, realMinLat, realMaxLon, realMaxLat), zData
             else:
-                return (self.minLon, self.minLat, self.maxLon, self.maxLat), inputData
+                return BBox(
+                    self.minLon, self.minLat, self.maxLon, self.maxLat
+                ), inputData
 
         def chop_data(
-            inputBbox: BoudingBox,
+            inputBbox: BBox,
             inputData: numpy.ma.masked_array,
             depth=0,
         ):
@@ -666,7 +669,12 @@ class HgtFile:
                     return False
                 return estim_num_of_nodes(data) > maxNodes
 
-            def get_chops(unchoppedData: numpy.ma.masked_array, unchoppedBbox):
+            def get_chops(
+                unchoppedData: numpy.ma.masked_array, unchoppedBbox
+            ) -> tuple[
+                tuple[BBox, numpy.ma.masked_array],
+                tuple[BBox, numpy.ma.masked_array],
+            ]:
                 """returns a data chop and the according bbox. This function is
                 recursively called until all tiles are estimated to be small enough.
 
@@ -684,13 +692,13 @@ class HgtFile:
                 unchoppedNumOfRows = unchoppedData.shape[0]
                 chopLatIndex = int(unchoppedNumOfRows / 2.0)
                 chopLat = unchoppedBboxMaxLat - (chopLatIndex * self.latIncrement)
-                lowerChopBbox = (
+                lowerChopBbox = BBox(
                     unchoppedBboxMinLon,
                     unchoppedBboxMinLat,
                     unchoppedBboxMaxLon,
                     chopLat,
                 )
-                upperChopBbox = (
+                upperChopBbox = BBox(
                     unchoppedBboxMinLon,
                     chopLat,
                     unchoppedBboxMaxLon,

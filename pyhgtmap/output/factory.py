@@ -11,12 +11,12 @@ from pyhgtmap.output import Output, o5mUtil, osmUtil, pbfUtil
 from . import make_elev_classifier
 
 if TYPE_CHECKING:
-    from pyhgtmap import BoudingBox
+    from pyhgtmap import BBox
     from pyhgtmap.cli import Configuration
 
 
 def make_osm_filename(
-    borders: BoudingBox,
+    borders: BBox,
     opts: Configuration,
     input_files_names: list[str],
 ) -> str:
@@ -81,7 +81,7 @@ def makeBoundsString(bbox: Any) -> str:
 def get_osm_output(
     opts: Configuration,
     input_files_names: list[str],
-    bounds: BoudingBox,
+    bounds: BBox,
 ) -> Output:
     """Return the proper OSM Output generator."""
     outputFilename = make_osm_filename(bounds, opts, input_files_names)

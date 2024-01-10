@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Iterable, NamedTuple
 import numpy
 import numpy.typing
 
+from pyhgtmap import BBox
 from pyhgtmap.hgt import TransformFunType, makeBBoxString, transformLonLats
 from pyhgtmap.hgt.contour import ContoursGenerator, build_contours
 
 if TYPE_CHECKING:
-    from pyhgtmap import BoudingBox, PolygonsList
+    from pyhgtmap import PolygonsList
 
 meters2Feet = 1.0 / 0.3048
 
@@ -32,7 +33,7 @@ class HgtTile:
 
     def __init__(
         self,
-        bbox: BoudingBox,
+        bbox: BBox,
         data: numpy.ma.masked_array,
         increments: tuple[float, float],
         polygons: PolygonsList | None,
@@ -88,7 +89,7 @@ class HgtTile:
         maxEle = int(self.zData.max())
         return minEle, maxEle
 
-    def bbox(self, doTransform=True) -> BoudingBox:
+    def bbox(self, doTransform=True) -> BBox:
         """returns the bounding box of the current tile."""
         if doTransform:
             return transformLonLats(
@@ -99,7 +100,7 @@ class HgtTile:
                 self.transform,
             )
         else:
-            return self.minLon, self.minLat, self.maxLon, self.maxLat
+            return BBox(self.minLon, self.minLat, self.maxLon, self.maxLat)
 
     def contourLines(
         self,
