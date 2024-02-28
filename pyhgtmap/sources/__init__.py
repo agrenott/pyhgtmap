@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from class_registry import AutoRegister, ClassRegistry
 
 if TYPE_CHECKING:
-    import argparse
+    import configargparse
 
     from pyhgtmap.configuration import Configuration, NestedConfig
 
@@ -59,7 +59,7 @@ class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: igno
 
     @staticmethod
     def register_cli_options(
-        parser: argparse.ArgumentParser, root_config: NestedConfig
+        parser: configargparse.ArgumentParser, root_config: NestedConfig
     ) -> None:
         """Register CLI options for this source"""
         # Nothing by default

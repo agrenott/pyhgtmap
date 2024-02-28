@@ -15,6 +15,8 @@ from pyhgtmap.latlon import DegreeLatLon
 from . import Source
 
 if TYPE_CHECKING:
+    import configargparse
+
     from pyhgtmap.configuration import Configuration
 
 
@@ -118,7 +120,7 @@ class Alos(Source):
 
     @staticmethod
     def register_cli_options(
-        parser: argparse.ArgumentParser, root_config: NestedConfig
+        parser: configargparse.ArgumentParser, root_config: NestedConfig
     ) -> None:
         """Register CLI options for this source"""
 

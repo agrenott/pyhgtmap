@@ -2,18 +2,27 @@ from __future__ import annotations
 
 import os
 import sys
-from argparse import ArgumentParser
 from typing import cast
 
+from configargparse import ArgumentParser
+
 from pyhgtmap import NASASRTMUtil, __version__, configUtil
-from pyhgtmap.configuration import Configuration, NestedConfig
+from pyhgtmap.configuration import CONFIG_FILENAME, Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
 from pyhgtmap.sources import Source
 from pyhgtmap.sources.pool import Pool
 
+# TODO: clean when all sources are implemented as plugins
+ALL_SUPPORTED_SOURCES = [
+    "srtm1",
+    "srtm3",
+    *Pool.available_sources_options(),
+]
+
 
 def build_common_parser() -> ArgumentParser:
     parser = ArgumentParser(
+        default_config_files=[CONFIG_FILENAME],
         usage="%(prog)s [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
         "\npyhgtmap generates contour lines from NASA SRTM and similar data"
         "\nas well as from GeoTiff data"
@@ -351,7 +360,7 @@ def build_common_parser() -> ArgumentParser:
         "--data-source",
         help="specify a list of"
         "\nsources to use as comma-separated string.  Available sources are"
-        "\n'srtm1', 'srtm3', 'sonn1', 'sonn3' 'view1' and 'view3'.  If specified,"
+        f"\n{', '.join(s for s in ALL_SUPPORTED_SOURCES)}.  If specified,"
         "\nthe data source will be selected using this option as preference list."
         "\nSpecifying --source=view3,srtm3 for example will prefer viewfinder 3"
         "\narc second data to NASA SRTM 3 arc second data.  Also see the"
@@ -490,12 +499,7 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         opts.viewfinder = 0
     if opts.dataSource:
         for s in opts.dataSource:
-            # TODO: clean when all sources are implemented as plugins
-            if s[:5] not in [
-                "srtm1",
-                "srtm3",
-                *Pool.available_sources_options(),
-            ]:
+            if s[:5] not in ALL_SUPPORTED_SOURCES:
                 print(f"Unknown data source: {s:s}")
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:

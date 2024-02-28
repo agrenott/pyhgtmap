@@ -1,10 +1,11 @@
 # -*- encoding: utf-8 -*-
 
 import base64
-import pathlib
 import os
+import pathlib
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".pyhgtmap")
+from pyhgtmap.configuration import CONFIG_DIR
+
 CONFIG_FILENAME = os.path.join(CONFIG_DIR, ".pyhgtmaprc")
 
 

@@ -111,6 +111,18 @@ pip install -U git+https://github.com/agrenott/pyhgtmap.git
 
 For a detailed help, run `pyhgtmap --help` on the console.
 
+## Configuration
+
+Thanks to [ConfigArgParse module](https://github.com/bw2/ConfigArgParse), all command line options can also be passed by environment variable or stored in a config file (`~/.pyhgtmap/config.yaml`). This is especially useful for credentials to access some sources.
+
+Example:
+```
+alos-user: myuser
+alos-password: mypassword
+```
+
+If a value is specified in more than one way then: command line > environment variables > config file values > defaults.
+
 ## Example output
 
 Generating contours for France [PACA region](https://download.geofabrik.de/europe/france/provence-alpes-cote-d-azur.html) with a 10m step and 0.00001 RDP Epsilon (taking less than a minute on Intel 13600K via Windows WSL 1):

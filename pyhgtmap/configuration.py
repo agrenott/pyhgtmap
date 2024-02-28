@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pyhgtmap import PolygonsList
+
+CONFIG_DIR = str(Path.home() / ".pyhgtmap")
+CONFIG_FILENAME = str(Path(CONFIG_DIR, "config.yaml"))
 
 
 class NestedConfig(Namespace):

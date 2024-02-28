@@ -1,5 +1,7 @@
 .PHONY: all clean
 
+# Requires help2man and man2html system packages
+
 MANPAGE_FILE:=pyhgtmap.1
 HTML_FILE:=${MANPAGE_FILE}.html
 PLAIN_HTML_FILE:=${MANPAGE_FILE}.plain.html
