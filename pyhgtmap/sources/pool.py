@@ -3,8 +3,9 @@ from __future__ import annotations
 import importlib
 import os
 import pkgutil
+from collections.abc import Generator, Iterator
 from itertools import chain
-from typing import TYPE_CHECKING, Generator, Iterator, cast
+from typing import TYPE_CHECKING, cast
 
 from class_registry import ClassRegistry, ClassRegistryInstanceCache
 

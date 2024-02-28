@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import TYPE_CHECKING, Iterable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy
 import numpy.typing
@@ -12,6 +12,8 @@ from pyhgtmap.hgt import TransformFunType, makeBBoxString, transformLonLats
 from pyhgtmap.hgt.contour import ContoursGenerator, build_contours
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pyhgtmap import PolygonsList
 
 meters2Feet = 1.0 / 0.3048

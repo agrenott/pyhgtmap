@@ -8,52 +8,51 @@ on:
 
 jobs:
   build:
-
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
         platform: [ubuntu-latest, macos-latest] #, windows-latest]
-        
+
     runs-on: ${{ matrix.platform }}
     defaults:
       run:
         shell: bash -el {0}
-  
-    steps:
-    - uses: actions/checkout@v3
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        auto-update-conda: true
-        python-version: ${{ matrix.python-version }}
-        miniforge-version: latest
-    - name: Install dependencies
-      run: |
-        conda install -c conda-forge gdal
-        python -m pip install --upgrade pip hatch
-    - name: Test with coverage with all optional dependencies
-      run: |
-        hatch run geotiff:all
-    - name: Run unit test without Geotiff dependencies
-      run: |
-        hatch run test
-    - name: Ensure script entrypoint is executable
-      run: |
-        hatch run pyhgtmap -v 
-    - name: Report test-coverage to DeepSource
-      # Deepsource doesn't seem super stable
-      continue-on-error: true
-      run: |
-        # Install the CLI
-        curl https://deepsource.io/cli | sh
 
-        # Send the report to DeepSource
-        ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
-      env:
-        DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
-    - name: Report test-coverage to Codacy
-      continue-on-error: true
-      run: |
-        bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ./coverage.xml
-      env:
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          miniforge-version: latest
+      - name: Install dependencies
+        run: |
+          conda install -c conda-forge gdal
+          python -m pip install --upgrade pip hatch
+      - name: Test with coverage with all optional dependencies
+        run: |
+          hatch run geotiff:all
+      - name: Run unit test without Geotiff dependencies
+        run: |
+          hatch run test
+      - name: Ensure script entrypoint is executable
+        run: |
+          hatch run pyhgtmap -v
+      - name: Report test-coverage to DeepSource
+        # Deepsource doesn't seem super stable
+        continue-on-error: true
+        run: |
+          # Install the CLI
+          curl https://deepsource.io/cli | sh
+
+          # Send the report to DeepSource
+          ./bin/deepsource report --analyzer test-coverage --key python --value-file ./coverage.xml
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+      - name: Report test-coverage to Codacy
+        continue-on-error: true
+        run: |
+          bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r ./coverage.xml
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}

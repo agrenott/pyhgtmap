@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,6 +11,8 @@ from pyhgtmap import main
 from . import TEST_DATA_PATH
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pyhgtmap.configuration import Configuration
 
 

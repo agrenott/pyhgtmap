@@ -1,8 +1,8 @@
 import os
+from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator
 from unittest.mock import MagicMock, patch
 from zipfile import ZipFile
 
