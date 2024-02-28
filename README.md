@@ -53,6 +53,14 @@ This source requires creating an earthexplorer account on https://ers.cr.usgs.go
 
 This source require usage of Google Drive API. To use it, you have to generate API client OAuth secret as described in [Google drive's documentation](https://developers.google.com/drive/api/quickstart/python?hl=en#set_up_your_environment) and save the client secrets JSON file in pyhgtmap config directory (`~/.pyhgtmap/client-secret.json`).
 
+## ALOS
+
+[ALOS Global Digital Surface Model "ALOS World 3D - 30m (AW3D30)"](https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/aw3d30_e.htm)
+
+*Available for 1" resolution only.*
+
+This source requires creating an AW3D30 account on https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/registration.htm.
+
 # Installation
 
 For ubuntu-like system:
@@ -145,9 +153,8 @@ This project uses ![hatch](https://hatch.pypa.io/latest/).
 
 (Mini)Conda can be used to easily setup given version of Python and GDAL:
 ```bash
-conda create -n python39 -c conda-forge python=3.9
+conda create -n python39 -c conda-forge python=3.9 gdal hatch
 conda activate python39
-conda install -c conda-forge gdal hatch
 hatch -e geotiff shell
 # To start VSCode using the proper python env
 code .

@@ -11,7 +11,7 @@ from pyhgtmap import main
 from . import TEST_DATA_PATH
 
 if TYPE_CHECKING:
-    from pyhgtmap.cli import Configuration
+    from pyhgtmap.configuration import Configuration
 
 
 @pytest.fixture()

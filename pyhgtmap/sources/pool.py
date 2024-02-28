@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import importlib
 import os
 import pkgutil
-from typing import Generator, cast
+from itertools import chain
+from typing import TYPE_CHECKING, Generator, Iterator, cast
 
 from class_registry import ClassRegistry, ClassRegistryInstanceCache
 
 from pyhgtmap.sources import SOURCES_TYPES_REGISTRY, Source
+
+if TYPE_CHECKING:
+    from pyhgtmap.configuration import Configuration
 
 __all__ = ["Pool"]
 
@@ -16,29 +22,53 @@ class Pool:
     Source are lazily instantiated on first use and kept in cache.
     """
 
-    def __init__(self, cache_dir_root: str, config_dir: str) -> None:
+    # Keep a reference on the source registry as the cached version
+    # do not expose all methods...
+    _inner_registry: ClassRegistry = SOURCES_TYPES_REGISTRY
+
+    def __init__(
+        self, cache_dir_root: str, config_dir: str, configuration: Configuration
+    ) -> None:
         """
         Args:
             cache_dir_root (str): Root directory to store cached HGT files
             config_dir (str): Root directory to store configuration (if any)
         """
-        # Keep a reference on the source registry as the cached version
-        # do not expose all methods...
-        self._inner_registry: ClassRegistry = SOURCES_TYPES_REGISTRY
         # Set common source parameters to be used on instantiation
         self._cached_registry = ClassRegistryInstanceCache(
             self._inner_registry,
             cache_dir_root=cache_dir_root,
             config_dir=config_dir,
+            configuration=configuration,
         )
 
     def get_source(self, nickname: str) -> Source:
         """Get the source by nickname."""
         return cast(Source, self._cached_registry[nickname])
 
-    def available_sources(self) -> Generator[str, None, None]:
+    def available_sources_names(self) -> Generator[str, None, None]:
         """Returns available sources' nicknames."""
         return (str(key) for key in self._inner_registry)
+
+    @classmethod
+    def available_sources_options(cls) -> list[str]:
+        """Returns available sources' nickname+resolution combinations for CLI validation."""
+        return list(
+            chain(
+                *[
+                    source.supported_source_options()
+                    for k, source in cls._inner_registry.items()
+                ]
+            )
+        )
+
+    def __iter__(self) -> Iterator[Source]:
+        yield from cast(Iterator[Source], self._cached_registry)
+
+    @classmethod
+    def registered_sources(cls) -> Generator[type[Source], None, None]:
+        """Returns a registered sources types."""
+        return cls._inner_registry.values()
 
 
 # Force import of all implementations to register them in the pool

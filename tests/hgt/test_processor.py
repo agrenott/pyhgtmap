@@ -19,7 +19,7 @@ import npyosmium.osm
 import pytest
 
 from pyhgtmap import BBox
-from pyhgtmap.cli import Configuration
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.processor import HgtFilesProcessor
 from pyhgtmap.hgt.tile import TileContours
 from tests import TEST_DATA_PATH

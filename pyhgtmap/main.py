@@ -48,6 +48,7 @@ def main_internal(sys_args: list[str]) -> None:
             opts.srtmCorrx,
             opts.srtmCorry,
             opts.dataSource,
+            opts,
         )
         if len(hgtDataFiles) == 0:
             print(f"No files for this area {opts.area:s} from desired source(s).")

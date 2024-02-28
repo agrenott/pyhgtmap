@@ -19,7 +19,7 @@ from .tile import HgtTile
 
 if TYPE_CHECKING:
     from pyhgtmap import Polygon, PolygonsList
-    from pyhgtmap.cli import Configuration
+    from pyhgtmap.configuration import Configuration
 
     with suppress(ImportError):
         from osgeo import osr

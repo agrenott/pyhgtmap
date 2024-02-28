@@ -4,8 +4,8 @@ requires = ["hatchling", "hatch-vcs"]
 
 [project]
 authors = [
-  {name = "Adrian Dempwolff", email = "phyghtmap@aldw.de"},
-  {name = "Aurélien Grenotton", email = "agrenott@gmail.com"},
+  { name = "Adrian Dempwolff", email = "phyghtmap@aldw.de" },
+  { name = "Aurélien Grenotton", email = "agrenott@gmail.com" },
 ]
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
@@ -21,6 +21,7 @@ dependencies = [
   "bs4>=0.0.1",
   "colorlog>=6.7.0",
   "contourpy>=1.0.7",
+  "httpx>=0.27.0",
   "lxml>=4.9.2",
   "matplotlib>=3.4.3",
   "numpy>=1.24.2",
@@ -62,9 +63,12 @@ include = ["/pyhgtmap"]
 # Use default env for all dev activities
 dependencies = [
   "pytest~=7.2.1",
+  "pytest-cov~=4.1.0",
+  "pytest_httpx>=0.22.0",
   "pytest-mpl~=0.16.1",
+  "pytest-sugar>=0.9.7",
+  "pytest-xdist>=3.5.0",
   "types-beautifulsoup4>=4",
-  "coverage~=7.2.1",
   "mypy>=1.0.1",
   "mypy-extensions~=1.0.0",
   "ruff>=0.0.259",
@@ -83,12 +87,7 @@ style = [
   "ruff format --check --diff {args:pyhgtmap tests tools}",
 ]
 test = "pytest {args:tests}"
-test_cov = [
-  "coverage run -m pytest --mpl",
-  "coverage combine",
-  "coverage report",
-  "coverage xml",
-]
+test_cov = ["pytest --mpl --cov --cov-report xml --cov-report term"]
 typing = "mypy {args}"
 
 [[tool.hatch.envs.test.matrix]]
@@ -107,7 +106,11 @@ non_interactive = true
 plugins = "numpy.typing.mypy_plugin"
 
 [tool.pytest.ini_options]
-filterwarnings = [
-    "ignore:::nptyping",
-    "ignore:::class_registry",
-]
+filterwarnings = ["ignore:::nptyping", "ignore:::class_registry"]
+testpaths = ["tests/"]
+# Enable xdist by default
+addopts = "-nauto"
+
+# [tool.coverage.run]
+# Configured in .coveragerc as I couldn't find a way to set it here
+# without having test hanging when enabling multiprocessing...

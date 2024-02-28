@@ -2,59 +2,17 @@ from __future__ import annotations
 
 import os
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
+from typing import cast
 
-from pyhgtmap import NASASRTMUtil, PolygonsList, __version__, configUtil
+from pyhgtmap import NASASRTMUtil, __version__, configUtil
+from pyhgtmap.configuration import Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
+from pyhgtmap.sources import Source
+from pyhgtmap.sources.pool import Pool
 
 
-class Configuration(Namespace):
-    """Configuration for pyhgtmap."""
-
-    # Work-around to get typing without a full refactoring of the parser, while
-    # providing typing.
-    # Sadly some parts have to be duplicated...
-
-    area: str | None
-    polygon_file: str | None
-    polygon: PolygonsList | None = None
-    downloadOnly: bool = False
-    contourStepSize: str = "20"
-    contourFeet: bool = False
-    noZero: bool = False
-    outputPrefix: str | None
-    plotPrefix: str | None
-    lineCats: str = "200,100"
-    nJobs: int = 1
-    osmVersion: float = 0.6
-    writeTimestamp: bool = False
-    startId: int = 10000000
-    startWayId: int = 10000000
-    maxNodesPerTile: int = 1000000
-    maxNodesPerWay: int = 2000
-    rdpEpsilon: float | None = 0.0
-    disableRdp: bool | None
-    smooth_ratio: float = 1.0
-    gzip: int = 0
-    pbf: bool = False
-    o5m: bool = False
-    srtmResolution: int = 3
-    srtmVersion: float = 3.0
-    earthexplorerUser: str | None
-    earthexplorerPassword: str | None
-    viewfinder: int = 0
-    dataSource: list[str] | None
-    srtmCorrx: float = 0.0
-    srtmCorry: float = 0.0
-    hgtdir: str | None
-    rewriteIndices: bool = False
-    voidMax: int = -0x8000
-    logLevel: str = "WARNING"
-    filenames: list[str]
-
-
-def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
-    """parses the command line."""
+def build_common_parser() -> ArgumentParser:
     parser = ArgumentParser(
         usage="%(prog)s [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
         "\npyhgtmap generates contour lines from NASA SRTM and similar data"
@@ -484,8 +442,22 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         nargs="*",
         help="List of files to process (HGT or geotiff).",
     )
+    return parser
 
-    opts: Configuration = parser.parse_args(sys_args, namespace=Configuration())
+
+def add_sources_options(parser: ArgumentParser, root_config: NestedConfig) -> None:
+    """Enrich parser and configuration with plugin-specific arguments."""
+    for source in Pool.registered_sources():
+        cast(type[Source], source).register_cli_options(parser, root_config)
+
+
+def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
+    """parses the command line."""
+    parser = build_common_parser()
+    root_configuration = Configuration()
+    add_sources_options(parser, root_configuration)
+
+    opts: Configuration = parser.parse_args(sys_args, namespace=root_configuration)
 
     if opts.hgtdir:  # Set custom ./hgt/ directory
         NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
@@ -518,7 +490,12 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         opts.viewfinder = 0
     if opts.dataSource:
         for s in opts.dataSource:
-            if s[:5] not in ["view1", "view3", "srtm1", "srtm3", "sonn1", "sonn3"]:
+            # TODO: clean when all sources are implemented as plugins
+            if s[:5] not in [
+                "srtm1",
+                "srtm3",
+                *Pool.available_sources_options(),
+            ]:
                 print(f"Unknown data source: {s:s}")
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:

@@ -4,12 +4,16 @@ import io
 import logging
 import os
 from pathlib import Path, PurePath
+from typing import TYPE_CHECKING
 from urllib.request import urlopen
 from zipfile import ZipFile
 
 from bs4 import BeautifulSoup
 
 from . import Source
+
+if TYPE_CHECKING:
+    from pyhgtmap.configuration import Configuration
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -229,13 +233,15 @@ class ViewFinder(Source):
         "consider visiting http://viewfinderpanoramas.org/dem3.html to support the author."
     )
 
-    def __init__(self, cache_dir_root: str, config_dir: str) -> None:
+    def __init__(
+        self, cache_dir_root: str, config_dir: str, configuration: Configuration
+    ) -> None:
         """
         Args:
             cache_dir_root (str): Root directory to store cached HGT files
             config_dir (str): Root directory to store configuration (if any)
         """
-        super().__init__(cache_dir_root, config_dir)
+        super().__init__(cache_dir_root, config_dir, configuration)
         self._indexes = {
             resolution: ViewFinderIndex(cache_dir_root, resolution)
             for resolution in ViewFinder.SUPPORTED_RESOLUTIONS

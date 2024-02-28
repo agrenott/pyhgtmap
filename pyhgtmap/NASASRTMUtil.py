@@ -1,4 +1,4 @@
-from __future__ import annotations,print_function
+from __future__ import annotations, print_function
 
 import base64
 import os
@@ -12,6 +12,7 @@ import numpy
 from bs4 import BeautifulSoup
 from matplotlib.path import Path as PolygonPath
 
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.configUtil import CONFIG_DIR
 from pyhgtmap.sources.pool import Pool
 
@@ -721,24 +722,21 @@ class SourcesPool:
 
     # TODO get rid of this layer once existing sources are migrated to the new framework
 
-    def __init__(self) -> None:
-        self._real_pool = Pool(NASASRTMUtilConfig.hgtSaveDir, CONFIG_DIR)
+    def __init__(self, configuration: Configuration) -> None:
+        self._real_pool = Pool(NASASRTMUtilConfig.hgtSaveDir, CONFIG_DIR, configuration)
 
     def get_file(self, opener, area: str, source: str):
         fileResolution = int(source[4])
         if source.startswith("srtm"):
             srtmVersion = float(source[6:])
             url = getNASAUrl(area, fileResolution, srtmVersion)
-        elif source.startswith("view"):
-            file_name = self._real_pool.get_source("view").get_file(
+        elif source[0:4] in self._real_pool.available_sources_names():
+            # New plugin based sources
+            file_name = self._real_pool.get_source(source[0:4]).get_file(
                 area, fileResolution
             )
             return file_name
-        elif source.startswith("sonn"):
-            file_name = self._real_pool.get_source("sonn").get_file(
-                area, fileResolution
-            )
-            return file_name
+
         if not url:
             return None
         else:
@@ -751,12 +749,13 @@ def getFiles(
     corrx: float,
     corry: float,
     sources: List[str],
+    configuration: Configuration
 ) -> List[Tuple[str, bool]]:
     initDirs(sources)
     bbox = calcBbox(area, corrx, corry)
     areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
     files = []
-    sources_pool = SourcesPool()
+    sources_pool = SourcesPool(configuration)
     if anySRTMsources(sources):
         opener = earthexplorerLogin()
     else:

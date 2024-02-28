@@ -12,7 +12,7 @@ from pyhgtmap.output.factory import get_osm_output
 if TYPE_CHECKING:
     from multiprocessing.context import ForkProcess
 
-    from pyhgtmap.cli import Configuration
+    from pyhgtmap.configuration import Configuration
     from pyhgtmap.hgt.tile import HgtTile
     from pyhgtmap.output import Output
 

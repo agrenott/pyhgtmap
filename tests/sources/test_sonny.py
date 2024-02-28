@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import pytest
 from pydrive2.auth import RefreshError
 
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.sources.sonny import CLIENT_SECRET_FILE, SAVED_CREDENTIALS_FILE, Sonny
 
 
@@ -50,6 +51,7 @@ class TestSonny:
         gauth_mock: MagicMock,
         resolution: int,
         folder_id: str,
+        configuration: Configuration,
     ) -> None:
         with TemporaryDirectory() as temp_dir:
             # Prepare
@@ -69,7 +71,7 @@ class TestSonny:
             ]
 
             # Test
-            sonny = Sonny(hgt_dir, conf_dir)
+            sonny = Sonny(hgt_dir, conf_dir, configuration)
             sonny.download_missing_file("N42E004", resolution, out_file_name)
 
             # Check
@@ -102,6 +104,7 @@ class TestSonny:
     def test_download_missing_file_not_found(
         gdrive_mock: MagicMock,
         gauth_mock: MagicMock,
+        configuration: Configuration,
     ) -> None:
         """Exception to be raised when file not found."""
         with TemporaryDirectory() as temp_dir:
@@ -115,7 +118,7 @@ class TestSonny:
             gdrive_mock.return_value.ListFile.return_value.GetList.return_value = []
 
             # Test
-            sonny = Sonny(hgt_dir, conf_dir)
+            sonny = Sonny(hgt_dir, conf_dir, configuration)
             with pytest.raises(
                 FileNotFoundError,
                 match="No file available for area N42E004",
@@ -137,6 +140,7 @@ class TestSonny:
         gdrive_mock: MagicMock,
         gauth_mock: MagicMock,
         caplog: pytest.LogCaptureFixture,
+        configuration: Configuration,
     ) -> None:
         # First call is an exception due to expired token
         gauth_mock.return_value.CommandLineAuth.side_effect = [
@@ -150,7 +154,7 @@ class TestSonny:
             Path(conf_dir).mkdir()
             Path(conf_dir, SAVED_CREDENTIALS_FILE).touch()
             hgt_dir = os.path.join(temp_dir, "hgt")
-            sonny = Sonny(hgt_dir, conf_dir)
+            sonny = Sonny(hgt_dir, conf_dir, configuration)
 
             # Test
             _ = sonny.gdrive
