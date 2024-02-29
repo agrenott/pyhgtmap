@@ -111,10 +111,13 @@ class Alos(Source):
                 raise ValueError(f"DSM file not found in {url}")
             if len(dsm_files) > 1:
                 raise ValueError(f"Multiple DSM files found in {url}")
-            with zip_archive.open(dsm_files[0]) as hgt_file_in, open(
-                output_file_name,
-                mode="wb",
-            ) as hgt_file_out:
+            with (
+                zip_archive.open(dsm_files[0]) as hgt_file_in,
+                open(
+                    output_file_name,
+                    mode="wb",
+                ) as hgt_file_out,
+            ):
                 hgt_file_out.write(hgt_file_in.read())
         # TODO
 

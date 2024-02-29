@@ -6,7 +6,7 @@ from typing import cast
 
 from configargparse import ArgumentParser
 
-from pyhgtmap import NASASRTMUtil, __version__, configUtil
+from pyhgtmap import NASASRTMUtil, __version__
 from pyhgtmap.configuration import CONFIG_FILENAME, Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
 from pyhgtmap.sources import Source
@@ -504,9 +504,9 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:
                 while s in opts.dataSource:
-                    opts.dataSource[
-                        opts.dataSource.index(s)
-                    ] = f"{s:s}v{opts.srtmVersion:.1f}"
+                    opts.dataSource[opts.dataSource.index(s)] = (
+                        f"{s:s}v{opts.srtmVersion:.1f}"
+                    )
     elif len(opts.filenames) == 0:
         # No explicit source nor input provided, try to download using default
         opts.dataSource = []
@@ -520,32 +520,21 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
     for s in opts.dataSource:
         if s.startswith("srtm") and "v3" in s:
             needsEarthexplorerLogin = True
-    if needsEarthexplorerLogin:
+    if needsEarthexplorerLogin and not all(
+        (opts.earthexplorerUser, opts.earthexplorerPassword)
+    ):
         # we need earthexplorer login credentials handling then
-        earthexplorerUser = configUtil.Config().setOrGet(
-            "earthexplorer_credentials",
-            "user",
-            opts.earthexplorerUser,
+
+        print(
+            "Need earthexplorer login credentials to continue.  See the help for the",
         )
-        earthexplorerPassword = configUtil.Config().setOrGet(
-            "earthexplorer_credentials",
-            "password",
-            opts.earthexplorerPassword,
+        print(
+            "--earthexplorer-user and --earthexplorer-password options for details.",
         )
-        if not all((earthexplorerUser, earthexplorerPassword)):
-            print(
-                "Need earthexplorer login credentials to continue.  See the help for the",
-            )
-            print(
-                "--earthexplorer-user and --earthexplorer-password options for details.",
-            )
-            print("-" * 60)
-            parser.print_help()
-            sys.exit(1)
-        NASASRTMUtil.NASASRTMUtilConfig.earthexplorerCredentials(
-            earthexplorerUser,
-            earthexplorerPassword,
-        )
+        print("-" * 60)
+        parser.print_help()
+        sys.exit(1)
+
     if len(opts.filenames) == 0 and not opts.area and not opts.polygon_file:
         parser.print_help()
         sys.exit(1)

@@ -72,7 +72,7 @@ dependencies = [
   "types-beautifulsoup4>=4",
   "mypy>=1.0.1",
   "mypy-extensions~=1.0.0",
-  "ruff>=0.0.259",
+  "ruff>=0.3.0",
 ]
 
 [tool.hatch.envs.default.scripts]

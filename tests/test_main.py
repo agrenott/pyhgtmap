@@ -106,9 +106,7 @@ def test_main_manual_input_poly(
     )
 
 
-@patch("pyhgtmap.cli.configUtil")
 def test_main_manual_input_poly_no_source(
-    configUtil_mock: MagicMock,
     HgtFilesProcessor_mock: MagicMock,
     NASASRTMUtil_mock: MagicMock,
 ) -> None:
@@ -125,7 +123,6 @@ def test_main_manual_input_poly_no_source(
     main.main_internal(sys_args)
 
     # Check
-    configUtil_mock.Config.assert_not_called()
     NASASRTMUtil_mock.getFiles.assert_not_called()
 
     HgtFilesProcessor_mock.assert_called_once()

@@ -1,5 +1,5 @@
 
-ignore = [
+lint.ignore = [
   # ruff/black auto-formats lines, trust it
   "E501",
   # As advised by ruff format
@@ -8,7 +8,7 @@ ignore = [
   "ISC001",
 ]
 
-select = [
+lint.select = [
   # pycodestyle
   "E",
   # Pyflakes
@@ -90,7 +90,7 @@ select = [
 ]
 target-version = "py39"
 # Ignore files not refactored yet
-exclude = ["NASASRTMUtil.py", "configUtil.py"]
+exclude = ["NASASRTMUtil.py"]
 
 
 # Same as black

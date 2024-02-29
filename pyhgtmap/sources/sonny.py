@@ -126,10 +126,14 @@ class Sonny(Source):
         # Actually download and extract file on the fly
         zipped_buffer = files[0].GetContentIOBuffer(remove_bom=True)
         # We expect the name to match the archive & area one
-        with ZipFile(
-            io.BytesIO(cast(bytes, zipped_buffer.read())),
-        ) as zip_archive, zip_archive.open(f"{area}.hgt") as hgt_file_in, open(
-            output_file_name,
-            mode="wb",
-        ) as hgt_file_out:
+        with (
+            ZipFile(
+                io.BytesIO(cast(bytes, zipped_buffer.read())),
+            ) as zip_archive,
+            zip_archive.open(f"{area}.hgt") as hgt_file_in,
+            open(
+                output_file_name,
+                mode="wb",
+            ) as hgt_file_out,
+        ):
             hgt_file_out.write(hgt_file_in.read())
