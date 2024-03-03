@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, cast
 
 import contourpy
 import numpy
@@ -124,7 +124,7 @@ class ContoursGenerator:
         """
         # Keep only the first element of the tuple, ignoring matplot line code
         rawPaths: list[numpy.ndarray] = cast(
-            List[numpy.ndarray],
+            list[numpy.ndarray],
             self.cntr.create_contour(elevation)[0],
         )
         numOfPaths, numOfNodes = 0, 0

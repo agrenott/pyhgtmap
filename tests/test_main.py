@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +11,9 @@ from pyhgtmap import main
 from . import TEST_DATA_PATH
 
 if TYPE_CHECKING:
-    from pyhgtmap.cli import Configuration
+    from collections.abc import Generator
+
+    from pyhgtmap.configuration import Configuration
 
 
 @pytest.fixture()
@@ -104,9 +106,7 @@ def test_main_manual_input_poly(
     )
 
 
-@patch("pyhgtmap.cli.configUtil")
 def test_main_manual_input_poly_no_source(
-    configUtil_mock: MagicMock,
     HgtFilesProcessor_mock: MagicMock,
     NASASRTMUtil_mock: MagicMock,
 ) -> None:
@@ -123,7 +123,6 @@ def test_main_manual_input_poly_no_source(
     main.main_internal(sys_args)
 
     # Check
-    configUtil_mock.Config.assert_not_called()
     NASASRTMUtil_mock.getFiles.assert_not_called()
 
     HgtFilesProcessor_mock.assert_called_once()

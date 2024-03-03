@@ -12,7 +12,7 @@ from . import make_elev_classifier
 
 if TYPE_CHECKING:
     from pyhgtmap import BBox
-    from pyhgtmap.cli import Configuration
+    from pyhgtmap.configuration import Configuration
 
 
 def make_osm_filename(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Tuple
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
 import numpy
 from nptyping import NDArray, Structure
@@ -26,7 +26,7 @@ WaysType = NDArray[
     Structure["first_node_id: Int, nb_nodes: Int, closed_loop: Bool, elevation: Int"],
 ]
 
-NodeType = Tuple[int, int]
+NodeType = tuple[int, int]
 
 
 def make_elev_classifier(majorDivisor: int, mediumDivisor: int) -> Callable[[int], str]:

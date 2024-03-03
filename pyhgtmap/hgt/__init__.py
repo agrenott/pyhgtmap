@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, Tuple
+from collections.abc import Iterable
+from typing import Callable
 
 from pyhgtmap import BBox
 
 # Coordinates transformation function prototype
 TransformFunType = Callable[
-    [Iterable[Tuple[float, float]]],
-    Iterable[Tuple[float, float]],
+    [Iterable[tuple[float, float]]],
+    Iterable[tuple[float, float]],
 ]
 
 

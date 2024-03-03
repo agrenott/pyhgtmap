@@ -2,7 +2,12 @@
 omit =
     # omit everything in /usr
     /usr/*
+    tests/*
 
 concurrency = 
     multiprocessing
     thread
+
+parallel = true
+sigterm = true
+branch = true

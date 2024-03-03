@@ -15,6 +15,8 @@ from . import Source
 if TYPE_CHECKING:
     from pydrive2.files import GoogleDriveFile
 
+    from pyhgtmap.configuration import Configuration as _Configuration
+
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -44,13 +46,15 @@ class Sonny(Source):
         "consider visiting https://sonny.4lima.de/ to support the author."
     )
 
-    def __init__(self, cache_dir_root: str, config_dir: str) -> None:
+    def __init__(
+        self, cache_dir_root: str, config_dir: str, configuration: _Configuration
+    ) -> None:
         """
         Args:
             cache_dir_root (str): Root directory to store cached HGT files
             config_dir (str): Root directory to store configuration (if any)
         """
-        super().__init__(cache_dir_root, config_dir)
+        super().__init__(cache_dir_root, config_dir, configuration)
         self._gdrive: GoogleDrive | None = None
 
     @property
@@ -122,10 +126,14 @@ class Sonny(Source):
         # Actually download and extract file on the fly
         zipped_buffer = files[0].GetContentIOBuffer(remove_bom=True)
         # We expect the name to match the archive & area one
-        with ZipFile(
-            io.BytesIO(cast(bytes, zipped_buffer.read())),
-        ) as zip_archive, zip_archive.open(f"{area}.hgt") as hgt_file_in, open(
-            output_file_name,
-            mode="wb",
-        ) as hgt_file_out:
+        with (
+            ZipFile(
+                io.BytesIO(cast(bytes, zipped_buffer.read())),
+            ) as zip_archive,
+            zip_archive.open(f"{area}.hgt") as hgt_file_in,
+            open(
+                output_file_name,
+                mode="wb",
+            ) as hgt_file_out,
+        ):
             hgt_file_out.write(hgt_file_in.read())

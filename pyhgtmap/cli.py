@@ -2,60 +2,27 @@ from __future__ import annotations
 
 import os
 import sys
-from argparse import ArgumentParser, Namespace
+from typing import cast
 
-from pyhgtmap import NASASRTMUtil, PolygonsList, __version__, configUtil
+from configargparse import ArgumentParser
+
+from pyhgtmap import NASASRTMUtil, __version__
+from pyhgtmap.configuration import CONFIG_FILENAME, Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
+from pyhgtmap.sources import Source
+from pyhgtmap.sources.pool import Pool
+
+# TODO: clean when all sources are implemented as plugins
+ALL_SUPPORTED_SOURCES = [
+    "srtm1",
+    "srtm3",
+    *Pool.available_sources_options(),
+]
 
 
-class Configuration(Namespace):
-    """Configuration for pyhgtmap."""
-
-    # Work-around to get typing without a full refactoring of the parser, while
-    # providing typing.
-    # Sadly some parts have to be duplicated...
-
-    area: str | None
-    polygon_file: str | None
-    polygon: PolygonsList | None = None
-    downloadOnly: bool = False
-    contourStepSize: str = "20"
-    contourFeet: bool = False
-    noZero: bool = False
-    outputPrefix: str | None
-    plotPrefix: str | None
-    lineCats: str = "200,100"
-    nJobs: int = 1
-    osmVersion: float = 0.6
-    writeTimestamp: bool = False
-    startId: int = 10000000
-    startWayId: int = 10000000
-    maxNodesPerTile: int = 1000000
-    maxNodesPerWay: int = 2000
-    rdpEpsilon: float | None = 0.0
-    disableRdp: bool | None
-    smooth_ratio: float = 1.0
-    gzip: int = 0
-    pbf: bool = False
-    o5m: bool = False
-    srtmResolution: int = 3
-    srtmVersion: float = 3.0
-    earthexplorerUser: str | None
-    earthexplorerPassword: str | None
-    viewfinder: int = 0
-    dataSource: list[str] | None
-    srtmCorrx: float = 0.0
-    srtmCorry: float = 0.0
-    hgtdir: str | None
-    rewriteIndices: bool = False
-    voidMax: int = -0x8000
-    logLevel: str = "WARNING"
-    filenames: list[str]
-
-
-def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
-    """parses the command line."""
+def build_common_parser() -> ArgumentParser:
     parser = ArgumentParser(
+        default_config_files=[CONFIG_FILENAME],
         usage="%(prog)s [options] [<hgt or GeoTiff file>] [<hgt or GeoTiff files>]"
         "\npyhgtmap generates contour lines from NASA SRTM and similar data"
         "\nas well as from GeoTiff data"
@@ -393,7 +360,7 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         "--data-source",
         help="specify a list of"
         "\nsources to use as comma-separated string.  Available sources are"
-        "\n'srtm1', 'srtm3', 'sonn1', 'sonn3' 'view1' and 'view3'.  If specified,"
+        f"\n{', '.join(s for s in ALL_SUPPORTED_SOURCES)}.  If specified,"
         "\nthe data source will be selected using this option as preference list."
         "\nSpecifying --source=view3,srtm3 for example will prefer viewfinder 3"
         "\narc second data to NASA SRTM 3 arc second data.  Also see the"
@@ -484,8 +451,22 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         nargs="*",
         help="List of files to process (HGT or geotiff).",
     )
+    return parser
 
-    opts: Configuration = parser.parse_args(sys_args, namespace=Configuration())
+
+def add_sources_options(parser: ArgumentParser, root_config: NestedConfig) -> None:
+    """Enrich parser and configuration with plugin-specific arguments."""
+    for source in Pool.registered_sources():
+        cast(type[Source], source).register_cli_options(parser, root_config)
+
+
+def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
+    """parses the command line."""
+    parser = build_common_parser()
+    root_configuration = Configuration()
+    add_sources_options(parser, root_configuration)
+
+    opts: Configuration = parser.parse_args(sys_args, namespace=root_configuration)
 
     if opts.hgtdir:  # Set custom ./hgt/ directory
         NASASRTMUtil.NASASRTMUtilConfig.CustomHgtSaveDir(opts.hgtdir)
@@ -518,14 +499,14 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         opts.viewfinder = 0
     if opts.dataSource:
         for s in opts.dataSource:
-            if s[:5] not in ["view1", "view3", "srtm1", "srtm3", "sonn1", "sonn3"]:
+            if s[:5] not in ALL_SUPPORTED_SOURCES:
                 print(f"Unknown data source: {s:s}")
                 sys.exit(1)
             elif s in ["srtm1", "srtm3"]:
                 while s in opts.dataSource:
-                    opts.dataSource[
-                        opts.dataSource.index(s)
-                    ] = f"{s:s}v{opts.srtmVersion:.1f}"
+                    opts.dataSource[opts.dataSource.index(s)] = (
+                        f"{s:s}v{opts.srtmVersion:.1f}"
+                    )
     elif len(opts.filenames) == 0:
         # No explicit source nor input provided, try to download using default
         opts.dataSource = []
@@ -539,32 +520,21 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
     for s in opts.dataSource:
         if s.startswith("srtm") and "v3" in s:
             needsEarthexplorerLogin = True
-    if needsEarthexplorerLogin:
+    if needsEarthexplorerLogin and not all(
+        (opts.earthexplorerUser, opts.earthexplorerPassword)
+    ):
         # we need earthexplorer login credentials handling then
-        earthexplorerUser = configUtil.Config().setOrGet(
-            "earthexplorer_credentials",
-            "user",
-            opts.earthexplorerUser,
+
+        print(
+            "Need earthexplorer login credentials to continue.  See the help for the",
         )
-        earthexplorerPassword = configUtil.Config().setOrGet(
-            "earthexplorer_credentials",
-            "password",
-            opts.earthexplorerPassword,
+        print(
+            "--earthexplorer-user and --earthexplorer-password options for details.",
         )
-        if not all((earthexplorerUser, earthexplorerPassword)):
-            print(
-                "Need earthexplorer login credentials to continue.  See the help for the",
-            )
-            print(
-                "--earthexplorer-user and --earthexplorer-password options for details.",
-            )
-            print("-" * 60)
-            parser.print_help()
-            sys.exit(1)
-        NASASRTMUtil.NASASRTMUtilConfig.earthexplorerCredentials(
-            earthexplorerUser,
-            earthexplorerPassword,
-        )
+        print("-" * 60)
+        parser.print_help()
+        sys.exit(1)
+
     if len(opts.filenames) == 0 and not opts.area and not opts.polygon_file:
         parser.print_help()
         sys.exit(1)

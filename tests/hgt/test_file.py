@@ -7,7 +7,7 @@ import numpy
 import pytest
 
 from pyhgtmap import Polygon, PolygonsList, hgt
-from pyhgtmap.cli import Configuration
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.file import (
     HgtFile,
     HgtTile,

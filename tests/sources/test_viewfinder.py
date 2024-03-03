@@ -5,7 +5,7 @@ import shutil
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, call, patch
 from zipfile import ZipFile
 
@@ -17,6 +17,9 @@ from pyhgtmap.sources.viewfinder import (
     fetch_and_extract_zip,
 )
 from tests import TEST_DATA_PATH
+
+if TYPE_CHECKING:
+    from pyhgtmap.configuration import Configuration
 
 # Ignoring accesses to private members, as it's sued to validate the caching mechanism
 # ruff: noqa: SLF001
@@ -254,10 +257,11 @@ class TestViewFinder:
     @patch("pyhgtmap.sources.viewfinder.fetch_and_extract_zip", autospec=True)
     def test_download_missing_file_no_candidate(
         fetch_and_extract_zip_mock: MagicMock,
+        configuration: Configuration,
     ) -> None:
         """No candidate from index for requested area."""
         cache_dir_name = "cache_dir"
-        source = ViewFinder(cache_dir_name, "conf_dir")
+        source = ViewFinder(cache_dir_name, "conf_dir", configuration)
         area = "S43E007"
         index3 = MagicMock(spec=ViewFinderIndex)
         source._indexes = {3: cast(ViewFinderIndex, index3)}
@@ -275,11 +279,14 @@ class TestViewFinder:
 
     @staticmethod
     @patch("pyhgtmap.sources.viewfinder.urlopen", autospec=True)
-    def test_download_missing_file_1st_zone(urlopen_mock: MagicMock) -> None:
+    def test_download_missing_file_1st_zone(
+        urlopen_mock: MagicMock,
+        configuration: Configuration,
+    ) -> None:
         """Area found using 1st candidate zone."""
         with TemporaryDirectory() as temp_dir:
             # Prepare
-            source = ViewFinder(temp_dir, "conf_dir")
+            source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E007"
             index3 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {3: cast(ViewFinderIndex, index3)}
@@ -302,11 +309,14 @@ class TestViewFinder:
 
     @staticmethod
     @patch("pyhgtmap.sources.viewfinder.urlopen", autospec=True)
-    def test_download_missing_file_2nd_zone(urlopen_mock: MagicMock) -> None:
+    def test_download_missing_file_2nd_zone(
+        urlopen_mock: MagicMock,
+        configuration: Configuration,
+    ) -> None:
         """Area found using 2nd candidate zone."""
         with TemporaryDirectory() as temp_dir:
             # Prepare
-            source = ViewFinder(temp_dir, "conf_dir")
+            source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E010"
             index3 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {3: cast(ViewFinderIndex, index3)}
@@ -338,11 +348,14 @@ class TestViewFinder:
 
     @staticmethod
     @patch("pyhgtmap.sources.viewfinder.urlopen", autospec=True)
-    def test_download_missing_file_not_in_zone(urlopen_mock: MagicMock) -> None:
+    def test_download_missing_file_not_in_zone(
+        urlopen_mock: MagicMock,
+        configuration: Configuration,
+    ) -> None:
         """Area isn't actually available in any zone (invalid index)."""
         with TemporaryDirectory() as temp_dir:
             # Prepare
-            source = ViewFinder(temp_dir, "conf_dir")
+            source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E007"
             index1 = MagicMock(spec=ViewFinderIndex)
             source._indexes = {1: cast(ViewFinderIndex, index1)}

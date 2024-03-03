@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from contextlib import suppress
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy
 import numpy.typing
@@ -18,8 +18,10 @@ from pyhgtmap.hgt import TransformFunType, transformLonLats
 from .tile import HgtTile
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pyhgtmap import Polygon, PolygonsList
-    from pyhgtmap.cli import Configuration
+    from pyhgtmap.configuration import Configuration
 
     with suppress(ImportError):
         from osgeo import osr

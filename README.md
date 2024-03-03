@@ -1,4 +1,4 @@
-[![Python: 3.8, 3.9, 3.10, 3.11, 3.12](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
+[![Python: 3.9, 3.10, 3.11, 3.12](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
 ![GitHub](https://img.shields.io/github/license/agrenott/pyhgtmap)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/pyhgtmap/pythonpackage.yaml)
 [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch)
@@ -53,6 +53,14 @@ This source requires creating an earthexplorer account on https://ers.cr.usgs.go
 
 This source require usage of Google Drive API. To use it, you have to generate API client OAuth secret as described in [Google drive's documentation](https://developers.google.com/drive/api/quickstart/python?hl=en#set_up_your_environment) and save the client secrets JSON file in pyhgtmap config directory (`~/.pyhgtmap/client-secret.json`).
 
+## ALOS
+
+[ALOS Global Digital Surface Model "ALOS World 3D - 30m (AW3D30)"](https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/aw3d30_e.htm)
+
+*Available for 1" resolution only.*
+
+This source requires creating an AW3D30 account on https://www.eorc.jaxa.jp/ALOS/en/dataset/aw3d30/registration.htm.
+
 # Installation
 
 For ubuntu-like system:
@@ -103,6 +111,18 @@ pip install -U git+https://github.com/agrenott/pyhgtmap.git
 
 For a detailed help, run `pyhgtmap --help` on the console.
 
+## Configuration
+
+Thanks to [ConfigArgParse module](https://github.com/bw2/ConfigArgParse), all command line options can also be passed by environment variable or stored in a config file (`~/.pyhgtmap/config.yaml`). This is especially useful for credentials to access some sources.
+
+Example:
+```
+alos-user: myuser
+alos-password: mypassword
+```
+
+If a value is specified in more than one way then: command line > environment variables > config file values > defaults.
+
 ## Example output
 
 Generating contours for France [PACA region](https://download.geofabrik.de/europe/france/provence-alpes-cote-d-azur.html) with a 10m step and 0.00001 RDP Epsilon (taking less than a minute on Intel 13600K via Windows WSL 1):
@@ -145,9 +165,8 @@ This project uses ![hatch](https://hatch.pypa.io/latest/).
 
 (Mini)Conda can be used to easily setup given version of Python and GDAL:
 ```bash
-conda create -n python39 -c conda-forge python=3.9
+conda create -n python39 -c conda-forge python=3.9 gdal hatch
 conda activate python39
-conda install -c conda-forge gdal hatch
 hatch -e geotiff shell
 # To start VSCode using the proper python env
 code .

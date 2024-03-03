@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy
 import pytest
 
-from pyhgtmap.cli import Configuration
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.file import HgtFile
 from tests import TEST_DATA_PATH
 

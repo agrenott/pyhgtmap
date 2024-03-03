@@ -1,6 +1,6 @@
 import contextlib
 import importlib.util
-from typing import Generator
+from collections.abc import Generator
 
 
 @contextlib.contextmanager

@@ -1,4 +1,4 @@
-from __future__ import annotations,print_function
+from __future__ import annotations, print_function
 
 import base64
 import os
@@ -12,7 +12,7 @@ import numpy
 from bs4 import BeautifulSoup
 from matplotlib.path import Path as PolygonPath
 
-from pyhgtmap.configUtil import CONFIG_DIR
+from pyhgtmap.configuration import CONFIG_DIR, Configuration
 from pyhgtmap.sources.pool import Pool
 
 if TYPE_CHECKING:
@@ -46,8 +46,7 @@ class NASASRTMUtilConfigClass(object):
             1: ["Region_0{0:d}".format(i) for i in range(1, 8)],
         }
         self.NASAhgtSaveSubDirRe = "SRTM{0:d}v{1:.1f}"
-        self.earthexplorerUser = None
-        self.earthexplorerPassword = None
+
 
     def getSRTMFileServer(self, resolution, srtmVersion):
         if srtmVersion == 2.1:
@@ -84,9 +83,7 @@ class NASASRTMUtilConfigClass(object):
             self.hgtSaveDir, "hgtIndex_{0:d}_v{1:.1f}.txt"
         )
 
-    def earthexplorerCredentials(self, user, password):
-        self.earthexplorerUser = user
-        self.earthexplorerPassword = password
+
 
 
 # Create the config object
@@ -580,13 +577,13 @@ def base64String(string):
     return base64.encodestring(string.encode()).decode()
 
 
-def earthexplorerLogin():
+def earthexplorerLogin(configuration):
     jar = cookielib.CookieJar(cookielib.DefaultCookiePolicy())
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
     opener.open("https://ers.cr.usgs.gov/")  # needed for some cookies
     postData = {
-        "username": NASASRTMUtilConfig.earthexplorerUser,
-        "password": NASASRTMUtilConfig.earthexplorerPassword,
+        "username": configuration.earthexplorerUser,
+        "password": configuration.earthexplorerPassword,
     }
     req1 = urllib.request.Request("https://ers.cr.usgs.gov/login/")
     res1 = opener.open(req1)
@@ -721,24 +718,21 @@ class SourcesPool:
 
     # TODO get rid of this layer once existing sources are migrated to the new framework
 
-    def __init__(self) -> None:
-        self._real_pool = Pool(NASASRTMUtilConfig.hgtSaveDir, CONFIG_DIR)
+    def __init__(self, configuration: Configuration) -> None:
+        self._real_pool = Pool(NASASRTMUtilConfig.hgtSaveDir, CONFIG_DIR, configuration)
 
     def get_file(self, opener, area: str, source: str):
         fileResolution = int(source[4])
         if source.startswith("srtm"):
             srtmVersion = float(source[6:])
             url = getNASAUrl(area, fileResolution, srtmVersion)
-        elif source.startswith("view"):
-            file_name = self._real_pool.get_source("view").get_file(
+        elif source[0:4] in self._real_pool.available_sources_names():
+            # New plugin based sources
+            file_name = self._real_pool.get_source(source[0:4]).get_file(
                 area, fileResolution
             )
             return file_name
-        elif source.startswith("sonn"):
-            file_name = self._real_pool.get_source("sonn").get_file(
-                area, fileResolution
-            )
-            return file_name
+
         if not url:
             return None
         else:
@@ -751,14 +745,15 @@ def getFiles(
     corrx: float,
     corry: float,
     sources: List[str],
+    configuration: Configuration
 ) -> List[Tuple[str, bool]]:
     initDirs(sources)
     bbox = calcBbox(area, corrx, corry)
     areaPrefixes = makeFileNamePrefixes(bbox, polygon, corrx, corry)
     files = []
-    sources_pool = SourcesPool()
+    sources_pool = SourcesPool(configuration)
     if anySRTMsources(sources):
-        opener = earthexplorerLogin()
+        opener = earthexplorerLogin(configuration)
     else:
         opener = None
     for area, checkPoly in areaPrefixes:

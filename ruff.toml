@@ -1,5 +1,5 @@
 
-ignore = [
+lint.ignore = [
   # ruff/black auto-formats lines, trust it
   "E501",
   # As advised by ruff format
@@ -8,89 +8,89 @@ ignore = [
   "ISC001",
 ]
 
-select = [
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # flake8-bugbear
-    "B",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # pep8-naming
-    #"N", #TODO: enable one day, but clean-up required...
-    # flake8-2020
-    "YTT",
-    # flake8-bandit - security rules
-    "S",
-    # flake8-bugbear
-    "B",
-    # flake8-builtins
-    "A",
-    # flake8-commas
-    "COM",
-    # flake8-comprehensions
-    "C4",
-    # flake8-future-annotations
-    "FA",
-    # flake8-implicit-str-concat
-    "ISC",
-    # flake8-import-conventions
-    # "ICN", #TODO
-    # flake8-logging-format
-    # "G", #TODO
-    # flake8-pie
-    "PIE",
-    # flake8-pyi
-    "PYI",
-    # flake8-pytest-style
-    "PT",
-    # flake8-quotes
-    "Q",
-    # flake8-raise
-    "RSE",
-    # flake8-return
-    # "RET", #TODO
-    # flake8-self
-    "SLF",
-    # flake8-slots
-    "SLOT",
-    # flake8-simplify
-    "SIM",
-    # flake8-tidy-imports
-    "TID",
-    # flake8-type-checking
-    "TCH",
-    # flake8-gettext
-    "INT",
-    # flake8-unused-arguments
-    # "ARG", #TODO
-    # flake8-use-pathlib
-    # "PTH", #TODO? (replace everything with pathlib)
-    # pandas-vet
-    "PD",
-    # pygrep-hooks
-    "PGH",
-    # Pylint
-    # "PL", # TODO?
-    # tryceratops
-    # "TRY", #TODO!
-    # flynt
-    "FLY",
-    # NumPy-specific rules
-    "NPY",
-    # Perflint
-    "PERF",
-    # Ruff
-    "RUF",
-    ]
-target-version = "py38"
+lint.select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  # pep8-naming
+  #"N", #TODO: enable one day, but clean-up required...
+  # flake8-2020
+  "YTT",
+  # flake8-bandit - security rules
+  "S",
+  # flake8-bugbear
+  "B",
+  # flake8-builtins
+  "A",
+  # flake8-commas
+  "COM",
+  # flake8-comprehensions
+  "C4",
+  # flake8-future-annotations
+  "FA",
+  # flake8-implicit-str-concat
+  "ISC",
+  # flake8-import-conventions
+  # "ICN", #TODO
+  # flake8-logging-format
+  # "G", #TODO
+  # flake8-pie
+  "PIE",
+  # flake8-pyi
+  "PYI",
+  # flake8-pytest-style
+  "PT",
+  # flake8-quotes
+  "Q",
+  # flake8-raise
+  "RSE",
+  # flake8-return
+  # "RET", #TODO
+  # flake8-self
+  "SLF",
+  # flake8-slots
+  "SLOT",
+  # flake8-simplify
+  "SIM",
+  # flake8-tidy-imports
+  "TID",
+  # flake8-type-checking
+  "TCH",
+  # flake8-gettext
+  "INT",
+  # flake8-unused-arguments
+  # "ARG", #TODO
+  # flake8-use-pathlib
+  # "PTH", #TODO? (replace everything with pathlib)
+  # pandas-vet
+  "PD",
+  # pygrep-hooks
+  "PGH",
+  # Pylint
+  # "PL", # TODO?
+  # tryceratops
+  # "TRY", #TODO!
+  # flynt
+  "FLY",
+  # NumPy-specific rules
+  "NPY",
+  # Perflint
+  "PERF",
+  # Ruff
+  "RUF",
+]
+target-version = "py39"
 # Ignore files not refactored yet
-exclude = ["NASASRTMUtil.py", "configUtil.py"]
+exclude = ["NASASRTMUtil.py"]
 
 
 # Same as black

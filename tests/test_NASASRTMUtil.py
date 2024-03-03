@@ -1,6 +1,7 @@
 import warnings
 from unittest.mock import MagicMock, call, patch
 
+from pyhgtmap.configuration import Configuration
 from pyhgtmap.NASASRTMUtil import getFiles, parseSRTMv3CoverageKml
 
 # Truncated version of NASA's SRTM v3 index KML file
@@ -16,14 +17,19 @@ def test_parseSRTMv3CoverageKml() -> None:
         assert w == []
 
 
-def test_getFiles_no_source() -> None:
+def test_getFiles_no_source(
+    configuration: Configuration,
+) -> None:
     """No source, no file..."""
-    files = getFiles("1:2:3:4", None, 0, 0, [])
+    files = getFiles("1:2:3:4", None, 0, 0, [], configuration)
     assert files == []
 
 
 @patch("pyhgtmap.NASASRTMUtil.Pool", spec=True)
-def test_getFiles_sonn3_no_poly(pool_mock: MagicMock) -> None:
+def test_getFiles_sonn3_no_poly(
+    pool_mock: MagicMock,
+    configuration: Configuration,
+) -> None:
     """Basic test with a single source, no polygon provided."""
 
     # One file not found
@@ -34,7 +40,9 @@ def test_getFiles_sonn3_no_poly(pool_mock: MagicMock) -> None:
         "hgt/SONN3/N03E002.hgt",
     ]
 
-    files = getFiles("1:2:3:4", None, 0, 0, ["sonn3"])
+    pool_mock.return_value.available_sources_names.return_value = ["sonn"]
+
+    files = getFiles("1:2:3:4", None, 0, 0, ["sonn3"], configuration)
 
     pool_mock.return_value.get_source.assert_called_with("sonn")
     assert pool_mock.return_value.get_source.return_value.get_file.call_args_list == [
@@ -52,7 +60,10 @@ def test_getFiles_sonn3_no_poly(pool_mock: MagicMock) -> None:
 
 
 @patch("pyhgtmap.NASASRTMUtil.SourcesPool", spec=True)
-def test_getFiles_multi_sources(sources_pool_mock: MagicMock) -> None:
+def test_getFiles_multi_sources(
+    sources_pool_mock: MagicMock,
+    configuration: Configuration,
+) -> None:
     """2 sources, handling proper priority."""
 
     # N02E001 not found in SONN3, but available in VIEW1
@@ -64,7 +75,7 @@ def test_getFiles_multi_sources(sources_pool_mock: MagicMock) -> None:
         "hgt/SONN3/N03E002.hgt",
     ]
 
-    files = getFiles("1:2:3:4", None, 0, 0, ["sonn3", "view1"])
+    files = getFiles("1:2:3:4", None, 0, 0, ["sonn3", "view1"], configuration)
 
     assert sources_pool_mock.return_value.get_file.call_args_list == [
         call(None, "N02E001", "sonn3"),
