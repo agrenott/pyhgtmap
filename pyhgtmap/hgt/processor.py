@@ -175,41 +175,50 @@ class HgtFilesProcessor:
         except ValueError:  # tiles with the same value on every element
             logger.warning("Discarding invalid tile %s", tile)
 
-    def run_in_child(self, func: Callable, *args) -> None:
+    def run_in_child(self, func: Callable, *args, **kwargs) -> None:
         """
-        Basic wrapper function ensuring the available_children semaphore is properly released.
+        Basic wrapper function ensuring the available_children semaphore is properly released,
+        *once func is DONE* (and not only scheduled).
         """
         try:
-            func(*args)
+            logger.debug("run_in_child %s", func)
+            # Clear list of children PIDs we might have inherited from parent process
+            # when using fork strategy
+            self.active_children.clear()
+            func(*args, **kwargs)
         except Exception as e:
             logger.error("Exception caught in child process: %s", e)
             raise e
         finally:
             self.available_children.release()
+            logger.debug("done - run_in_child %s", func)
 
-    def process_tile(self, file_name: str, tile: HgtTile) -> None:
-        """Process given tile, in a dedicated process if parallelization is enabled.
-
-        Args:
-            file_name (str): original file name (used for output file name generation)
-            tile (hgt.hgtTile): tile to process
+    def try_parallelizing(self, func: Callable, *args, **kwargs) -> None:
+        """
+        Try to parallelize func over multiple processes if enabled, else execute in current process.
         """
         if self.parallel and not self.single_output:
             # Fork into a child process when available
-            self.available_children.acquire()
-            # Ensure "fork" method is used to share parent's process context
-            ctx = multiprocessing.get_context("fork")
-            p = ctx.Process(
-                target=self.run_in_child,
-                args=(self.process_tile_internal, file_name, tile),
-            )
-            self.active_children.append(p)
-            p.start()
-            # Try to progressively clean some done children
-            self.join_children(skip_active=True)
+            logger.debug("Trying to get semaphore to run %s", func)
+            if self.available_children.acquire(block=False):
+                # Ensure "fork" method is used to share parent's process context
+                ctx = multiprocessing.get_context("fork")
+                p = ctx.Process(
+                    target=self.run_in_child,
+                    args=(func, *args),
+                    kwargs=kwargs,
+                )
+                self.active_children.append(p)
+                p.start()
+                # Try to progressively clean some done children
+                self.join_children(skip_active=True)
+            else:
+                # Execute in current process
+                logger.debug("No process available to fork, continuing in current one")
+                func(*args, **kwargs)
         else:
-            # Process tile in current process
-            self.process_tile_internal(file_name, tile)
+            # Execute in current process
+            func(*args, **kwargs)
 
     def process_file(self, file_name: str, check_poly: bool) -> None:
         """Process given file, parallelizing tiles processing if enabled.
@@ -236,7 +245,8 @@ class HgtFilesProcessor:
             logger.debug("  %s", tile.get_stats())
 
         for tile in hgt_tiles:
-            self.process_tile(file_name, tile)
+            self.try_parallelizing(self.process_tile_internal, file_name, tile)
+        logger.debug("Done with process_file %s", file_name)
 
     def join_children(self, skip_active=False) -> None:
         """
@@ -278,7 +288,7 @@ class HgtFilesProcessor:
 
         # tracemalloc.start(10)
         for file_name, check_poly in files:
-            self.process_file(file_name, check_poly)
+            self.try_parallelizing(self.process_file, file_name, check_poly)
             # snapshot = tracemalloc.take_snapshot()
             # top_stats = snapshot.statistics("traceback")
             # # logger.debug("[memory top 10]\n  "+"\n  ".join([str(s) for s in top_stats[:10]]))
