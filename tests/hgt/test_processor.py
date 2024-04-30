@@ -166,9 +166,9 @@ class TestHgtFilesProcessor:
     )
     def test_process_files(nb_jobs: int, default_options: Configuration) -> None:
         """E2E test."""
-        # Run in spawned child process, as osmium threads doesn't suuport being used
+        # Run in spawned child process, as osmium threads doesn't support being used
         # once in main process and then in forked process (causing deadlock situation).
-        # Spanwing test case ensures child process doesn't share osmium context with previous
+        # Spawning test case ensures child process doesn't share osmium context with previous
         # runs.
         run_in_spawned_process(
             TestHgtFilesProcessor._test_process_files,
@@ -187,12 +187,16 @@ class TestHgtFilesProcessor:
         )
         with tempfile.TemporaryDirectory() as tempdir_name:
             with cwd(tempdir_name):
+                source_file_name = os.path.join(TEST_DATA_PATH, "N43E006.hgt")
                 files_list: list[tuple[str, bool]] = [
-                    (os.path.join(TEST_DATA_PATH, "N43E006.hgt"), False),
+                    (source_file_name, False),
                 ]
-                # Instrument method without changing its behavior
+                # Instrument methods without changing their behavior
                 processor.process_tile_internal = Mock(  # type: ignore[method-assign]
                     side_effect=processor.process_tile_internal,
+                )
+                processor.process_file = Mock(  # type: ignore[method-assign]
+                    side_effect=processor.process_file,
                 )
                 processor.process_files(files_list)
                 out_files_names: list[str] = sorted(glob.glob("*.osm.pbf"))
@@ -204,14 +208,20 @@ class TestHgtFilesProcessor:
                     "lon6.00_7.00lat43.88_44.00_local-source.osm.pbf",
                 ], f"out_files_names mismatch; {out_files_names}"
                 if nb_jobs == 1:
-                    # process_tile_internal called in main process when parallelization is not used
+                    # process_tile_internal and process_file called in main process
+                    # when parallelization is not used
                     assert processor.process_tile_internal.call_count == len(
                         out_files_names,
                     )
+                    processor.process_file.assert_called_once_with(
+                        source_file_name, False
+                    )
                 else:
-                    # process_tile_internal is NOT called in parent process, but in children
-                    # (not reflected in parent's mock). Can' check for actual max concurrency.
+                    # process_tile_internal and process_file are NOT called in parent
+                    # process, but in children (not reflected in parent's mock). Can't
+                    # check for actual max concurrency.
                     processor.process_tile_internal.assert_not_called()
+                    processor.process_file.assert_not_called()
 
                 # Ensure nodes and ways IDs do not overlap between generated files
                 # (they should actually be continuous, but we really only care about overlapping)
@@ -389,3 +399,53 @@ class TestHgtFilesProcessor:
                 "Tile (28.00, 42.50, 29.00, 43.00) doesn't contain any node, skipping."
                 in caplog.text
             )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        ("nb_jobs", "nb_jobs_in_use", "expected_fork"),
+        [
+            # 2 max jobs -> parallelization enabled
+            (2, 0, True),
+            # 2 max jobs, but both used -> parallelization disabled
+            (2, 2, False),
+            # 1 max job -> parallelization disabled
+            (1, 0, False),
+        ],
+    )
+    def test_try_parallelizing(
+        default_options: Configuration,
+        nb_jobs: int,
+        nb_jobs_in_use: int,
+        expected_fork: bool,
+    ) -> None:
+        # Prepare
+        processor = HgtFilesProcessor(
+            nb_jobs,
+            node_start_id=100,
+            way_start_id=200,
+            options=default_options,
+        )
+        # Queue to ensure some_func is called properly, from which process
+        queue: multiprocessing.Queue[tuple] = multiprocessing.Queue()
+
+        def some_func(*args, **kwargs) -> None:
+            queue.put((args, kwargs, os.getpid()))
+
+        some_args = (1, 2, 3)
+        some_kwargs = {"a": 1, "b": 2, "c": 3}
+
+        # Simulate already running children
+        for _ in range(nb_jobs_in_use):
+            processor.available_children.acquire()
+
+        # Test
+        processor.try_parallelizing(some_func, *some_args, **some_kwargs)
+
+        # Check
+        res = queue.get()
+        assert res[0] == some_args
+        assert res[1] == some_kwargs
+        if expected_fork:
+            assert res[2] != os.getpid()
+        else:
+            assert res[2] == os.getpid()
