@@ -183,10 +183,7 @@ def parse_geotiff_bbox(
         geoTransform = g.GetGeoTransform()
         if geoTransform[2] != 0 or geoTransform[4] != 0:
             sys.stderr.write(
-                "Can't handle geotiff {!s} with geo transform {!s}\n".format(
-                    filename,
-                    geoTransform,
-                ),
+                f"Can't handle geotiff {filename!s} with geo transform {geoTransform!s}\n",
             )
             raise hgtError
         fileProj = osr.SpatialReference()

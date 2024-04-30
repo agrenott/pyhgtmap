@@ -121,10 +121,7 @@ class ViewFinderIndex:
         """Save index to local file"""
         with open(self._index_file_name, "w") as index_file:
             index_file.write(
-                "# VIEW{:d} index file, VERSION={:d}\n".format(
-                    self._resolution,
-                    DESIRED_INDEX_VERSION[self._resolution],
-                ),
+                f"# VIEW{self._resolution:d} index file, VERSION={DESIRED_INDEX_VERSION[self._resolution]:d}\n",
             )
             for zip_file_url in sorted(self._entries):
                 index_file.write(f"[{zip_file_url}]\n")

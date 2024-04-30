@@ -100,6 +100,10 @@ class Alos(Source):
             timeout=timeout,
         )
         r = client.get(url)
+        if r.status_code != 200:
+            raise FileNotFoundError(
+                f"Unable to download {url}; HTTP code {r.status_code}"
+            )
         with ZipFile(
             io.BytesIO(cast(bytes, r.content)),
         ) as zip_archive:

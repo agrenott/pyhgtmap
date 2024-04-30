@@ -96,3 +96,32 @@ class TestAlos:
             assert os.path.isfile(out_file_name)
             with open(out_file_name) as out_file:
                 assert out_file.read() == "0" * 5
+
+    @staticmethod
+    def test_download_missing_file_not_found(
+        httpx_mock: HTTPXMock,
+        alos_configuration: Configuration,
+    ) -> None:
+        with TemporaryDirectory() as temp_dir:
+            # Prepare
+            conf_dir = os.path.join(temp_dir, "conf")
+            hgt_dir = os.path.join(temp_dir, "hgt")
+            # HGT dir is expected to be created by the caller
+            Path(hgt_dir).mkdir()
+            out_file_name = os.path.join(hgt_dir, "N55E003.hgt")
+
+            # When tile doesn't exist, ALOS returns a redirect HTML page
+            httpx_mock.add_response(
+                url=get_url_for_tile("N55E003"),
+                method="GET",
+                html='<p>The document has moved <a href="https://www.eorc.jaxa.jp/ALOS/url_change_info.htm">here</a>.</p>',
+                status_code=302,
+            )
+
+            # Test
+            sonny = Alos(hgt_dir, conf_dir, alos_configuration)
+            with pytest.raises(
+                FileNotFoundError,
+                match="Unable to download https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/N055E000/N055E003.zip; HTTP code 302",
+            ):
+                sonny.download_missing_file("N55E003", 1, out_file_name)

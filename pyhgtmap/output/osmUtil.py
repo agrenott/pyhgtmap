@@ -92,18 +92,11 @@ class Output(pyhgtmap.output.Output):
                 nodeIds.append(nodeIds[0])
             nodeRefs = ('<nd ref="{:d}"/>\n' * len(nodeIds)).format(*nodeIds)
             self.write(
-                '<way id="{:d}"{:s}{:s}>{:s}'
-                '<tag k="ele" v="{:d}"/>'
+                f'<way id="{IDCounter.curId - 1:d}"{self.versionString:s}{self.timestampString:s}>{nodeRefs:s}'
+                f'<tag k="ele" v="{elevation:d}"/>'
                 '<tag k="contour" v="elevation"/>'
-                '<tag k="contour_ext" v="{:s}"/>'
-                "</way>\n".format(
-                    IDCounter.curId - 1,
-                    self.versionString,
-                    self.timestampString,
-                    nodeRefs,
-                    elevation,
-                    self.elevClassifier(elevation),
-                ),
+                f'<tag k="contour_ext" v="{self.elevClassifier(elevation):s}"/>'
+                "</way>\n",
             )
 
     def write_nodes(
@@ -132,13 +125,7 @@ def _makePoints(output, path, IDCounter, versionString, timestampString):
     for lon, lat in path:
         IDCounter.curId += 1
         content.append(
-            '<node id="{:d}" lat="{:.7f}" lon="{:.7f}"{:s}{:s}/>'.format(
-                IDCounter.curId - 1,
-                lat,
-                lon,
-                versionString,
-                timestampString,
-            ),
+            f'<node id="{IDCounter.curId - 1:d}" lat="{lat:.7f}" lon="{lon:.7f}"{versionString:s}{timestampString:s}/>',
         )
         ids.append(IDCounter.curId - 1)
     if numpy.all(path[0] == path[-1]):  # close contour
