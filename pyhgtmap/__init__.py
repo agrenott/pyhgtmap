@@ -5,11 +5,6 @@ __author__ = "Aurélien Grenotton (agrenott@gmail.com)"
 __version__ = version("pyhgtmap")
 __license__ = "GPLv2+"
 
-# Can't use __future__ annotations for type aliases: https://github.com/python/cpython/issues/95805
-# Some type aliases
-Polygon = list[tuple[float, float]]
-PolygonsList = list[Polygon]
-
 
 class BBox(NamedTuple):
     """Simple bounding box."""
@@ -18,3 +13,15 @@ class BBox(NamedTuple):
     min_lat: float
     max_lon: float
     max_lat: float
+
+
+class Coordinates(NamedTuple):
+    """Simple coordinates."""
+
+    lon: float
+    lat: float
+
+
+# Some type aliases
+Polygon = list[Coordinates]
+PolygonsList = list[Polygon]

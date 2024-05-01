@@ -12,8 +12,8 @@ import shapely
 from matplotlib.path import Path as PolygonPath
 from scipy import ndimage
 
-from pyhgtmap import BBox
-from pyhgtmap.hgt import TransformFunType, transformLonLats
+from pyhgtmap import BBox, Coordinates
+from pyhgtmap.hgt import TransformFunType, transform_lon_lats
 
 from .tile import HgtTile
 
@@ -69,7 +69,7 @@ def parse_polygons_file(filename: str) -> tuple[str, PolygonsList]:
         elif len(line.split()) == 2:
             lon, lat = line.split()
             try:
-                curPolygon.append((float(lon), float(lat)))
+                curPolygon.append(Coordinates(float(lon), float(lat)))
             except ValueError:
                 continue
         else:
@@ -155,10 +155,10 @@ def get_transform(
             t = osr.CoordinateTransformation(file_proj, n)
 
         def transform(
-            points: Iterable[tuple[float, float]],
-        ) -> Iterable[tuple[float, float]]:
+            points: Iterable[Coordinates],
+        ) -> Iterable[Coordinates]:
             return [
-                p[:2]
+                Coordinates(*p[:2])
                 for p in t.TransformPoints(points)
                 if not any(el == float("inf") for el in p[:2])
             ]
@@ -203,7 +203,7 @@ def parse_geotiff_bbox(
     transform: TransformFunType | None = get_transform(fileProj)
     if doTransform:
         # transformLonLats will return input values if transform is None
-        minLon, minLat, maxLon, maxLat = transformLonLats(
+        minLon, minLat, maxLon, maxLat = transform_lon_lats(
             minLon,
             minLat,
             maxLon,
@@ -216,7 +216,7 @@ def parse_geotiff_bbox(
         # to be EPSG:4326, so transform, add corrections, and transform back to
         # input projection
         # transformation (input projection) -> (epsg:4326)
-        minLon, minLat, maxLon, maxLat = transformLonLats(
+        minLon, minLat, maxLon, maxLat = transform_lon_lats(
             minLon,
             minLat,
             maxLon,
@@ -232,7 +232,7 @@ def parse_geotiff_bbox(
             reverse=True,
         )
         # transformation (epsg:4326) -> (input projection)
-        minLon, minLat, maxLon, maxLat = transformLonLats(
+        minLon, minLat, maxLon, maxLat = transform_lon_lats(
             minLon,
             minLat,
             maxLon,
@@ -329,15 +329,25 @@ def polygon_mask(
     # To improve performances, clip original polygons to current data boundaries.
     # Slightly expand the bounding box, as PolygonPath.contains_points result is undefined for points on boundary
     # https://matplotlib.org/stable/api/path_api.html#matplotlib.path.Path.contains_point
-    bbox_points: Iterable[tuple[float, float]] = [
-        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
-        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),
-        (x_data.max() + BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON),
-        (x_data.max() + BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
-        (x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON),
+    bbox_points: Iterable[Coordinates] = [
+        Coordinates(
+            x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON
+        ),
+        Coordinates(
+            x_data.min() - BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON
+        ),
+        Coordinates(
+            x_data.max() + BBOX_EXPAND_EPSILON, y_data.max() + BBOX_EXPAND_EPSILON
+        ),
+        Coordinates(
+            x_data.max() + BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON
+        ),
+        Coordinates(
+            x_data.min() - BBOX_EXPAND_EPSILON, y_data.min() - BBOX_EXPAND_EPSILON
+        ),
     ]
     if transform is not None:
-        xyPoints = transform(xyPoints)
+        xyPoints = transform(Coordinates(*point) for point in xyPoints)
         bbox_points = transform(bbox_points)
 
     clipped_polygons = clip_polygons(polygons, bbox_points)
@@ -418,7 +428,7 @@ class HgtFile:
 
         # Best effort stats display
         with suppress(Exception):
-            minLon, minLat, maxLon, maxLat = transformLonLats(
+            minLon, minLat, maxLon, maxLat = transform_lon_lats(
                 self.minLon,
                 self.minLat,
                 self.maxLon,
@@ -568,7 +578,7 @@ class HgtFile:
                     float(bound) for bound in area.split(":")
                 )
                 if self.reverseTransform is not None:
-                    bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = transformLonLats(
+                    bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = transform_lon_lats(
                         bboxMinLon,
                         bboxMinLat,
                         bboxMaxLon,

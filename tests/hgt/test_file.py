@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 import numpy
 import pytest
 
-from pyhgtmap import Polygon, PolygonsList, hgt
+from pyhgtmap import Coordinates, Polygon, PolygonsList, hgt
 from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.file import (
     HgtFile,
     HgtTile,
     calc_hgt_area,
     clip_polygons,
+    parse_geotiff_bbox,
     polygon_mask,
 )
 from tests import TEST_DATA_PATH
@@ -170,7 +171,7 @@ class TestHgtFile:
             assert hgt_file.reverseTransform is not None
             assert hgt_file.polygons is None
             # Transformed coordinates must match usual ones
-            assert hgt.transformLonLats(
+            assert hgt.transform_lon_lats(
                 hgt_file.minLon,
                 hgt_file.minLat,
                 hgt_file.maxLon,
@@ -185,7 +186,13 @@ def test_polygon_mask() -> None:
 
     # Mask matching exactly the border of the data
     # Result is a bit strange as the behabior on boundary is unpredictable
-    polygon_full: Polygon = [(0, 0), (0, 5), (5, 5), (5, 0), (0, 0)]
+    polygon_full: Polygon = [
+        Coordinates(0, 0),
+        Coordinates(0, 5),
+        Coordinates(5, 5),
+        Coordinates(5, 0),
+        Coordinates(0, 0),
+    ]
     mask_full = polygon_mask(x_data, y_data, [polygon_full], None)
     numpy.testing.assert_array_equal(
         mask_full,
@@ -203,11 +210,11 @@ def test_polygon_mask() -> None:
 
     # Polygon bigger than data
     polygon_bigger: Polygon = [
-        (-1, -1),
-        (-1, 6),
-        (6, 6),
-        (6, -1),
-        (-1, -1),
+        Coordinates(-1, -1),
+        Coordinates(-1, 6),
+        Coordinates(6, 6),
+        Coordinates(6, -1),
+        Coordinates(-1, -1),
     ]
     mask_bigger = polygon_mask(x_data, y_data, [polygon_bigger], None)
     numpy.testing.assert_array_equal(
@@ -217,11 +224,11 @@ def test_polygon_mask() -> None:
 
     # Polygon splitting data
     polygon_split: Polygon = [
-        (-1, -1),
-        (-1, 6),
-        (2, 6),
-        (5, -1),
-        (-1, -1),
+        Coordinates(-1, -1),
+        Coordinates(-1, 6),
+        Coordinates(2, 6),
+        Coordinates(5, -1),
+        Coordinates(-1, -1),
     ]
     mask_split = polygon_mask(x_data, y_data, [polygon_split], None)
     numpy.testing.assert_array_equal(
@@ -240,15 +247,15 @@ def test_polygon_mask() -> None:
 
     # Polygon resulting in several intersection polygons
     polygon_multi: Polygon = [
-        (-1, -1),
-        (-1, 2.5),
-        (2.5, 2.5),
-        (2.5, -1),
-        (4.5, -1),
-        (4.5, 6),
-        (6, 6),
-        (6, -1),
-        (-1, -1),
+        Coordinates(-1, -1),
+        Coordinates(-1, 2.5),
+        Coordinates(2.5, 2.5),
+        Coordinates(2.5, -1),
+        Coordinates(4.5, -1),
+        Coordinates(4.5, 6),
+        Coordinates(6, 6),
+        Coordinates(6, -1),
+        Coordinates(-1, -1),
     ]
     mask_multi = polygon_mask(x_data, y_data, [polygon_multi], None)
     numpy.testing.assert_array_equal(
@@ -267,11 +274,11 @@ def test_polygon_mask() -> None:
 
     # Polygon not intersecting data
     polygon_out: Polygon = [
-        (-1, -1),
-        (-1, -2),
-        (6, -2),
-        (6, -1),
-        (-1, -1),
+        Coordinates(-1, -1),
+        Coordinates(-1, -2),
+        Coordinates(6, -2),
+        Coordinates(6, -1),
+        Coordinates(-1, -1),
     ]
     mask_out = polygon_mask(x_data, y_data, [polygon_out], None)
     numpy.testing.assert_array_equal(mask_out, numpy.full((1), True))
@@ -293,55 +300,55 @@ def test_calcHgtArea(file_name: str) -> None:
 
 def test_clip_polygons() -> None:
     clip_polygon: Polygon = [
-        (-0.1, 48.900000000009435),
-        (-0.1, 50.1),
-        (1.1, 50.1),
-        (1.1, 48.900000000009435),
-        (-0.1, 48.900000000009435),
+        Coordinates(-0.1, 48.900000000009435),
+        Coordinates(-0.1, 50.1),
+        Coordinates(1.1, 50.1),
+        Coordinates(1.1, 48.900000000009435),
+        Coordinates(-0.1, 48.900000000009435),
     ]
     # Multi-polygons in input
     polygons: PolygonsList = [
         # Real intersection is a polygon + a line; line must be discarded properly
         [
-            (2.3, 51.6),
-            (2.5, 51.3),
-            (2.4, 50.9),
-            (1.3, 50.1),
-            (0.7, 50.1),
-            (0.4, 49.9),
-            (-0.5, 50.0),
-            (-0.9, 49.8),
-            (-2.2, 49.7),
-            (-2.9, 49.8),
+            Coordinates(2.3, 51.6),
+            Coordinates(2.5, 51.3),
+            Coordinates(2.4, 50.9),
+            Coordinates(1.3, 50.1),
+            Coordinates(0.7, 50.1),
+            Coordinates(0.4, 49.9),
+            Coordinates(-0.5, 50.0),
+            Coordinates(-0.9, 49.8),
+            Coordinates(-2.2, 49.7),
+            Coordinates(-2.9, 49.8),
         ],
         # No intersection
         [
-            (-14.6, 57.6),
-            (-14.6, 57.9),
-            (-13.9, 58.4),
-            (-13.2, 58.3),
-            (-12.8, 57.9),
-            (-12.9, 57.1),
-            (-13.4, 56.8),
-            (-14.2, 56.9),
-            (-14.6, 57.3),
-            (-14.6, 57.6),
+            Coordinates(-14.6, 57.6),
+            Coordinates(-14.6, 57.9),
+            Coordinates(-13.9, 58.4),
+            Coordinates(-13.2, 58.3),
+            Coordinates(-12.8, 57.9),
+            Coordinates(-12.9, 57.1),
+            Coordinates(-13.4, 56.8),
+            Coordinates(-14.2, 56.9),
+            Coordinates(-14.6, 57.3),
+            Coordinates(-14.6, 57.6),
         ],
         # Single point intersection
         [
-            (2, 52),
-            (2, 50.1),
-            (1.1, 50.1),
-            (1.1, 52),
-            (2, 52),
+            Coordinates(2, 52),
+            Coordinates(2, 50.1),
+            Coordinates(1.1, 50.1),
+            Coordinates(1.1, 52),
+            Coordinates(2, 52),
         ],
         # Single line intersection
         [
-            (2, 48),
-            (2, 50),
-            (1.1, 50),
-            (1.1, 48),
-            (2, 48),
+            Coordinates(2, 48),
+            Coordinates(2, 50),
+            Coordinates(1.1, 50),
+            Coordinates(1.1, 48),
+            Coordinates(2, 48),
         ],
     ]
 
@@ -355,3 +362,38 @@ def test_clip_polygons() -> None:
             (0.4, 49.9),
         ],
     ]
+
+
+def test_parse_geotiff_bbox() -> None:
+    # Skip any test using this fixture if GDAL is not installed
+    pytest.importorskip("osgeo")
+    bbox = parse_geotiff_bbox(os.path.join(TEST_DATA_PATH, "N43E006.tiff"), 0, 0, True)
+    assert bbox == pytest.approx((6, 43, 7, 44))
+
+
+def test_parse_geotiff_bbox_transform() -> None:
+    # Skip any test using this fixture if GDAL is not installed
+    pytest.importorskip("osgeo")
+    bbox = parse_geotiff_bbox(
+        os.path.join(TEST_DATA_PATH, "N43E006_3857.tiff"), 0, 0, True
+    )
+    assert bbox == pytest.approx((6, 43, 7, 44))
+
+
+def test_parse_geotiff_bbox_no_transform() -> None:
+    # Skip any test using this fixture if GDAL is not installed
+    pytest.importorskip("osgeo")
+    bbox = parse_geotiff_bbox(
+        os.path.join(TEST_DATA_PATH, "N43E006_3857.tiff"), 0, 0, False
+    )
+    assert bbox == pytest.approx((667916.9, 5311972.4, 779236.4, 5465442.7))
+
+
+def test_parse_geotiff_bbox_non_square() -> None:
+    # Skip any test using this fixture if GDAL is not installed
+    pytest.importorskip("osgeo")
+    with pytest.raises(
+        ValueError,
+        match="Tile doesn't map to an aligned rectangle in WSG84 coordinates",
+    ):
+        parse_geotiff_bbox(os.path.join(TEST_DATA_PATH, "lambert.tif"), 0, 0, True)

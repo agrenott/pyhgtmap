@@ -8,7 +8,7 @@ import numpy
 import numpy.typing
 
 from pyhgtmap import BBox
-from pyhgtmap.hgt import TransformFunType, makeBBoxString, transformLonLats
+from pyhgtmap.hgt import TransformFunType, makeBBoxString, transform_lon_lats
 from pyhgtmap.hgt.contour import ContoursGenerator, build_contours
 
 if TYPE_CHECKING:
@@ -94,7 +94,7 @@ class HgtTile:
     def bbox(self, doTransform=True) -> BBox:
         """returns the bounding box of the current tile."""
         if doTransform:
-            return transformLonLats(
+            return transform_lon_lats(
                 self.minLon,
                 self.minLat,
                 self.maxLon,
