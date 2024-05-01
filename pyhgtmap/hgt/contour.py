@@ -110,7 +110,7 @@ class ContoursGenerator:
                 numOfClosedPaths += 1
             pathList.append(path)
         numOfPaths = len(pathList)
-        numOfNodes = sum([len(p) for p in pathList]) - numOfClosedPaths
+        numOfNodes = sum(len(p) for p in pathList) - numOfClosedPaths
         return pathList, numOfNodes, numOfPaths
 
     # Actually returns Tuple[List[numpy.typing.ArrayLike[numpy.typing.ArrayLike[numpy.float64]]], int, int]
