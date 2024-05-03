@@ -80,7 +80,7 @@ class Output:
         """Finalize and close file."""
         logger.debug(
             "done() - Writing %s pending ways",
-            sum([len(x[0]) for x in self.ways_pending_write]),
+            sum(len(x[0]) for x in self.ways_pending_write),
         )
         for ways, start_way_id in self.ways_pending_write:
             self._write_ways(ways, start_way_id)

@@ -61,8 +61,8 @@ def transform_lon_lats(
         ensure_aligned_coordinates(low_left, high_left, high_right, low_right)
 
         # Do not assume low/high/left/right are the same after transformation
-        minLon = min([x.lon for x in coordinates])
-        maxLon = max([x.lon for x in coordinates])
-        minLat = min([x.lat for x in coordinates])
-        maxLat = max([x.lat for x in coordinates])
+        minLon = min(x.lon for x in coordinates)
+        maxLon = max(x.lon for x in coordinates)
+        minLat = min(x.lat for x in coordinates)
+        maxLat = max(x.lat for x in coordinates)
         return BBox(minLon, minLat, maxLon, maxLat)
