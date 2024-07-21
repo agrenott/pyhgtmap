@@ -1,4 +1,4 @@
-[![Python: 3.9, 3.10, 3.11, 3.12](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
+[![Python: 3.9, 3.10, 3.11, 3.12](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org)
 ![GitHub](https://img.shields.io/github/license/agrenott/pyhgtmap)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/pyhgtmap/pythonpackage.yaml)
 [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch)
