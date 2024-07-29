@@ -83,7 +83,7 @@ class Output(pyhgtmap.output.Output):
     def flush(self) -> None:
         self.outF.flush()
 
-    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId):
+    def _write_ways(self, ways: pyhgtmap.output.EfficientWaysType, startWayId):
         IDCounter = pyhgtmap.output.Id(startWayId)
         for startNodeId, length, isCycle, elevation in ways:
             IDCounter.curId += 1
@@ -105,7 +105,7 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> tuple[int, pyhgtmap.output.WaysType]:
+    ) -> tuple[int, pyhgtmap.output.EfficientWaysType]:
         return writeXML(
             self,
             tile_contours,
@@ -166,7 +166,7 @@ def writeXML(
     timestampString,
     start_node_id,
     osm_version,
-) -> tuple[int, pyhgtmap.output.WaysType]:
+) -> tuple[int, pyhgtmap.output.EfficientWaysType]:
     """emits node OSM XML to <output> and collects path information.
 
     <output> may be anything having a write method.  For now, its used with

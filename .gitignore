@@ -18,3 +18,4 @@ dist/
 .*_cache/
 tests/data/
 work/
+/hgt/

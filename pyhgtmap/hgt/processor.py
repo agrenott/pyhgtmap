@@ -10,7 +10,7 @@ from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
 if TYPE_CHECKING:
-    from multiprocessing.context import ForkProcess
+    from multiprocessing.context import ForkProcess  # type: ignore[attr-defined]
 
     from pyhgtmap.configuration import Configuration
     from pyhgtmap.hgt.tile import HgtTile
@@ -203,7 +203,7 @@ class HgtFilesProcessor:
             if self.available_children.acquire(block=False):
                 # Ensure "fork" method is used to share parent's process context
                 ctx = multiprocessing.get_context("fork")
-                p = ctx.Process(
+                p = ctx.Process(  # type: ignore[attr-defined]  #TODO: Windows compatibility
                     target=self.run_in_child,
                     args=(func, *args),
                     kwargs=kwargs,

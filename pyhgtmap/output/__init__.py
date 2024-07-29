@@ -20,11 +20,26 @@ class WayType(NamedTuple):
     elevation: int
 
 
+class EfficientWayType(NamedTuple):
+    # More efficient alternative, relying on numpy
+    first_node_id: numpy.uint64
+    nb_nodes: numpy.uint64
+    closed_loop: bool
+    elevation: numpy.uint64
+
+
 # Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
 WaysType = NDArray[
     Any,
     Structure["first_node_id: Int, nb_nodes: Int, closed_loop: Bool, elevation: Int"],
 ]
+EfficientWaysType = NDArray[
+    Any,
+    Structure[
+        "first_node_id: UInt64, nb_nodes: UInt64, closed_loop: Bool, elevation: UInt64"
+    ],
+]
+
 
 NodeType = tuple[int, int]
 
@@ -50,7 +65,7 @@ class Output:
 
     def __init__(self) -> None:
         self.timestampString: str
-        self.ways_pending_write: list[tuple[WaysType, int]] = []
+        self.ways_pending_write: list[tuple[EfficientWaysType, int]] = []
 
     def write_nodes(
         self,
@@ -58,21 +73,21 @@ class Output:
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> tuple[int, WaysType]:
+    ) -> tuple[int, EfficientWaysType]:
         """
         Write nodes and prepare associated ways.
         Return (latest_node_id, [ways]) tuple.
         """
         raise NotImplementedError
 
-    def write_ways(self, ways: WaysType, start_way_id: int) -> None:
+    def write_ways(self, ways: EfficientWaysType, start_way_id: int) -> None:
         """
         Add ways previously prepared by write_nodes to be written later
         (as ways should ideally be written after all nodes).
         """
         self.ways_pending_write.append((ways, start_way_id))
 
-    def _write_ways(self, ways: WaysType, start_way_id: int) -> None:
+    def _write_ways(self, ways: EfficientWaysType, start_way_id: int) -> None:
         """Actually write ways, upon output finalization via done()."""
         raise NotImplementedError
 
@@ -138,16 +153,16 @@ def make_nodes_ways(
     return nodes, ways
 
 
-def build_efficient_ways(ways: list[WayType]) -> WaysType:
+def build_efficient_ways(ways: list[WayType]) -> EfficientWaysType:
     """Convert a list of ways (tuples) into a more efficient numpy array."""
     return numpy.array(
         ways,
         dtype=numpy.dtype(
             [
-                ("first_node_id", int),
-                ("nb_nodes", int),
+                ("first_node_id", numpy.uint64),
+                ("nb_nodes", numpy.uint64),
                 ("closed_loop", bool),
-                ("elevation", int),
+                ("elevation", numpy.uint64),
             ],
         ),
     )  # type: ignore[reportGeneralTypeIssues]  # not supported by pylance

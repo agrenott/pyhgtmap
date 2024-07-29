@@ -267,6 +267,8 @@ class TestOutputPbf:
                 start,
                 0.6,
             )
+            # Ensure file gets closed
+            osm_output.done()
 
             # Check int32 boundary has been passed without issue
             assert next_node_id == 2147483655
