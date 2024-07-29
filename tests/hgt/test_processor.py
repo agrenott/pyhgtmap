@@ -157,6 +157,10 @@ def default_options() -> Configuration:
 
 class TestHgtFilesProcessor:
     @staticmethod
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"),
+        reason="Multiprocessing not supported on Windows",
+    )
     @pytest.mark.parametrize(
         "nb_jobs",
         [
@@ -232,6 +236,10 @@ class TestHgtFilesProcessor:
                 shutil.move(coverage_file, ".")
 
     @staticmethod
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"),
+        reason="Multiprocessing not supported on Windows",
+    )
     @pytest.mark.parametrize(
         "nb_jobs",
         [
@@ -401,6 +409,10 @@ class TestHgtFilesProcessor:
             )
 
     @staticmethod
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"),
+        reason="Multiprocessing not supported on Windows",
+    )
     @pytest.mark.parametrize(
         ("nb_jobs", "nb_jobs_in_use", "expected_fork"),
         [

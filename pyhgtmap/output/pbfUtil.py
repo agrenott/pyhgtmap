@@ -76,7 +76,7 @@ class Output(pyhgtmap.output.Output):
 
         return osm_header
 
-    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId) -> None:
+    def _write_ways(self, ways: pyhgtmap.output.EfficientWaysType, startWayId) -> None:
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
 
@@ -113,7 +113,7 @@ class Output(pyhgtmap.output.Output):
         timestamp_string: str,
         start_node_id: int,
         osm_version: float,
-    ) -> tuple[int, pyhgtmap.output.WaysType]:
+    ) -> tuple[int, pyhgtmap.output.EfficientWaysType]:
         logger.debug(f"writeNodes - startId: {start_node_id}")
 
         ways: list[pyhgtmap.output.WayType] = []

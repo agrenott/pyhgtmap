@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock
@@ -69,7 +70,9 @@ class TestSource:
 
             with pytest.raises(
                 IOError,
-                match=f"Wrong size: expected 25934402, found {hgt_file_size} for {hgt_file_name}",
+                match=re.escape(
+                    f"Wrong size: expected 25934402, found {hgt_file_size} for {hgt_file_name}"
+                ),
             ):
                 source.check_cached_file(hgt_file_name, 1)
 
@@ -77,7 +80,7 @@ class TestSource:
     def test_check_cached_file_doesnt_exist(configuration: Configuration) -> None:
         """Exception raised on missing file."""
         source = SomeTestSource("cache_dir", "conf_dir", configuration)
-        with pytest.raises(IOError, match="No such file or directory: 'missing.hgt'"):
+        with pytest.raises(IOError, match=": 'missing.hgt'"):
             source.check_cached_file("missing.hgt", 3)
 
     @staticmethod
@@ -103,7 +106,7 @@ class TestSource:
 
         # Check
         source.check_cached_file.assert_called_once_with(
-            f"cache_dir/TEST3/{area}.hgt",
+            os.path.join("cache_dir", "TEST3", f"{area}.hgt"),
             3,
         )
         source.download_missing_file.assert_not_called()
@@ -135,14 +138,15 @@ class TestSource:
 
             # Check
             assert os.path.isdir(os.path.join(cache_dir, "TEST3"))
+            expected_file_name = os.path.join(cache_dir, "TEST3", f"{area}.hgt")
             source.check_cached_file.assert_called_with(
-                f"{cache_dir}/TEST3/{area}.hgt",
+                expected_file_name,
                 3,
             )
             source.download_missing_file.assert_called_once_with(
                 area,
                 3,
-                f"{cache_dir}/TEST3/{area}.hgt",
+                expected_file_name,
             )
             assert file_name == os.path.join(
                 source.get_cache_dir(resolution),
@@ -170,12 +174,13 @@ class TestSource:
         file_name = source.get_file(area, resolution)
 
         # Check
-        source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
+        expected_file_name = os.path.join("cache_dir", "TEST3", f"{area}.hgt")
+        source.check_cached_file.assert_called_with(expected_file_name, 3)
         assert source.check_cached_file.call_count == 2
         source.download_missing_file.assert_called_once_with(
             area,
             3,
-            f"cache_dir/TEST3/{area}.hgt",
+            expected_file_name,
         )
         assert file_name is None
 
@@ -199,11 +204,12 @@ class TestSource:
         file_name = source.get_file(area, resolution)
 
         # Check
-        source.check_cached_file.assert_called_with(f"cache_dir/TEST3/{area}.hgt", 3)
+        expected_file_name = os.path.join("cache_dir", "TEST3", f"{area}.hgt")
+        source.check_cached_file.assert_called_with(expected_file_name, 3)
         source.download_missing_file.assert_called_once_with(
             area,
             3,
-            f"cache_dir/TEST3/{area}.hgt",
+            expected_file_name,
         )
         assert file_name is None
 

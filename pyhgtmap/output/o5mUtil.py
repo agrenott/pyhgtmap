@@ -176,7 +176,7 @@ class Output(output.Output):
         # no tags, so data is complete now
         return join(data)
 
-    def _write_ways(self, ways: pyhgtmap.output.WaysType, startWayId):
+    def _write_ways(self, ways: pyhgtmap.output.EfficientWaysType, startWayId: int):
         """writes ways to self.outf.  ways shall be a list of
         (<startNodeId>, <length>, <isCycle>, <elevation>) tuples.
         """
@@ -190,7 +190,9 @@ class Output(output.Output):
         for way in ways[1:]:
             self.writeWay(way, idDelta=1)
 
-    def writeWay(self, way: pyhgtmap.output.WayType, idDelta, first=False):
+    def writeWay(
+        self, way: pyhgtmap.output.EfficientWayType, idDelta: int, first=False
+    ):
         wayDataset = []
         # 0x11 means way
         wayDataset.append(writableInt(0x11))
@@ -200,18 +202,17 @@ class Output(output.Output):
         wayDataset.append(wayData)
         self.outf.write(join(wayDataset))
 
-    def makeWayData(self, way: pyhgtmap.output.WayType, idDelta, first):
+    def makeWayData(self, way: pyhgtmap.output.EfficientWayType, idDelta, first: bool):
         startNodeId, length, isCycle, elevation = way
         data = []
         data.append(sint2str(idDelta))
         # version information
-        if first:
-            # first way
-            data.append(self.makeVersionChunk(first=True))
-        else:
-            data.append(self.makeVersionChunk(first=False))
+        data.append(self.makeVersionChunk(first))
+
         # node references
-        wayRefSection = self.makeWayReferenceSection(startNodeId, length, isCycle)
+        wayRefSection = self.makeWayReferenceSection(
+            startNodeId.item(), length.item(), isCycle
+        )
         wayRefSectionLen = len(wayRefSection)
         data.append(int2str(wayRefSectionLen))
         data.append(wayRefSection)
@@ -221,15 +222,17 @@ class Output(output.Output):
         contourTag = self.makeStringPair("contour", "elevation")
         elevClassifierTag = self.makeStringPair(
             "contour_ext",
-            self.elevClassifier(elevation),
+            self.elevClassifier(elevation.astype(int)),
         )
         data.append(self.stringTable.stringOrIndex(eleTag))
         data.append(self.stringTable.stringOrIndex(contourTag))
         data.append(self.stringTable.stringOrIndex(elevClassifierTag))
         return join(data)
 
-    def makeWayReferenceSection(self, startNodeId, length, isCycle):
-        nodeIdDeltas = []
+    def makeWayReferenceSection(
+        self, startNodeId: int, length: int, isCycle: bool
+    ) -> bytes:
+        nodeIdDeltas: list[int] = []
         # the first node id, delta coded
         nodeIdDeltas.append(startNodeId - self.lastNodeId)
         nodeIdDeltas.extend(
@@ -276,7 +279,7 @@ def writeNodes(
     tile_contours: TileContours,
     timestampString,  # dummy option
     start_node_id,
-) -> tuple[int, output.WaysType]:
+) -> tuple[int, output.EfficientWaysType]:
     IDCounter = pyhgtmap.output.Id(start_node_id)
     ways = []
     nodes = []

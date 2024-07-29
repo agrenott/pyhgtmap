@@ -10,7 +10,7 @@ def int2str(n) -> bytes:
     return bytes(s)
 
 
-def sint2str(n) -> bytes:
+def sint2str(n: int) -> bytes:
     if n > -1:
         # 0 or positive, shift 1 to the left
         n <<= 1

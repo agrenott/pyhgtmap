@@ -214,7 +214,7 @@ def fetch_and_extract_zip(zip_url: str, output_dir_name) -> list[str]:
                 ),
                 "wb",
             ) as hgt_file_out:
-                hgt_file_out.write(zip_archive.read(str(file_name)))
+                hgt_file_out.write(zip_archive.read(file_name.as_posix()))
     return [file_name.stem for file_name in file_names]
 
 
