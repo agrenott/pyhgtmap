@@ -3,7 +3,7 @@ import pytest
 from pyhgtmap.configuration import NestedConfig
 
 
-@pytest.fixture()
+@pytest.fixture
 def config() -> NestedConfig:
     return NestedConfig()
 

@@ -50,7 +50,7 @@ def arrays_from_lists(
     ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def tile_contours() -> TileContours:
     return TileContours(
         nb_nodes=8,
@@ -75,18 +75,18 @@ def tile_contours() -> TileContours:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def bounding_box() -> BBox:
     """Bounding box of all fake data nodes"""
     return BBox(1, 1, 4, 2)
 
 
-@pytest.fixture()
+@pytest.fixture
 def elev_classifier() -> Callable[[int], str]:
     return make_elev_classifier(100, 50)
 
 
-@pytest.fixture()
+@pytest.fixture
 def elevations() -> Iterable[int]:
     return [0, 50, 100, 150]
 

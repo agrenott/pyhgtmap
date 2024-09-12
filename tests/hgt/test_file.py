@@ -45,12 +45,12 @@ def toulon_tiles(
     return tiles
 
 
-@pytest.fixture()
+@pytest.fixture
 def toulon_tiles_raw() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def toulon_tiles_smoothed() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=3)
 

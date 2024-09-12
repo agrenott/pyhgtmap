@@ -13,14 +13,14 @@ from pyhgtmap.configuration import Configuration
 from pyhgtmap.sources.sonny import CLIENT_SECRET_FILE, SAVED_CREDENTIALS_FILE, Sonny
 
 
-@pytest.fixture()
+@pytest.fixture
 def gauth_mock() -> Generator[MagicMock, None, None]:
     """Mock pyhgtmap.sources.sonny.GoogleAuth"""
     with patch("pyhgtmap.sources.sonny.GoogleAuth") as gauth_mock:
         yield gauth_mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def gdrive_mock() -> Generator[MagicMock, None, None]:
     """Mock pyhgtmap.sources.sonny.GoogleDrive"""
     with patch("pyhgtmap.sources.sonny.GoogleDrive") as gdrive_mock:
