@@ -130,7 +130,7 @@ def check_no_id_overlap(osm_files_names: list[str]) -> None:
         ), f"Overlap of ways boundaries {boundaries_1} and {boundaries_2}"
 
 
-@pytest.fixture()
+@pytest.fixture
 def default_options() -> Configuration:
     """Default command line options."""
     return Configuration(

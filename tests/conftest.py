@@ -3,6 +3,6 @@ import pytest
 from pyhgtmap.configuration import Configuration
 
 
-@pytest.fixture()
+@pytest.fixture
 def configuration() -> Configuration:
     return Configuration()

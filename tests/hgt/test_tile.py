@@ -39,17 +39,17 @@ def toulon_tiles(
     return tiles
 
 
-@pytest.fixture()
+@pytest.fixture
 def toulon_tiles_raw() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def toulon_tiles_smoothed() -> list[HgtTile]:
     return toulon_tiles(smooth_ratio=3)
 
 
-@pytest.fixture()
+@pytest.fixture
 def toulon_tiles_transformed() -> list[HgtTile]:
     """Toulon tiles in 3857 transformed coordinates."""
     # Skip any test using this fixture if GDAL is not installed

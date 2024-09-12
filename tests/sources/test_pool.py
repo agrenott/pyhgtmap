@@ -60,7 +60,7 @@ def test_dupe_nickname() -> None:
                 pass
 
 
-@pytest.fixture()
+@pytest.fixture
 def pool(configuration: Configuration) -> Pool:
     return Pool("root_dir", "cfg_dir", configuration)
 

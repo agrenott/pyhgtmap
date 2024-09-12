@@ -16,14 +16,14 @@ if TYPE_CHECKING:
     from pyhgtmap.configuration import Configuration
 
 
-@pytest.fixture()
+@pytest.fixture
 def HgtFilesProcessor_mock() -> Generator[MagicMock, Any, None]:
     """Fixture mocking pyhgtmap.main.HgtFilesProcessor."""
     with patch("pyhgtmap.main.HgtFilesProcessor") as mock:
         yield mock
 
 
-@pytest.fixture()
+@pytest.fixture
 def NASASRTMUtil_mock() -> Generator[MagicMock, Any, None]:
     """Fixture mocking pyhgtmap.main.NASASRTMUtil."""
     with patch("pyhgtmap.main.NASASRTMUtil") as mock:

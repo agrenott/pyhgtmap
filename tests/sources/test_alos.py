@@ -59,7 +59,7 @@ def get_alos_zipped_file(alos_area: str) -> BytesIO:
     return output_file
 
 
-@pytest.fixture()
+@pytest.fixture
 def alos_configuration(configuration: Configuration) -> Configuration:
     alos_specific = AlosConfiguration()
     configuration.add_sub_config("alos", alos_specific)
