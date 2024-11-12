@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import getpass
 import logging
 import os
 import pathlib
@@ -22,6 +24,16 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 
 # This registry will return a new instance for each get
 SOURCES_TYPES_REGISTRY = ClassRegistry(attr_name="NICKNAME", unique=True)
+
+
+class ArgparsePassword(argparse.Action):
+    """Custom argparse action to handle password input"""
+
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        if values is None:
+            values = getpass.getpass()
+
+        setattr(namespace, self.dest, values)
 
 
 class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore[misc] # Mypy does not understand dynamically-computed metaclasses

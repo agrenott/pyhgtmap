@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import argparse
-import getpass
 import io
 import logging
 from typing import TYPE_CHECKING, cast
@@ -12,7 +10,7 @@ import httpx
 from pyhgtmap.configuration import NestedConfig
 from pyhgtmap.latlon import DegreeLatLon
 
-from . import Source
+from . import ArgparsePassword, Source
 
 if TYPE_CHECKING:
     import configargparse
@@ -20,9 +18,9 @@ if TYPE_CHECKING:
     from pyhgtmap.configuration import Configuration
 
 
-# Locally override Configuration to add plugin-specific attributes
-# Available only in the current module, but it should be used only there anyway
 class AlosConfiguration(NestedConfig):
+    """ALOS plugin specific configuration"""
+
     user: str
     password: str
 
@@ -33,16 +31,6 @@ __all__ = ["Alos"]
 
 # From https://www.eorc.jaxa.jp/ALOS/en/aw3d30/data/html_v2303/js/dsm_dl_select_v2303.js?ver=20230327
 BASE_URL = "https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/{}/{}.zip"
-
-
-class Password(argparse.Action):
-    """Custom argparse action to handle password input"""
-
-    def __call__(self, parser, namespace, values, option_string=None) -> None:
-        if values is None:
-            values = getpass.getpass()
-
-        setattr(namespace, self.dest, values)
 
 
 def get_url_for_tile(tile_name: str) -> str:
@@ -98,6 +86,8 @@ class Alos(Source):
         client = httpx.Client(
             auth=(self.plugin_config.user, self.plugin_config.password),
             timeout=timeout,
+            # TODO: enable SSL verification
+            verify=False,  # noqa: S501
         )
         r = client.get(url)
         with ZipFile(
@@ -130,6 +120,6 @@ class Alos(Source):
         group = parser.add_argument_group("ALOS")
         group.add_argument("--alos-user", type=str, dest="alos.user")
         group.add_argument(
-            "--alos-password", type=str, action=Password, dest="alos.password"
+            "--alos-password", type=str, action=ArgparsePassword, dest="alos.password"
         )
         root_config.add_sub_config("alos", AlosConfiguration())
