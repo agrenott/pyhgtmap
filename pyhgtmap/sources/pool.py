@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 import os
 import pkgutil
-from collections.abc import Generator, Iterator
 from itertools import chain
 from typing import TYPE_CHECKING, cast
 
@@ -12,6 +11,8 @@ from class_registry import ClassRegistry, ClassRegistryInstanceCache
 from pyhgtmap.sources import SOURCES_TYPES_REGISTRY, Source
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, Iterator
+
     from pyhgtmap.configuration import Configuration
 
 __all__ = ["Pool"]
@@ -45,7 +46,7 @@ class Pool:
 
     def get_source(self, nickname: str) -> Source:
         """Get the source by nickname."""
-        return cast(Source, self._cached_registry[nickname])
+        return cast("Source", self._cached_registry[nickname])
 
     def available_sources_names(self) -> Generator[str, None, None]:
         """Returns available sources' nicknames."""
@@ -64,7 +65,7 @@ class Pool:
         )
 
     def __iter__(self) -> Iterator[Source]:
-        yield from cast(Iterator[Source], self._cached_registry)
+        yield from cast("Iterator[Source]", self._cached_registry)
 
     @classmethod
     def registered_sources(cls) -> Generator[type[Source], None, None]:

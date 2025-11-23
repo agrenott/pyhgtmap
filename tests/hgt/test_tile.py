@@ -197,7 +197,7 @@ class TestHgtTile:
     ) -> plt.Figure:  # type: ignore[reportPrivateImportUsage]  # not supported by pylance
         """Internal contour testing method."""
         tile = tiles[0]
-        elevations, contour_data = tile.contourLines(rdpEpsilon=rdp_epsilon)
+        _elevations, contour_data = tile.contourLines(rdpEpsilon=rdp_epsilon)
         dpi = 100
         # Get graph space close to original data size
         out_size = HGT_SIZE

@@ -264,7 +264,7 @@ class TestViewFinder:
         source = ViewFinder(cache_dir_name, "conf_dir", configuration)
         area = "S43E007"
         index3 = MagicMock(spec=ViewFinderIndex)
-        source._indexes = {3: cast(ViewFinderIndex, index3)}
+        source._indexes = {3: cast("ViewFinderIndex", index3)}
         index3.get_urls_for_area.return_value = []
 
         with pytest.raises(FileNotFoundError):
@@ -289,7 +289,7 @@ class TestViewFinder:
             source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E007"
             index3 = MagicMock(spec=ViewFinderIndex)
-            source._indexes = {3: cast(ViewFinderIndex, index3)}
+            source._indexes = {3: cast("ViewFinderIndex", index3)}
             index3.get_urls_for_area.return_value = ["http://url1", "http://url2"]
             urlopen_mock.return_value.read.return_value = fake_view_zip_file(
                 ["A01/S43E007.hgt", "A01/S43E008.hgt"],
@@ -319,7 +319,7 @@ class TestViewFinder:
             source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E010"
             index3 = MagicMock(spec=ViewFinderIndex)
-            source._indexes = {3: cast(ViewFinderIndex, index3)}
+            source._indexes = {3: cast("ViewFinderIndex", index3)}
             index3.get_urls_for_area.return_value = ["http://url1", "http://url2"]
             urlopen_mock.return_value.read.side_effect = [
                 fake_view_zip_file(["A01/S43E007.hgt", "A01/S43E008.hgt"]).read(),
@@ -358,7 +358,7 @@ class TestViewFinder:
             source = ViewFinder(temp_dir, "conf_dir", configuration)
             area = "S43E007"
             index1 = MagicMock(spec=ViewFinderIndex)
-            source._indexes = {1: cast(ViewFinderIndex, index1)}
+            source._indexes = {1: cast("ViewFinderIndex", index1)}
             index1.get_urls_for_area.return_value = ["http://url1"]
             urlopen_mock.return_value.read.return_value = fake_view_zip_file(
                 ["A01/S43E008.hgt"],

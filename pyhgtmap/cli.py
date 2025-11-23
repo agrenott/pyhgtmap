@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from configargparse import ArgumentParser
 
 from pyhgtmap import NASASRTMUtil, __version__
 from pyhgtmap.configuration import CONFIG_FILENAME, Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
-from pyhgtmap.sources import Source
 from pyhgtmap.sources.pool import Pool
+
+if TYPE_CHECKING:
+    from pyhgtmap.sources import Source
 
 # TODO: clean when all sources are implemented as plugins
 ALL_SUPPORTED_SOURCES = [
@@ -457,7 +459,7 @@ def build_common_parser() -> ArgumentParser:
 def add_sources_options(parser: ArgumentParser, root_config: NestedConfig) -> None:
     """Enrich parser and configuration with plugin-specific arguments."""
     for source in Pool.registered_sources():
-        cast(type[Source], source).register_cli_options(parser, root_config)
+        cast("type[Source]", source).register_cli_options(parser, root_config)
 
 
 def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
@@ -487,8 +489,7 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         sys.exit(1)
     if opts.srtmResolution not in [1, 3]:
         sys.stderr.write(
-            "The --srtm option can only take '1' or '3' as values."
-            "  Defaulting to 3.\n",
+            "The --srtm option can only take '1' or '3' as values.  Defaulting to 3.\n",
         )
         opts.srtmResolution = 3
     if opts.viewfinder not in [0, 1, 3]:

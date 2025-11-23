@@ -43,7 +43,7 @@ def test_dupe_nickname() -> None:
     """NICKNAME MUST be unique in the registry."""
     with pytest.raises(
         RegistryKeyError,
-        match="InvalidSource with key 'dumm' is already registered.",
+        match=r"InvalidSource with key 'dumm' is already registered.",
     ):
 
         class InvalidSource(Source):

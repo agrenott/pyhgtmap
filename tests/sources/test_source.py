@@ -80,14 +80,14 @@ class TestSource:
     def test_check_cached_file_doesnt_exist(configuration: Configuration) -> None:
         """Exception raised on missing file."""
         source = SomeTestSource("cache_dir", "conf_dir", configuration)
-        with pytest.raises(IOError, match=": 'missing.hgt'"):
+        with pytest.raises(IOError, match=r": 'missing.hgt'"):
             source.check_cached_file("missing.hgt", 3)
 
     @staticmethod
     def test_check_cached_file_doesnt_exist_tif(configuration: Configuration) -> None:
         """Exception raised on missing file."""
         source = SomeTestSource("cache_dir", "conf_dir", configuration)
-        with pytest.raises(IOError, match="File missing.tif not found"):
+        with pytest.raises(IOError, match=r"File missing.tif not found"):
             source.check_cached_file("missing.tif", 3)
 
     @staticmethod

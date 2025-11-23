@@ -285,7 +285,7 @@ class TestOutputPbf:
                 elevClassifier=elev_classifier,
             )
             start = 2147483647
-            next_node_id, ways = osm_output.write_nodes(
+            next_node_id, _ways = osm_output.write_nodes(
                 tile_contours,
                 ' time="some time"',
                 start,
