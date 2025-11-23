@@ -135,7 +135,7 @@ class ViewFinderIndex:
         LOGGER.info("Building index from world coverage map...")
         self._entries = {}
         url = validate_safe_url(COVERAGE_MAP_URLS[self._resolution])
-        for a in BeautifulSoup(urlopen(url).read(), "lxml").findAll("area"):  # noqa: S310 # https://github.com/astral-sh/ruff/issues/7918
+        for a in BeautifulSoup(urlopen(url).read(), "lxml").find_all("area"):  # noqa: S310 # https://github.com/astral-sh/ruff/issues/7918
             area_names = inner_areas(a["coords"])
             zip_file_url = a["href"].strip()
             if zip_file_url not in self._entries:
