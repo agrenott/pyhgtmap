@@ -48,7 +48,7 @@ class Output(pyhgtmap.output.Output):
         if 0 < gzip < 10:
             import gzip as Gzip
 
-            self.outF = Gzip.open(fName, "wb", gzip)
+            self.outF = Gzip.open(fName, "wb", gzip)  # noqa: SIM115 # TODO: use context handler
         else:
             self.outF = open(fName, "wb")  # noqa: SIM115 # TODO: use context handler
         self.osmVersion = f"{osmVersion:.1f}"

@@ -128,7 +128,7 @@ class Sonny(Source):
         # We expect the name to match the archive & area one
         with (
             ZipFile(
-                io.BytesIO(cast(bytes, zipped_buffer.read())),
+                io.BytesIO(cast("bytes", zipped_buffer.read())),
             ) as zip_archive,
             zip_archive.open(f"{area}.hgt") as hgt_file_in,
             open(

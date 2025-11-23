@@ -24,7 +24,7 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 SOURCES_TYPES_REGISTRY = ClassRegistry(attr_name="NICKNAME", unique=True)
 
 
-class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore[misc] # Mypy does not understand dynamically-computed metaclasses
+class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore[metaclass] # Mypy does not understand dynamically-computed metaclasses
     """HGT source base class"""
 
     # Source's 'nickname', used to identify it from the command line and

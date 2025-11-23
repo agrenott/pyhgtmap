@@ -81,7 +81,7 @@ class Alos(Source):
         # Locally overridden for typing
         self.config: Configuration  # type: ignore[reportIncompatibleVariableOverride] # pylance
         self.plugin_config: AlosConfiguration = cast(
-            AlosConfiguration, self.config.alos
+            "AlosConfiguration", self.config.alos
         )
         if self.plugin_config.user is None or self.plugin_config.password is None:
             raise ValueError("ALOS user and password are required")
@@ -105,7 +105,7 @@ class Alos(Source):
                 f"Unable to download {url}; HTTP code {r.status_code}"
             )
         with ZipFile(
-            io.BytesIO(cast(bytes, r.content)),
+            io.BytesIO(cast("bytes", r.content)),
         ) as zip_archive:
             # Look for DSM file, which should be in the form "N017E045/ALPSMLC30_N017E045_DSM.tif"
             dsm_files: list[ZipInfo] = [

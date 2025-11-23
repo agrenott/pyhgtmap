@@ -25,7 +25,7 @@ class EfficientWayType(NamedTuple):
     first_node_id: numpy.uint64
     nb_nodes: numpy.uint64
     closed_loop: bool
-    elevation: numpy.uint64
+    elevation: numpy.int64
 
 
 # Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
@@ -36,7 +36,7 @@ WaysType = NDArray[
 EfficientWaysType = NDArray[
     Any,
     Structure[
-        "first_node_id: UInt64, nb_nodes: UInt64, closed_loop: Bool, elevation: UInt64"
+        "first_node_id: UInt64, nb_nodes: UInt64, closed_loop: Bool, elevation: Int64"
     ],
 ]
 
@@ -162,7 +162,7 @@ def build_efficient_ways(ways: list[WayType]) -> EfficientWaysType:
                 ("first_node_id", numpy.uint64),
                 ("nb_nodes", numpy.uint64),
                 ("closed_loop", bool),
-                ("elevation", numpy.uint64),
+                ("elevation", numpy.int64),
             ],
         ),
     )  # type: ignore[reportGeneralTypeIssues]  # not supported by pylance

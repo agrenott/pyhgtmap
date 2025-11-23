@@ -124,7 +124,7 @@ class ContoursGenerator:
         """
         # Keep only the first element of the tuple, ignoring matplot line code
         rawPaths: list[numpy.ndarray] = cast(
-            list[numpy.ndarray],
+            "list[numpy.ndarray]",
             self.cntr.create_contour(elevation)[0],
         )
         numOfPaths, numOfNodes = 0, 0

@@ -64,7 +64,7 @@ include = ["/pyhgtmap"]
 # Use default env for all dev activities
 dependencies = [
   "pytest~=7.2.1",
-  "pytest-cov~=4.1.0",
+  "pytest-cov~=7.0.0",
   "pytest_httpx>=0.30.0",
   "pytest-mpl~=0.16.1",
   "pytest-sugar>=0.9.7",

@@ -375,7 +375,7 @@ def super_sample(
     # Limit order to 1 to avoid artifacts on constant value boundaries (eg. limit of sea areas)
     # Round result to avoid oscillations around 0 due to spline interpolation
     out_data = numpy.around(
-        cast(numpy.ndarray, ndimage.zoom(input_data, zoom_level, order=3)),
+        cast("numpy.ndarray", ndimage.zoom(input_data, zoom_level, order=3)),
         0,
     )
     # Resize mask independantly, using 0 order to avoid artifacts

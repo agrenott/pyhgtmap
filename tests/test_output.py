@@ -71,6 +71,8 @@ def tile_contours() -> TileContours:
             100: [],
             # Elevation 150
             150: [],
+            # Negative elevation -50
+            -50: arrays_from_lists([[(5, 5), (5, 7), (7, 7), (7, 5), (5, 5)]]),
         },
     )
 
@@ -114,6 +116,10 @@ def check_osmium_result(osm_file_name: str) -> None:
         1005: (2.0, 3.0),
         1006: (1.0, 4.0),
         1007: (2.0, 4.0),
+        1008: (5.0, 5.0),
+        1009: (7.0, 5.0),
+        1010: (7.0, 7.0),
+        1011: (5.0, 7.0),
     }
 
     # Check ways
@@ -144,6 +150,14 @@ def check_osmium_result(osm_file_name: str) -> None:
                 npyosmium.osm.Tag(k="contour_ext", v="elevation_medium"),
             ],
         ),
+        2003: (
+            [1008, 1009, 1010, 1011, 1008],
+            [
+                npyosmium.osm.Tag(k="ele", v="-50"),
+                npyosmium.osm.Tag(k="contour", v="elevation"),
+                npyosmium.osm.Tag(k="contour_ext", v="elevation_medium"),
+            ],
+        ),
     }
 
 
@@ -170,7 +184,7 @@ class TestOutputOsm:
                 1000,
                 0.6,
             )
-            assert next_node_id == 1008
+            assert next_node_id == 1012
             osm_output.write_ways(ways, 2000)
             osm_output.done()
 
@@ -190,6 +204,10 @@ class TestOutputOsm:
 <node id="1005" lat="2.0000000" lon="3.0000000" version="1" time="some time"/>
 <node id="1006" lat="1.0000000" lon="4.0000000" version="1" time="some time"/>
 <node id="1007" lat="2.0000000" lon="4.0000000" version="1" time="some time"/>
+<node id="1008" lat="5.0000000" lon="5.0000000" version="1" time="some time"/>
+<node id="1009" lat="7.0000000" lon="5.0000000" version="1" time="some time"/>
+<node id="1010" lat="7.0000000" lon="7.0000000" version="1" time="some time"/>
+<node id="1011" lat="5.0000000" lon="7.0000000" version="1" time="some time"/>
 <way id="2000" version="1"><nd ref="1000"/>
 <nd ref="1001"/>
 <nd ref="1002"/>
@@ -202,6 +220,12 @@ class TestOutputOsm:
 <way id="2002" version="1"><nd ref="1006"/>
 <nd ref="1007"/>
 <tag k="ele" v="50"/><tag k="contour" v="elevation"/><tag k="contour_ext" v="elevation_medium"/></way>
+<way id="2003" version="1"><nd ref="1008"/>
+<nd ref="1009"/>
+<nd ref="1010"/>
+<nd ref="1011"/>
+<nd ref="1008"/>
+<tag k="ele" v="-50"/><tag k="contour" v="elevation"/><tag k="contour_ext" v="elevation_medium"/></way>
 </osm>
 """
             )
@@ -235,7 +259,7 @@ class TestOutputPbf:
                 1000,
                 0.6,
             )
-            assert next_node_id == 1008
+            assert next_node_id == 1012
             osm_output.write_ways(ways, 2000)
             osm_output.done()
 
@@ -261,7 +285,7 @@ class TestOutputPbf:
                 elevClassifier=elev_classifier,
             )
             start = 2147483647
-            next_node_id, ways = osm_output.write_nodes(
+            next_node_id, _ways = osm_output.write_nodes(
                 tile_contours,
                 ' time="some time"',
                 start,
@@ -271,7 +295,7 @@ class TestOutputPbf:
             osm_output.done()
 
             # Check int32 boundary has been passed without issue
-            assert next_node_id == 2147483655
+            assert next_node_id == 2147483659
 
 
 class TestOutputO5m:
@@ -299,7 +323,7 @@ class TestOutputO5m:
                 1000,
                 0.6,
             )
-            assert next_node_id == 1008
+            assert next_node_id == 1012
             osm_output.write_ways(ways, 2000)
             osm_output.done()
 

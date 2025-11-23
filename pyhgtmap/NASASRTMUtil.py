@@ -293,9 +293,9 @@ def makeFileNamePrefixes(bbox, polygon, corrx, corry, lowercase=False):
 def parseSRTMv3CoverageKml(kmlContents):
     polygons = []
     # KML file is pure XML
-    polygonSoup = BeautifulSoup(kmlContents, "lxml-xml").findAll("Polygon")
+    polygonSoup = BeautifulSoup(kmlContents, "lxml-xml").find_all("Polygon")
     for p in polygonSoup:
-        for c in p.findAll("coordinates"):
+        for c in p.find_all("coordinates"):
             for cont in c.contents:
                 coords = [el for el in cont.split() if el.strip()]
                 polygons.append(
@@ -385,7 +385,7 @@ def makeNasaHgtIndex(resolution, srtmVersion):
             url = "/".join([hgtIndexUrl, continent])
             continentHtml = urllib.request.urlopen(url).read()
             continentSoup = BeautifulSoup(continentHtml, "lxml")
-            anchors = continentSoup.findAll("a")
+            anchors = continentSoup.find_all("a")
             for anchor in anchors:
                 if anchor.contents[0].endswith("hgt.zip"):
                     zipFilename = anchor.contents[0].strip()
@@ -588,7 +588,7 @@ def earthexplorerLogin(configuration):
     req1 = urllib.request.Request("https://ers.cr.usgs.gov/login/")
     res1 = opener.open(req1)
     formSoup = BeautifulSoup(res1.read(), "lxml").find("form", {"id": "loginForm"})
-    for i in formSoup.findAll("input", {"type": "hidden"}):
+    for i in formSoup.find_all("input", {"type": "hidden"}):
         postData[i.attrs["name"]] = i.attrs["value"]
     encodedPostData = bytes(urllib.parse.urlencode(postData), "utf-8")
     req2 = urllib.request.Request(

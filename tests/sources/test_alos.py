@@ -122,6 +122,6 @@ class TestAlos:
             sonny = Alos(hgt_dir, conf_dir, alos_configuration)
             with pytest.raises(
                 FileNotFoundError,
-                match="Unable to download https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/N055E000/N055E003.zip; HTTP code 302",
+                match=r"Unable to download https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/N055E000/N055E003.zip; HTTP code 302",
             ):
                 sonny.download_missing_file("N55E003", 1, out_file_name)

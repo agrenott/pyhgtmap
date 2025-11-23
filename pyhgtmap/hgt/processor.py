@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-from multiprocessing.sharedctypes import Synchronized
 from typing import TYPE_CHECKING, Callable, cast
 
-from pyhgtmap import BBox
 from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
 if TYPE_CHECKING:
     from multiprocessing.context import ForkProcess  # type: ignore[attr-defined]
+    from multiprocessing.sharedctypes import Synchronized
 
+    from pyhgtmap import BBox
     from pyhgtmap.configuration import Configuration
     from pyhgtmap.hgt.tile import HgtTile
     from pyhgtmap.output import Output
@@ -43,11 +43,11 @@ class HgtFilesProcessor:
             options (Configuration): general options
         """
         self.next_node_id: Synchronized = cast(
-            Synchronized,
+            "Synchronized",
             multiprocessing.Value("L", node_start_id),
         )
         self.next_way_id: Synchronized = cast(
-            Synchronized,
+            "Synchronized",
             multiprocessing.Value("L", way_start_id),
         )
         self.available_children = multiprocessing.Semaphore(nb_jobs)
@@ -277,7 +277,7 @@ class HgtFilesProcessor:
             self.get_osm_output(
                 [file_tuple[0] for file_tuple in files],
                 cast(
-                    BBox,
+                    "BBox",
                     [float(b) for b in self.options.area.split(":")],
                 ),
             )
