@@ -4,6 +4,7 @@ import os
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy
 import pytest
@@ -14,6 +15,9 @@ from tests import TEST_DATA_PATH
 
 if TYPE_CHECKING:
     from pyhgtmap.hgt.tile import HgtTile, TileContours
+
+# For BE due to random issues with Tk on GitHub runners
+matplotlib.use("agg")
 
 HGT_SIZE: int = 1201
 
