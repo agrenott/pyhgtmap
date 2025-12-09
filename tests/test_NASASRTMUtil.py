@@ -133,7 +133,8 @@ class TestMakeFileNamePrefix:
 class TestMakeFileNamePrefixes:
     """Tests for makeFileNamePrefixes function."""
 
-    def test_simple_bbox_no_polygon(self) -> None:
+    @staticmethod
+    def test_simple_bbox_no_polygon() -> None:
         """Test simple bounding box without polygon."""
         bbox = (0, 0, 2, 2)  # 2x2 grid
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -150,7 +151,8 @@ class TestMakeFileNamePrefixes:
         assert "N01E000" in filenames
         assert "N01E001" in filenames
 
-    def test_single_tile_bbox(self) -> None:
+    @staticmethod
+    def test_single_tile_bbox() -> None:
         """Test bounding box covering a single tile."""
         bbox = (5, 10, 6, 11)
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -159,7 +161,8 @@ class TestMakeFileNamePrefixes:
         assert result[0][0] == "N10E005"
         assert result[0][1] is False
 
-    def test_bbox_with_negative_coordinates(self) -> None:
+    @staticmethod
+    def test_bbox_with_negative_coordinates() -> None:
         """Test bounding box with negative coordinates."""
         bbox = (-2, -2, 1, 1)  # Covers South-West, South-East, North-West, North-East
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -171,7 +174,8 @@ class TestMakeFileNamePrefixes:
         assert "N00W002" in filenames  # North-West
         assert "N00E000" in filenames  # North-East
 
-    def test_bbox_crossing_dateline(self) -> None:
+    @staticmethod
+    def test_bbox_crossing_dateline() -> None:
         """Test bounding box crossing the W180/E180 dateline."""
         bbox = (178, 0, -178, 1)  # minLon > maxLon indicates dateline crossing
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -187,7 +191,8 @@ class TestMakeFileNamePrefixes:
             ]
         )
 
-    def test_lowercase_option(self) -> None:
+    @staticmethod
+    def test_lowercase_option() -> None:
         """Test lowercase conversion of file name prefixes."""
         bbox = (0, 0, 1, 1)
         result = make_file_name_prefixes(bbox, None, 0, 0, lowercase=True)
@@ -196,7 +201,8 @@ class TestMakeFileNamePrefixes:
         # All should be lowercase
         assert all(f.islower() for f in filenames)
 
-    def test_uppercase_option_default(self) -> None:
+    @staticmethod
+    def test_uppercase_option_default() -> None:
         """Test that default is uppercase."""
         bbox = (0, 0, 1, 1)
         result = make_file_name_prefixes(bbox, None, 0, 0, lowercase=False)
@@ -205,7 +211,8 @@ class TestMakeFileNamePrefixes:
         # All should be uppercase
         assert all(f.isupper() for f in filenames)
 
-    def test_with_corrections(self) -> None:
+    @staticmethod
+    def test_with_corrections() -> None:
         """Test bounding box with coordinate corrections."""
         bbox = (0, 0, 2, 2)
         corrx, corry = 0.5, 0.5
@@ -214,7 +221,8 @@ class TestMakeFileNamePrefixes:
         # Should still return results (corrections affect polygon checking, not bbox iteration)
         assert len(result) > 0
 
-    def test_bbox_ordering(self) -> None:
+    @staticmethod
+    def test_bbox_ordering() -> None:
         """Test that bbox coordinates must be in correct order."""
         # Standard ordering: minLon, minLat, maxLon, maxLat
         bbox = (0, 0, 2, 2)
@@ -289,7 +297,8 @@ class TestMakeFileNamePrefixes:
         # Should have checkPoly=True from intersecTiles
         assert any(item[1] is True for item in n00e000_results)
 
-    def test_large_bbox(self) -> None:
+    @staticmethod
+    def test_large_bbox() -> None:
         """Test larger bounding box."""
         bbox = (0, 0, 10, 10)  # 10x10 grid = 100 tiles
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -300,7 +309,8 @@ class TestMakeFileNamePrefixes:
         assert "N00E000" in filenames
         assert "N09E009" in filenames
 
-    def test_return_type_structure(self) -> None:
+    @staticmethod
+    def test_return_type_structure() -> None:
         """Test that return value has correct structure."""
         bbox = (0, 0, 1, 1)
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -316,7 +326,8 @@ class TestMakeFileNamePrefixes:
             # Second element is boolean
             assert isinstance(item[1], bool)
 
-    def test_empty_bbox(self) -> None:
+    @staticmethod
+    def test_empty_bbox() -> None:
         """Test bounding box with zero area."""
         bbox = (0, 0, 0, 0)  # Empty bbox
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -324,7 +335,8 @@ class TestMakeFileNamePrefixes:
         # Should return empty list
         assert len(result) == 0
 
-    def test_single_row_bbox(self) -> None:
+    @staticmethod
+    def test_single_row_bbox() -> None:
         """Test bounding box that is a single row."""
         bbox = (0, 5, 3, 6)  # Single latitude row
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -335,7 +347,8 @@ class TestMakeFileNamePrefixes:
         filenames = {item[0] for item in result}
         assert all("N05" in f for f in filenames)
 
-    def test_single_column_bbox(self) -> None:
+    @staticmethod
+    def test_single_column_bbox() -> None:
         """Test bounding box that is a single column."""
         bbox = (10, 0, 11, 4)  # Single longitude column
         result = make_file_name_prefixes(bbox, None, 0, 0)
@@ -350,7 +363,8 @@ class TestMakeFileNamePrefixes:
 class TestAreaNeeded:
     """Tests for areaNeeded function."""
 
-    def test_area_needed_no_polygon(self) -> None:
+    @staticmethod
+    def test_area_needed_no_polygon() -> None:
         """Test that area is needed when no polygon is provided."""
         bbox = (0, 0, 10, 10)
         needed, check_poly = area_needed(
@@ -360,7 +374,8 @@ class TestAreaNeeded:
         assert needed is True
         assert check_poly is False
 
-    def test_area_needed_no_polygon_with_corrections(self) -> None:
+    @staticmethod
+    def test_area_needed_no_polygon_with_corrections() -> None:
         """Test that area is needed with no polygon even with corrections."""
         bbox = (0, 0, 10, 10)
         needed, check_poly = area_needed(
@@ -390,7 +405,8 @@ class TestAreaNeeded:
         # Print called at least once with checking message
         assert mock_print.call_count >= 1
 
-    def test_area_completely_inside_polygon_all_corners(self) -> None:
+    @staticmethod
+    def test_area_completely_inside_polygon_all_corners() -> None:
         """Test when all four corners of the tile are inside the polygon."""
         # Tile at (5, 5), polygon covers it completely
         bbox = (0, 0, 20, 20)
@@ -609,14 +625,16 @@ class TestAreaNeeded:
 class TestCalcBbox:
     """Tests for calcBbox function."""
 
-    def test_calc_bbox_positive_integer_coordinates(self) -> None:
+    @staticmethod
+    def test_calc_bbox_positive_integer_coordinates() -> None:
         """Test with positive integer coordinates."""
         area = "0:0:10:10"
         result = calc_bbox(area)
 
         assert result == (0, 0, 10, 10)
 
-    def test_calc_bbox_positive_decimal_coordinates(self) -> None:
+    @staticmethod
+    def test_calc_bbox_positive_decimal_coordinates() -> None:
         """Test with positive decimal coordinates."""
         area = "0.5:0.5:10.5:10.5"
         result = calc_bbox(area)
@@ -624,14 +642,16 @@ class TestCalcBbox:
         # Decimals round up for max values, min stays same
         assert result == (0, 0, 11, 11)
 
-    def test_calc_bbox_negative_integer_coordinates(self) -> None:
+    @staticmethod
+    def test_calc_bbox_negative_integer_coordinates() -> None:
         """Test with negative integer coordinates."""
         area = "-10:-10:0:0"
         result = calc_bbox(area)
 
         assert result == (-10, -10, 0, 0)
 
-    def test_calc_bbox_negative_decimal_coordinates(self) -> None:
+    @staticmethod
+    def test_calc_bbox_negative_decimal_coordinates() -> None:
         """Test with negative decimal coordinates."""
         area = "-10.5:-10.5:-0.5:-0.5"
         result = calc_bbox(area)
@@ -639,14 +659,16 @@ class TestCalcBbox:
         # Negative decimals round down for min values
         assert result == (-11, -11, 0, 0)
 
-    def test_calc_bbox_mixed_sign_coordinates(self) -> None:
+    @staticmethod
+    def test_calc_bbox_mixed_sign_coordinates() -> None:
         """Test with mixed positive and negative coordinates."""
         area = "-5:0:5:10"
         result = calc_bbox(area)
 
         assert result == (-5, 0, 5, 10)
 
-    def test_calc_bbox_with_positive_corrections(self) -> None:
+    @staticmethod
+    def test_calc_bbox_with_positive_corrections() -> None:
         """Test bounding box calculation with positive corrections."""
         area = "0:0:10:10"
         result = calc_bbox(area, corrx=0.5, corry=0.5)
@@ -658,7 +680,8 @@ class TestCalcBbox:
         # maxLat: 10 - 0.5 = 9.5 (non-integer) -> 10
         assert result == (-1, -1, 10, 10)
 
-    def test_calc_bbox_with_negative_corrections(self) -> None:
+    @staticmethod
+    def test_calc_bbox_with_negative_corrections() -> None:
         """Test bounding box calculation with negative corrections."""
         area = "5:5:15:15"
         result = calc_bbox(area, corrx=-1.0, corry=-1.0)
@@ -670,14 +693,16 @@ class TestCalcBbox:
         # maxLat: 15 - (-1.0) = 16.0 (integer) -> 16
         assert result == (6, 6, 16, 16)
 
-    def test_calc_bbox_zero_area(self) -> None:
+    @staticmethod
+    def test_calc_bbox_zero_area() -> None:
         """Test with zero-area bounding box."""
         area = "5:5:5:5"
         result = calc_bbox(area)
 
         assert result == (5, 5, 5, 5)
 
-    def test_calc_bbox_small_area(self) -> None:
+    @staticmethod
+    def test_calc_bbox_small_area() -> None:
         """Test with very small area (less than 1 degree)."""
         area = "5.1:5.1:5.9:5.9"
         result = calc_bbox(area)
@@ -688,21 +713,24 @@ class TestCalcBbox:
         # maxLat: 5.9 (non-int) -> 6
         assert result == (5, 5, 6, 6)
 
-    def test_calc_bbox_large_area(self) -> None:
+    @staticmethod
+    def test_calc_bbox_large_area() -> None:
         """Test with large area spanning multiple tiles."""
         area = "-180:-90:180:90"
         result = calc_bbox(area)
 
         assert result == (-180, -90, 180, 90)
 
-    def test_calc_bbox_negative_min_positive_max(self) -> None:
+    @staticmethod
+    def test_calc_bbox_negative_min_positive_max() -> None:
         """Test with negative min and positive max."""
         area = "-5:-5:5:5"
         result = calc_bbox(area)
 
         assert result == (-5, -5, 5, 5)
 
-    def test_calc_bbox_negative_min_positive_decimal_max(self) -> None:
+    @staticmethod
+    def test_calc_bbox_negative_min_positive_decimal_max() -> None:
         """Test with negative min (integer) and positive decimal max."""
         area = "-5:-5:5.5:5.5"
         result = calc_bbox(area)
@@ -713,7 +741,8 @@ class TestCalcBbox:
         # maxLat: 5.5 (non-int) -> 6
         assert result == (-5, -5, 6, 6)
 
-    def test_calc_bbox_negative_decimal_min_positive_max(self) -> None:
+    @staticmethod
+    def test_calc_bbox_negative_decimal_min_positive_max() -> None:
         """Test with negative decimal min and positive integer max."""
         area = "-5.5:-5.5:5:5"
         result = calc_bbox(area)
@@ -724,7 +753,8 @@ class TestCalcBbox:
         # maxLat: 5 (integer) -> 5
         assert result == (-6, -6, 5, 5)
 
-    def test_calc_bbox_asymmetric_area(self) -> None:
+    @staticmethod
+    def test_calc_bbox_asymmetric_area() -> None:
         """Test with asymmetric bounding box."""
         area = "10:20:30:40"
         result = calc_bbox(area)
@@ -749,14 +779,16 @@ class TestCalcBbox:
         result = calc_bbox(area, corrx, corry)
         assert result == expected
 
-    def test_calc_bbox_equator_crossing(self) -> None:
+    @staticmethod
+    def test_calc_bbox_equator_crossing() -> None:
         """Test bounding box that crosses the equator."""
         area = "-2:2:2:8"
         result = calc_bbox(area)
 
         assert result == (-2, 2, 2, 8)
 
-    def test_calc_bbox_return_type(self) -> None:
+    @staticmethod
+    def test_calc_bbox_return_type() -> None:
         """Test that calcBbox returns tuple of 4 integers."""
         area = "5.5:5.5:15.5:15.5"
         result = calc_bbox(area)
@@ -765,7 +797,8 @@ class TestCalcBbox:
         assert len(result) == 4
         assert all(isinstance(val, int) for val in result)
 
-    def test_calc_bbox_min_max_ordering(self) -> None:
+    @staticmethod
+    def test_calc_bbox_min_max_ordering() -> None:
         """Test that result maintains minLon, minLat, maxLon, maxLat order."""
         area = "10:5:20:15"
         lon_min, lat_min, lon_max, lat_max = calc_bbox(area)
@@ -778,17 +811,20 @@ class TestCalcBbox:
 class TestIntersectTiles:
     """Test suite for intersect_tiles function."""
 
-    def test_intersect_tiles_none_polygon(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_none_polygon() -> None:
         """Test with None polygons - should return empty list."""
         result = intersect_tiles(None, 0, 0)
         assert result == []
 
-    def test_intersect_tiles_empty_polygon_list(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_empty_polygon_list() -> None:
         """Test with empty polygon list - should return empty list."""
         result = intersect_tiles([], 0, 0)
         assert result == []
 
-    def test_intersect_tiles_single_point_polygon(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_single_point_polygon() -> None:
         """Test with single point polygon - should return empty since no line segments."""
         polygon: PolygonsList = [
             [
@@ -800,7 +836,8 @@ class TestIntersectTiles:
         # Single point with no line segments returns empty
         assert result == []
 
-    def test_intersect_tiles_small_square_no_correction(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_small_square_no_correction() -> None:
         """Test with small square polygon and no corrections."""
         polygon: PolygonsList = [
             [
@@ -814,7 +851,8 @@ class TestIntersectTiles:
         assert isinstance(result, list)
         assert result == ["N00E000"]
 
-    def test_intersect_tiles_horizontal_line(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_horizontal_line() -> None:
         """Test with horizontal line polygon."""
         polygon: PolygonsList = [
             [
@@ -826,7 +864,8 @@ class TestIntersectTiles:
         # Horizontal line should span multiple tiles
         assert sorted(result) == ["N05E000", "N05E001", "N05E002", "N05E003"]
 
-    def test_intersect_tiles_vertical_line(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_vertical_line() -> None:
         """Test with vertical line polygon."""
         polygon: PolygonsList = [
             [
@@ -838,7 +877,8 @@ class TestIntersectTiles:
         # Vertical line should span multiple tiles
         assert sorted(result) == ["N00E005", "N01E005", "N02E005", "N03E005"]
 
-    def test_intersect_tiles_diagonal_line(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_diagonal_line() -> None:
         """Test with diagonal line polygon."""
         polygon: PolygonsList = [
             [
@@ -859,7 +899,8 @@ class TestIntersectTiles:
             "S01E000",
         ]
 
-    def test_intersect_tiles_with_positive_correction(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_with_positive_correction() -> None:
         """Test with positive coordinate corrections."""
         polygon: PolygonsList = [
             [
@@ -876,7 +917,8 @@ class TestIntersectTiles:
         assert sorted(result_no_corr) == ["N01E001", "N01E002", "N02E001", "N02E002"]
         assert sorted(result_with_corr) == ["N00E001", "N01E000", "N01E001"]
 
-    def test_intersect_tiles_with_negative_correction(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_with_negative_correction() -> None:
         """Test with negative coordinate corrections."""
         polygon: PolygonsList = [
             [
@@ -890,7 +932,8 @@ class TestIntersectTiles:
 
         assert sorted(result_with_corr) == ["N01E002", "N02E001", "N02E002"]
 
-    def test_intersect_tiles_negative_coordinates(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_negative_coordinates() -> None:
         """Test with negative coordinates (Western/Southern hemisphere)."""
         polygon: PolygonsList = [
             [
@@ -903,7 +946,8 @@ class TestIntersectTiles:
         result = intersect_tiles(polygon, 0, 0)
         assert sorted(result) == ["S04W004", "S04W005", "S05W004", "S05W005"]
 
-    def test_intersect_tiles_mixed_hemisphere(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_mixed_hemisphere() -> None:
         """Test with polygon spanning multiple hemispheres."""
         polygon: PolygonsList = [
             [
@@ -925,7 +969,8 @@ class TestIntersectTiles:
             "S01W001",
         ]
 
-    def test_intersect_tiles_large_polygon(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_large_polygon() -> None:
         """Test with large polygon spanning multiple tiles."""
         polygon: PolygonsList = [
             [
@@ -956,7 +1001,8 @@ class TestIntersectTiles:
             "N05E005",
         ]
 
-    def test_intersect_tiles_multiple_polygons(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_multiple_polygons() -> None:
         """Test with multiple polygons in list."""
         polygons: PolygonsList = [
             [
@@ -985,7 +1031,8 @@ class TestIntersectTiles:
             "N04E004",
         ]
 
-    def test_intersect_tiles_no_duplicates(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_no_duplicates() -> None:
         """Test that result contains no duplicate tile prefixes."""
         polygon: PolygonsList = [
             [
@@ -1008,7 +1055,8 @@ class TestIntersectTiles:
         ]
         assert len(result) == len(set(result))
 
-    def test_intersect_tiles_decimal_coordinates(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_decimal_coordinates() -> None:
         """Test with decimal coordinates across multiple tiles."""
         polygon: PolygonsList = [
             [
@@ -1022,7 +1070,8 @@ class TestIntersectTiles:
         # Should span multiple tiles
         assert sorted(result) == ["N00E001", "N01E000", "N01E001"]
 
-    def test_intersect_tiles_return_type(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_return_type() -> None:
         """Test that return type is list of strings."""
         polygon: PolygonsList = [
             [
@@ -1036,7 +1085,8 @@ class TestIntersectTiles:
         # Verify return type and values
         assert sorted(result) == ["N01E001", "N01E002", "N02E001", "N02E002"]
 
-    def test_intersect_tiles_asymmetric_polygon(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_asymmetric_polygon() -> None:
         """Test with asymmetric polygon shape."""
         polygon: PolygonsList = [
             [
@@ -1064,7 +1114,8 @@ class TestIntersectTiles:
             "S01E000",
         ]
 
-    def test_intersect_tiles_with_both_corrections(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_with_both_corrections() -> None:
         """Test with simultaneous positive x and y corrections."""
         polygon: PolygonsList = [
             [
@@ -1078,7 +1129,8 @@ class TestIntersectTiles:
         # Verify explicit results with both corrections applied
         assert sorted(result) == ["N00E001", "N01E000", "N01E001"]
 
-    def test_intersect_tiles_france_poly(self) -> None:
+    @staticmethod
+    def test_intersect_tiles_france_poly() -> None:
         bbox_str, france_polygons = parse_polygons_file(
             os.path.join(TEST_DATA_PATH, "france.poly")
         )
