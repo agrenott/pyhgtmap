@@ -6,7 +6,8 @@ import pkgutil
 from itertools import chain
 from typing import TYPE_CHECKING, cast
 
-from class_registry import ClassRegistry, ClassRegistryInstanceCache
+from class_registry import ClassRegistry
+from class_registry.cache import ClassRegistryInstanceCache
 
 from pyhgtmap.sources import SOURCES_TYPES_REGISTRY, Source
 

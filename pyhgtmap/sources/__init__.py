@@ -10,7 +10,8 @@ import pathlib
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from class_registry import AutoRegister, ClassRegistry
+from class_registry import ClassRegistry
+from class_registry.base import AutoRegister
 
 if TYPE_CHECKING:
     import configargparse
@@ -36,7 +37,7 @@ class ArgparsePassword(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-class Source(ABC, metaclass=AutoRegister(SOURCES_TYPES_REGISTRY)):  # type: ignore[metaclass] # Mypy does not understand dynamically-computed metaclasses
+class Source(AutoRegister(SOURCES_TYPES_REGISTRY), ABC):  # type: ignore[metaclass] # Mypy does not understand dynamically-computed metaclasses
     """HGT source base class"""
 
     # Source's 'nickname', used to identify it from the command line and
