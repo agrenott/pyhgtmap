@@ -220,9 +220,7 @@ class TestParseCommandLine:
         assert opts.startWayId == 20000000
 
     @staticmethod
-    def test_parse_no_arguments_shows_help(
-        capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_parse_no_arguments_shows_help(capsys: pytest.CaptureFixture[str]) -> None:
         """Test that no arguments triggers help output and exits."""
         with pytest.raises(SystemExit):
             parse_command_line([])
@@ -231,9 +229,7 @@ class TestParseCommandLine:
         assert "usage:" in captured.out.lower()
 
     @staticmethod
-    def test_parse_with_invalid_source(
-        capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_parse_with_invalid_source(capsys: pytest.CaptureFixture[str]) -> None:
         """Test that invalid data source causes exit."""
         with pytest.raises(SystemExit):
             parse_command_line(["--area", "0:0:1:1", "--sources", "invalid_source"])

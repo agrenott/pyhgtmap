@@ -39,9 +39,7 @@ class TestMakeOsmFilename:
         assert result == "lon0.00_1.00lat0.00_1.00_local-source.osm"
 
     @staticmethod
-    def test_make_osm_filename_with_output_prefix(
-        sample_bbox, default_config
-    ) -> None:
+    def test_make_osm_filename_with_output_prefix(sample_bbox, default_config) -> None:
         """Test filename generation with output prefix."""
         default_config.outputPrefix = "mymap"
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -217,9 +215,7 @@ class TestMakeOsmFilename:
         assert result == "lon-5.00_5.00lat-10.00_10.00_local-source.osm"
 
     @staticmethod
-    def test_make_osm_filename_with_large_decimal_precision(
-        default_config
-    ) -> None:
+    def test_make_osm_filename_with_large_decimal_precision(default_config) -> None:
         """Test filename with large decimal precision in coordinates."""
         bbox = BBox(0.123456, 0.654321, 1.111111, 2.222222)
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -278,9 +274,7 @@ class TestMakeOsmFilename:
         assert result == "lon0.00_1.00lat0.00_1.00.osm"
 
     @staticmethod
-    def test_make_osm_filename_returns_string(
-        sample_bbox, default_config
-    ) -> None:
+    def test_make_osm_filename_returns_string(sample_bbox, default_config) -> None:
         """Test that function returns a string."""
         input_files = ["hgt/custom/N00E000.hgt"]
         result = make_osm_filename(sample_bbox, default_config, input_files)
