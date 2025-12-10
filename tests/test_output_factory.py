@@ -28,8 +28,9 @@ class TestMakeOsmFilename:
         """Create a sample bounding box for testing."""
         return BBox(0.0, 0.0, 1.0, 1.0)
 
+    @staticmethod
     def test_make_osm_filename_basic_no_sources_no_prefix(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test basic filename generation without sources and without prefix."""
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -37,9 +38,8 @@ class TestMakeOsmFilename:
 
         assert result == "lon0.00_1.00lat0.00_1.00_local-source.osm"
 
-    def test_make_osm_filename_with_output_prefix(
-        self, sample_bbox, default_config
-    ) -> None:
+    @staticmethod
+    def test_make_osm_filename_with_output_prefix(sample_bbox, default_config) -> None:
         """Test filename generation with output prefix."""
         default_config.outputPrefix = "mymap"
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -95,8 +95,9 @@ class TestMakeOsmFilename:
         expected_suffix = f"lon0.00_1.00lat0.00_1.00_local-source{expected_extension}"
         assert result == expected_suffix
 
+    @staticmethod
     def test_make_osm_filename_with_prefix_and_srtm_source(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test filename with both prefix and SRTM source."""
         default_config.outputPrefix = "elevation"
@@ -106,8 +107,9 @@ class TestMakeOsmFilename:
 
         assert result == "elevation_lon0.00_1.00lat0.00_1.00_srtm3.osm"
 
+    @staticmethod
     def test_make_osm_filename_with_prefix_and_gzip(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test filename with both prefix and gzip compression."""
         default_config.outputPrefix = "mydata"
@@ -170,8 +172,9 @@ class TestMakeOsmFilename:
 
         assert result == f"lon0.00_1.00lat0.00_1.00{expected_suffix}.osm"
 
+    @staticmethod
     def test_make_osm_filename_multiple_custom_input_files_no_sources(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test filename with multiple custom input files and no dataSources."""
         input_files = ["hgt/custom1/N00E000.hgt", "hgt/custom2/N01E001.hgt"]
@@ -179,7 +182,8 @@ class TestMakeOsmFilename:
 
         assert result == "lon0.00_1.00lat0.00_1.00_local-source.osm"
 
-    def test_make_osm_filename_with_negative_coordinates(self) -> None:
+    @staticmethod
+    def test_make_osm_filename_with_negative_coordinates() -> None:
         """Test filename generation with negative bbox coordinates."""
         config = Configuration()
         config.gzip = 0
@@ -194,7 +198,8 @@ class TestMakeOsmFilename:
 
         assert result == "lon-10.00_-5.00lat-20.00_-15.00_local-source.osm"
 
-    def test_make_osm_filename_with_mixed_sign_coordinates(self) -> None:
+    @staticmethod
+    def test_make_osm_filename_with_mixed_sign_coordinates() -> None:
         """Test filename generation with mixed positive/negative coordinates."""
         config = Configuration()
         config.gzip = 0
@@ -209,9 +214,8 @@ class TestMakeOsmFilename:
 
         assert result == "lon-5.00_5.00lat-10.00_10.00_local-source.osm"
 
-    def test_make_osm_filename_with_large_decimal_precision(
-        self, default_config
-    ) -> None:
+    @staticmethod
+    def test_make_osm_filename_with_large_decimal_precision(default_config) -> None:
         """Test filename with large decimal precision in coordinates."""
         bbox = BBox(0.123456, 0.654321, 1.111111, 2.222222)
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -220,8 +224,9 @@ class TestMakeOsmFilename:
         # The format string uses .2f precision
         assert result == "lon0.12_1.11lat0.65_2.22_local-source.osm"
 
+    @staticmethod
     def test_make_osm_filename_no_datasources_no_input_files_raises(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test that function handles empty input files with valid dataSources."""
         default_config.dataSources = ["srtm3"]
@@ -234,8 +239,9 @@ class TestMakeOsmFilename:
         result = make_osm_filename(sample_bbox, default_config, input_files)
         assert result == "lon0.00_1.00lat0.00_1.00_.osm"
 
+    @staticmethod
     def test_make_osm_filename_empty_input_files_list_with_custom_source(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test with empty input files list but dataSources defined."""
         default_config.dataSources = ["custom"]
@@ -244,8 +250,9 @@ class TestMakeOsmFilename:
         result = make_osm_filename(sample_bbox, default_config, input_files)
         assert result == "lon0.00_1.00lat0.00_1.00_.osm"
 
+    @staticmethod
     def test_make_osm_filename_case_insensitivity_of_source_names(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test that source name matching is case insensitive."""
         default_config.dataSources = ["srtm1"]
@@ -254,8 +261,9 @@ class TestMakeOsmFilename:
 
         assert result == "lon0.00_1.00lat0.00_1.00_srtm1.osm"
 
+    @staticmethod
     def test_make_osm_filename_multiple_sources_in_list(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test with multiple sources in dataSources list where input doesn't match special sources."""
         default_config.dataSources = ["srtm1", "view3", "custom"]
@@ -265,16 +273,16 @@ class TestMakeOsmFilename:
         # 'custom' doesn't match special hardcoded list -> generic .osm
         assert result == "lon0.00_1.00lat0.00_1.00.osm"
 
-    def test_make_osm_filename_returns_string(
-        self, sample_bbox, default_config
-    ) -> None:
+    @staticmethod
+    def test_make_osm_filename_returns_string(sample_bbox, default_config) -> None:
         """Test that function returns a string."""
         input_files = ["hgt/custom/N00E000.hgt"]
         result = make_osm_filename(sample_bbox, default_config, input_files)
 
         assert isinstance(result, str)
 
-    def test_make_osm_filename_contains_bbox_information(self, default_config) -> None:
+    @staticmethod
+    def test_make_osm_filename_contains_bbox_information(default_config) -> None:
         """Test that generated filename contains bbox information."""
         bbox = BBox(10.0, 20.0, 30.0, 40.0)
         input_files = ["hgt/custom/N20E010.hgt"]
@@ -282,7 +290,8 @@ class TestMakeOsmFilename:
 
         assert result == "lon10.00_30.00lat20.00_40.00_local-source.osm"
 
-    def test_make_osm_filename_zero_coordinates(self, default_config) -> None:
+    @staticmethod
+    def test_make_osm_filename_zero_coordinates(default_config) -> None:
         """Test filename generation with all zero coordinates."""
         bbox = BBox(0.0, 0.0, 0.0, 0.0)
         input_files = ["hgt/custom/N00E000.hgt"]
@@ -290,8 +299,9 @@ class TestMakeOsmFilename:
 
         assert result == "lon0.00_0.00lat0.00_0.00_local-source.osm"
 
+    @staticmethod
     def test_make_osm_filename_with_deep_directory_path(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test with deep directory structure in input filename."""
         input_files = ["hgt/cache/subfolder/CUSTOM/N00E000.hgt"]
@@ -299,8 +309,9 @@ class TestMakeOsmFilename:
 
         assert result == "lon0.00_1.00lat0.00_1.00_local-source.osm"
 
+    @staticmethod
     def test_make_osm_filename_gzip_level_variations(
-        self, sample_bbox, default_config
+        sample_bbox, default_config
     ) -> None:
         """Test that different gzip levels produce same filename."""
         input_files = ["hgt/custom/N00E000.hgt"]

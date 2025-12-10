@@ -251,8 +251,8 @@ class TestSRTM:
             srtm = SRTM(temp_dir, temp_dir, test_configuration)
             yield srtm
 
+    @staticmethod
     def test_srtm_init_success(
-        self,
         test_configuration: "Configuration",
         fake_credential: FakeCredential,
     ) -> None:
@@ -274,8 +274,9 @@ class TestSRTM:
             assert 1 in srtm._indexes  # noqa: SLF001
             assert 3 in srtm._indexes  # noqa: SLF001
 
+    @staticmethod
     def test_srtm_init_missing_user(
-        self, test_configuration: "Configuration", fake_credential: FakeCredential
+        test_configuration: "Configuration", fake_credential: FakeCredential
     ) -> None:
         """SRTM initialization fails when user is missing."""
         from pyhgtmap.sources.srtm import SRTMConfiguration
@@ -288,8 +289,9 @@ class TestSRTM:
             with pytest.raises(ValueError, match="SRTM user and password are required"):
                 SRTM(temp_dir, temp_dir, test_configuration)
 
+    @staticmethod
     def test_srtm_init_missing_password(
-        self, test_configuration: "Configuration", fake_credential: FakeCredential
+        test_configuration: "Configuration", fake_credential: FakeCredential
     ) -> None:
         """SRTM initialization fails when password is missing."""
         from pyhgtmap.sources.srtm import SRTMConfiguration
@@ -302,26 +304,30 @@ class TestSRTM:
             with pytest.raises(ValueError, match="SRTM user and password are required"):
                 SRTM(temp_dir, temp_dir, test_configuration)
 
-    def test_srtm_nickname(self) -> None:
+    @staticmethod
+    def test_srtm_nickname() -> None:
         """SRTM has correct nickname."""
         assert SRTM.NICKNAME == "srtm"
 
-    def test_srtm_file_extension(self) -> None:
+    @staticmethod
+    def test_srtm_file_extension() -> None:
         """SRTM has correct file extension."""
         assert SRTM.FILE_EXTENSION == "tif"
 
-    def test_srtm_banner_exists(self) -> None:
+    @staticmethod
+    def test_srtm_banner_exists() -> None:
         """SRTM has a banner message."""
         assert SRTM.BANNER
         assert "NASA" in SRTM.BANNER
         assert "https://www.earthdata.nasa.gov" in SRTM.BANNER
 
-    def test_srtm_supported_resolutions(self) -> None:
+    @staticmethod
+    def test_srtm_supported_resolutions() -> None:
         """SRTM supports 1 and 3 arc-second resolutions."""
         assert SRTM.SUPPORTED_RESOLUTIONS == (1, 3)
 
+    @staticmethod
     def test_client_initialization(
-        self,
         srtm_instance: SRTM,
         httpx_mock_successful_srtm_login: HTTPXMock,
     ) -> None:
@@ -331,8 +337,8 @@ class TestSRTM:
         assert client is not None
         assert isinstance(client, type(srtm_instance._client))  # noqa: SLF001
 
+    @staticmethod
     def test_client_initialization_failure_wrong_page(
-        self,
         srtm_instance: SRTM,
         httpx_mock: HTTPXMock,
     ) -> None:
@@ -347,8 +353,8 @@ class TestSRTM:
         with pytest.raises(ValueError, match="Expected login page"):
             _ = srtm_instance.client
 
+    @staticmethod
     def test_client_caching(
-        self,
         srtm_instance: SRTM,
         httpx_mock_successful_srtm_login: HTTPXMock,
     ) -> None:
@@ -360,8 +366,8 @@ class TestSRTM:
         # Should be the same instance
         assert client1 is client2
 
+    @staticmethod
     def test_download_missing_file_tile_exists(
-        self,
         srtm_instance: SRTM,
         httpx_mock_successful_srtm_login: HTTPXMock,
     ) -> None:
@@ -388,8 +394,8 @@ class TestSRTM:
             with open(output_file, "rb") as f:
                 assert f.read() == tile_content
 
+    @staticmethod
     def test_download_missing_file_tile_not_in_index(
-        self,
         srtm_instance: SRTM,
     ) -> None:
         """Download fails for tile not in index."""
@@ -402,8 +408,8 @@ class TestSRTM:
             with pytest.raises(FileNotFoundError):
                 srtm_instance.download_missing_file("N99E099", 1, output_file)
 
+    @staticmethod
     def test_download_missing_file_wrong_content_type(
-        self,
         srtm_instance: SRTM,
         httpx_mock_successful_srtm_login: HTTPXMock,
     ) -> None:
@@ -468,7 +474,8 @@ class TestSRTM:
             with pytest.raises(expected_exception):
                 srtm_instance.download_missing_file("N42E049", 1, output_file)
 
-    def test_register_cli_options(self) -> None:
+    @staticmethod
+    def test_register_cli_options() -> None:
         """SRTM registers CLI options."""
         import configargparse
 
@@ -487,7 +494,8 @@ class TestSRTM:
         assert getattr(args, "srtm.user", None) == "myuser"
         assert getattr(args, "srtm.password", None) == "mypassword"
 
-    def test_multiple_resolutions(self, srtm_instance: SRTM) -> None:
+    @staticmethod
+    def test_multiple_resolutions(srtm_instance: SRTM) -> None:
         """SRTM creates indexes for all supported resolutions."""
 
         for resolution in SRTM.SUPPORTED_RESOLUTIONS:
