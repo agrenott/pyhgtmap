@@ -24,7 +24,9 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 # This registry will return a new instance for each get
-SOURCES_TYPES_REGISTRY = ClassRegistry(attr_name="NICKNAME", unique=True)
+SOURCES_TYPES_REGISTRY: ClassRegistry = ClassRegistry["Source"](
+    attr_name="NICKNAME", unique=True
+)
 
 
 class ArgparsePassword(argparse.Action):
@@ -37,7 +39,7 @@ class ArgparsePassword(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-class Source(AutoRegister(SOURCES_TYPES_REGISTRY), ABC):  # type: ignore[metaclass] # Mypy does not understand dynamically-computed metaclasses
+class Source(AutoRegister(SOURCES_TYPES_REGISTRY), ABC):  # type: ignore[misc] # Mypy does not understand dynamically-computed base classes
     """HGT source base class"""
 
     # Source's 'nickname', used to identify it from the command line and

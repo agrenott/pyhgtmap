@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import npyosmium
 import npyosmium.io
@@ -15,6 +15,8 @@ import numpy.typing
 import pyhgtmap.output
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pyhgtmap import BBox
     from pyhgtmap.hgt.tile import TileContours
 

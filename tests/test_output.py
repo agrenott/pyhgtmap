@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import npyosmium
 import npyosmium.io
@@ -19,7 +19,7 @@ from pyhgtmap.hgt.tile import TileContours
 from pyhgtmap.output import make_elev_classifier, o5mUtil, osmUtil, pbfUtil
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
 
 
 class OSMDecoder(npyosmium.SimpleHandler):

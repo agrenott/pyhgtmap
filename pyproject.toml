@@ -4,39 +4,39 @@ requires = ["hatchling", "hatch-vcs"]
 
 [project]
 authors = [
-  { name = "Adrian Dempwolff", email = "phyghtmap@aldw.de" },
-  { name = "Aurélien Grenotton", email = "agrenott@gmail.com" },
+    { name = "Adrian Dempwolff", email = "phyghtmap@aldw.de" },
+    { name = "Aurélien Grenotton", email = "agrenott@gmail.com" },
 ]
 classifiers = [
-  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
-  "Development Status :: 5 - Production/Stable",
-  "Environment :: Console",
-  "Operating System :: POSIX :: Linux",
-  "Operating System :: MacOS",
-  "Topic :: Scientific/Engineering :: GIS",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: GIS",
 ]
 dependencies = [
-  "bs4>=0.0.1",
-  "colorlog>=6.7.0",
-  "configargparse>=1.7",
-  "contourpy>=1.0.7",
-  "httpx>=0.27.0",
-  "lxml>=4.9.2",
-  "matplotlib>=3.4.3",
-  "matplotlib>=3.10.0 ; python_version >= '3.13'",
-  "numpy>=1.24.2",
-  # Use recent numpy version for python >= 3.13, to avoid building numpy from source in the CI
-  "numpy>=2.3.0 ; python_version >= '3.13'",
-  "nptyping>=2.5.0 ; python_version < '3.13'",
-  "np2typing>=2.6.0 ; python_version >= '3.13'",
-  "npyosmium>=4.2.0",
-  "phx-class-registry>=5.0.0, <6",
-  "pybind11-rdp>=0.1.3",
-  "PyDrive2>=1.20.0",
-  "scipy>=1.8.0",
-  "shapely>=2.0.1",
+    "bs4>=0.0.1",
+    "colorlog>=6.7.0",
+    "configargparse>=1.7",
+    "contourpy>=1.0.7",
+    "httpx>=0.27.0",
+    "lxml>=4.9.2",
+    "matplotlib>=3.4.3",
+    "matplotlib>=3.10.0 ; python_version >= '3.13'",
+    "numpy>=1.24.2",
+    # Use recent numpy version for python >= 3.13, to avoid building numpy from source in the CI
+    "numpy>=2.3.0 ; python_version >= '3.13'",
+    "nptyping>=2.5.0 ; python_version < '3.13'",
+    "np2typing>=2.6.0 ; python_version >= '3.13'",
+    "npyosmium>=4.2.0",
+    "phx-class-registry>=5.0.0",
+    "pybind11-rdp>=0.1.3",
+    "PyDrive2>=1.20.0",
+    "scipy>=1.8.0",
+    "shapely>=2.0.1",
 ]
 description = "Creates OpenStreetMap suitable contour lines from NASA SRTM data"
 dynamic = ["version"]
@@ -44,12 +44,12 @@ keywords = ["osm", "OpenStreetMap", "countour", "SRTM", "elevation"]
 license = "GPL-2.0-or-later"
 name = "pyhgtmap"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 geotiff = [
-  # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
-  "GDAL",
+    # Do NOT pin GDAL version to ease installing it via OS package manager (due to many dependencies)
+    "GDAL",
 ]
 
 [project.scripts]
@@ -69,40 +69,40 @@ installer = "uv"
 
 # Use default env for all dev activities
 dependencies = [
-  "pytest>=7.0.1 ; python_version < '3.13'",
-  "pytest>=8.4.0 ; python_version >= '3.13'",
-  "pytest-cov~=7.0.0",
-  "pytest_httpx>=0.30.0",
-  "pytest-mpl~=0.16.1",
-  "pytest-sugar>=0.9.7",
-  "pytest-xdist>=3.5.0",
-  "types-beautifulsoup4>=4",
-  "mypy>=1.0.1",
-  "mypy-extensions~=1.0.0",
-  "ruff>=0.6.4",
-  "uv",
-  "pip",
-  "setuptools",
+    "pytest>=7.0.1 ; python_version < '3.13'",
+    "pytest>=8.4.0 ; python_version >= '3.13'",
+    "pytest-cov~=7.0.0",
+    "pytest_httpx>=0.30.0",
+    "pytest-mpl~=0.16.1",
+    "pytest-sugar>=0.9.7",
+    "pytest-xdist>=3.5.0",
+    "types-beautifulsoup4>=4",
+    "mypy>=1.0.1",
+    "mypy-extensions~=1.0.0",
+    "ruff>=0.6.4",
+    "uv",
+    "pip",
+    "setuptools",
 ]
 
 [tool.hatch.envs.default.scripts]
 all = ["style", "typing", "test_cov"]
 fmt = [
-  # Sort imports - https://docs.astral.sh/ruff/formatter/#sorting-imports
-  "ruff check --select I --fix {args:pyhgtmap tests tools}",
-  "ruff format {args:pyhgtmap tests tools}",
-  "style",
+    # Sort imports - https://docs.astral.sh/ruff/formatter/#sorting-imports
+    "ruff check --select I --fix {args:pyhgtmap tests tools}",
+    "ruff format {args:pyhgtmap tests tools}",
+    "style",
 ]
 style = [
-  "ruff check {args:pyhgtmap tests tools}",
-  "ruff format --check --diff {args:pyhgtmap tests tools}",
+    "ruff check {args:pyhgtmap tests tools}",
+    "ruff format --check --diff {args:pyhgtmap tests tools}",
 ]
 test = "pytest {args:tests}"
 test_cov = ["pytest --mpl --cov --cov-report xml --cov-report term"]
 typing = "mypy {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.geotiff]
 # Env for optional geotiff dependencies

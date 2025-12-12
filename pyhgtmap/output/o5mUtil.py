@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import ast
 import time
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import pyhgtmap.output
 from pyhgtmap import output
 from pyhgtmap.varint import int2str, join, sint2str, writableInt, writableString
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pyhgtmap import BBox
     from pyhgtmap.hgt.tile import TileContours
 

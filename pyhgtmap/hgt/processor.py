@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, cast
 
 from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from multiprocessing.context import ForkProcess  # type: ignore[attr-defined]
     from multiprocessing.sharedctypes import Synchronized
 

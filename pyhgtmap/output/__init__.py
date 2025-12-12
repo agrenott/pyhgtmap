@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import numpy
 from nptyping import NDArray, Structure
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pyhgtmap.hgt.tile import TileContours
 
 logger = logging.getLogger(__name__)

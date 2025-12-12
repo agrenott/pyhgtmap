@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import time
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import numpy
 
@@ -11,6 +11,7 @@ from pyhgtmap import BBox
 from pyhgtmap.varint import writableString
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from io import IOBase
 
     from pyhgtmap.hgt.tile import TileContours

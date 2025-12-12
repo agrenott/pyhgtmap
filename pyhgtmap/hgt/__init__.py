@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from math import isclose
-from typing import Callable
 
 from pyhgtmap import BBox, Coordinates
 

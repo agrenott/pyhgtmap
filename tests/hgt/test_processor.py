@@ -9,7 +9,7 @@ import shutil
 import sys
 import tempfile
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Callable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -24,7 +24,7 @@ from pyhgtmap.hgt.tile import TileContours
 from tests import TEST_DATA_PATH
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
 
 class OSMDecoder(npyosmium.SimpleHandler):
