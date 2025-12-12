@@ -1,4 +1,4 @@
-[![Python: 3.9, 3.10, 3.11, 3.12, 3.13, 3.14](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org)
+[![Python: 3.10, 3.11, 3.12, 3.13, 3.14](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org)
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/pyhgtmap)
 ![GitHub](https://img.shields.io/github/license/agrenott/pyhgtmap)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/agrenott/pyhgtmap/pythonpackage.yaml)

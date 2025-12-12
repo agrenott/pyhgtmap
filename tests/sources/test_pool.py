@@ -1,5 +1,5 @@
 import pytest
-from class_registry.registry import RegistryKeyError
+from class_registry import RegistryKeyError
 
 from pyhgtmap.configuration import Configuration
 from pyhgtmap.sources import Source

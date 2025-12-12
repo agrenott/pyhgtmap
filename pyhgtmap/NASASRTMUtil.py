@@ -22,7 +22,9 @@ def calc_bbox(area: str, corrx: float = 0.0, corry: float = 0.0) -> IntBBox:
     """Parse bounding box string and calculates the appropriate bounding box for the needed files"""
     min_lon, min_lat, max_lon, max_lat = [
         float(value) - inc
-        for value, inc in zip(area.split(":"), [corrx, corry, corrx, corry])
+        for value, inc in zip(
+            area.split(":"), [corrx, corry, corrx, corry], strict=True
+        )
     ]
     if min_lon < 0:
         bbox_min_lon = int(min_lon) if min_lon % 1 == 0 else int(min_lon) - 1

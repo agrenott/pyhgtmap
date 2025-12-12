@@ -215,7 +215,7 @@ class TestHgtTile:
         plt.tight_layout(pad=0)
         for elev in range(0, 500, 100):
             for contour in contour_data.trace(elev)[0]:
-                x, y = zip(*contour)
+                x, y = zip(*contour, strict=True)
                 plt.plot(x, y, color="black")
         # plt.savefig(os.path.join(TEST_DATA_PATH, "toulon_out.png"))
         return fig

@@ -6,12 +6,14 @@ import pkgutil
 from itertools import chain
 from typing import TYPE_CHECKING, cast
 
-from class_registry import ClassRegistry, ClassRegistryInstanceCache
+from class_registry.cache import ClassRegistryInstanceCache
 
 from pyhgtmap.sources import SOURCES_TYPES_REGISTRY, Source
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterator
+    from collections.abc import Generator, Iterable, Iterator
+
+    from class_registry import ClassRegistry
 
     from pyhgtmap.configuration import Configuration
 
@@ -26,7 +28,7 @@ class Pool:
 
     # Keep a reference on the source registry as the cached version
     # do not expose all methods...
-    _inner_registry: ClassRegistry = SOURCES_TYPES_REGISTRY
+    _inner_registry: ClassRegistry[Source] = SOURCES_TYPES_REGISTRY
 
     def __init__(
         self, cache_dir_root: str, config_dir: str, configuration: Configuration
@@ -71,9 +73,9 @@ class Pool:
         yield from cast("Iterator[Source]", self._cached_registry)
 
     @classmethod
-    def registered_sources(cls) -> Generator[type[Source], None, None]:
+    def registered_sources(cls) -> Iterable[type[Source]]:
         """Returns a generator of registered sources types."""
-        return cls._inner_registry.values()
+        return cls._inner_registry.classes()
 
 
 # Force import of all implementations to register them in the pool
