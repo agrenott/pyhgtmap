@@ -1,5 +1,5 @@
 from importlib.metadata import version
-from typing import NamedTuple
+from typing import NamedTuple, TypeAlias
 
 __author__ = "Aurélien Grenotton (agrenott@gmail.com)"
 __version__ = version("pyhgtmap")
@@ -23,5 +23,5 @@ class Coordinates(NamedTuple):
 
 
 # Some type aliases
-Polygon = list[Coordinates]
-PolygonsList = list[Polygon]
+Polygon: TypeAlias = list[Coordinates]
+PolygonsList: TypeAlias = list[Polygon]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 
 import numpy
 from matplotlib.path import Path as PolygonPath
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
     from pyhgtmap import PolygonsList
 
-# TODO: re-add TypeAlias when 3.9 is no longer supported
-IntBBox = tuple[int, int, int, int]
+
+IntBBox: TypeAlias = tuple[int, int, int, int]
 
 
 def calc_bbox(area: str, corrx: float = 0.0, corry: float = 0.0) -> IntBBox:

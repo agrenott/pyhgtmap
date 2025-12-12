@@ -249,11 +249,13 @@ def parse_file_for_bbox(
     doTransform: bool,
 ) -> BBox:
     fileExt: str = os.path.splitext(fullFilename)[1].lower().replace(".", "")
-    if fileExt == "hgt":
-        return parse_hgt_filename(os.path.split(fullFilename)[1], corrx, corry)
-    elif fileExt in ("tif", "tiff", "vrt"):
-        return parse_geotiff_bbox(fullFilename, corrx, corry, doTransform)
-    raise ValueError(f"Unsupported extension {fileExt}")
+    match fileExt:
+        case "hgt":
+            return parse_hgt_filename(os.path.split(fullFilename)[1], corrx, corry)
+        case "tif" | "tiff" | "vrt":
+            return parse_geotiff_bbox(fullFilename, corrx, corry, doTransform)
+        case _:
+            raise ValueError(f"Unsupported extension {fileExt}")
 
 
 def calc_hgt_area(
