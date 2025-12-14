@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeAlias
 
 import numpy
 from nptyping import NDArray, Structure
@@ -31,19 +31,19 @@ class EfficientWayType(NamedTuple):
 
 
 # Efficient representation of many ways (array of 4-tuple, similar to a list of WayType)
-WaysType = NDArray[
+WaysType: TypeAlias = NDArray[
     Any,
-    Structure["first_node_id: Int, nb_nodes: Int, closed_loop: Bool, elevation: Int"],
+    Structure["first_node_id: Int, nb_nodes: Int, closed_loop: Bool, elevation: Int"],  # noqa: F722
 ]
-EfficientWaysType = NDArray[
+EfficientWaysType: TypeAlias = NDArray[
     Any,
     Structure[
-        "first_node_id: UInt64, nb_nodes: UInt64, closed_loop: Bool, elevation: Int64"
+        "first_node_id: UInt64, nb_nodes: UInt64, closed_loop: Bool, elevation: Int64"  # noqa: F722
     ],
 ]
 
 
-NodeType = tuple[int, int]
+NodeType: TypeAlias = tuple[int, int]
 
 
 def make_elev_classifier(majorDivisor: int, mediumDivisor: int) -> Callable[[int], str]:

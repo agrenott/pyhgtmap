@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from math import isclose
+from typing import TypeAlias
 
 from pyhgtmap import BBox, Coordinates
 
 # Coordinates transformation function prototype
-TransformFunType = Callable[
+TransformFunType: TypeAlias = Callable[
     [Iterable[Coordinates]],
     Iterable[Coordinates],
 ]
