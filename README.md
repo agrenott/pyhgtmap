@@ -70,7 +70,7 @@ This source requires creating an AW3D30 account on https://www.eorc.jaxa.jp/ALOS
 
 For ubuntu-like system:
 
-## Ligther deployment (without GeoTiff support)
+## Lighter deployment (without GeoTiff support)
 
 GDAL dependency is required only to add GeoTiff support, and is quite painful to install.
 If you don't need GeoTiff support, simply install the default version of pyhgtmap:

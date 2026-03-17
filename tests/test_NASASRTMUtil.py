@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 import numpy as np
 import pytest
 
-from pyhgtmap import Coordinates, PolygonsList
+from pyhgtmap import BBox, Coordinates, PolygonsList
 from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.file import parse_polygons_file
 from pyhgtmap.NASASRTMUtil import (
@@ -23,7 +23,7 @@ def test_getFiles_no_source(
     test_configuration: Configuration,
 ) -> None:
     """No source, no file..."""
-    files = get_files("1:2:3:4", None, 0, 0, [], test_configuration)
+    files = get_files(BBox(1.0, 2.0, 3.0, 4.0), None, 0, 0, [], test_configuration)
     assert files == []
 
 
@@ -44,7 +44,9 @@ def test_getFiles_sonn3_no_poly(
 
     pool_mock.return_value.available_sources_names.return_value = ["sonn"]
 
-    files = get_files("1:2:3:4", None, 0, 0, ["sonn3"], test_configuration)
+    files = get_files(
+        BBox(1.0, 2.0, 3.0, 4.0), None, 0, 0, ["sonn3"], test_configuration
+    )
 
     pool_mock.return_value.get_source.assert_called_with("sonn")
     assert pool_mock.return_value.get_source.return_value.get_file.call_args_list == [
@@ -77,7 +79,9 @@ def test_getFiles_multi_sources(
         "hgt/SONN3/N03E002.hgt",
     ]
 
-    files = get_files("1:2:3:4", None, 0, 0, ["sonn3", "view1"], test_configuration)
+    files = get_files(
+        BBox(1.0, 2.0, 3.0, 4.0), None, 0, 0, ["sonn3", "view1"], test_configuration
+    )
 
     assert sources_pool_mock.return_value.get_file.call_args_list == [
         call("N02E001", "sonn3"),
@@ -628,7 +632,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_positive_integer_coordinates() -> None:
         """Test with positive integer coordinates."""
-        area = "0:0:10:10"
+        area = BBox(0.0, 0.0, 10.0, 10.0)
         result = calc_bbox(area)
 
         assert result == (0, 0, 10, 10)
@@ -636,7 +640,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_positive_decimal_coordinates() -> None:
         """Test with positive decimal coordinates."""
-        area = "0.5:0.5:10.5:10.5"
+        area = BBox(0.5, 0.5, 10.5, 10.5)
         result = calc_bbox(area)
 
         # Decimals round up for max values, min stays same
@@ -645,7 +649,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_negative_integer_coordinates() -> None:
         """Test with negative integer coordinates."""
-        area = "-10:-10:0:0"
+        area = BBox(-10.0, -10.0, 0.0, 0.0)
         result = calc_bbox(area)
 
         assert result == (-10, -10, 0, 0)
@@ -653,7 +657,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_negative_decimal_coordinates() -> None:
         """Test with negative decimal coordinates."""
-        area = "-10.5:-10.5:-0.5:-0.5"
+        area = BBox(-10.5, -10.5, -0.5, -0.5)
         result = calc_bbox(area)
 
         # Negative decimals round down for min values
@@ -662,7 +666,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_mixed_sign_coordinates() -> None:
         """Test with mixed positive and negative coordinates."""
-        area = "-5:0:5:10"
+        area = BBox(-5.0, 0.0, 5.0, 10.0)
         result = calc_bbox(area)
 
         assert result == (-5, 0, 5, 10)
@@ -670,7 +674,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_with_positive_corrections() -> None:
         """Test bounding box calculation with positive corrections."""
-        area = "0:0:10:10"
+        area = BBox(0.0, 0.0, 10.0, 10.0)
         result = calc_bbox(area, corrx=0.5, corry=0.5)
 
         # Corrections are subtracted from parsed values
@@ -683,7 +687,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_with_negative_corrections() -> None:
         """Test bounding box calculation with negative corrections."""
-        area = "5:5:15:15"
+        area = BBox(5.0, 5.0, 15.0, 15.0)
         result = calc_bbox(area, corrx=-1.0, corry=-1.0)
 
         # Negative corrections (subtracted) expand the bbox
@@ -696,7 +700,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_zero_area() -> None:
         """Test with zero-area bounding box."""
-        area = "5:5:5:5"
+        area = BBox(5.0, 5.0, 5.0, 5.0)
         result = calc_bbox(area)
 
         assert result == (5, 5, 5, 5)
@@ -704,7 +708,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_small_area() -> None:
         """Test with very small area (less than 1 degree)."""
-        area = "5.1:5.1:5.9:5.9"
+        area = BBox(5.1, 5.1, 5.9, 5.9)
         result = calc_bbox(area)
 
         # minLon: 5.1 (non-int) -> 5
@@ -716,7 +720,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_large_area() -> None:
         """Test with large area spanning multiple tiles."""
-        area = "-180:-90:180:90"
+        area = BBox(-180.0, -90.0, 180.0, 90.0)
         result = calc_bbox(area)
 
         assert result == (-180, -90, 180, 90)
@@ -724,7 +728,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_negative_min_positive_max() -> None:
         """Test with negative min and positive max."""
-        area = "-5:-5:5:5"
+        area = BBox(-5.0, -5.0, 5.0, 5.0)
         result = calc_bbox(area)
 
         assert result == (-5, -5, 5, 5)
@@ -732,7 +736,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_negative_min_positive_decimal_max() -> None:
         """Test with negative min (integer) and positive decimal max."""
-        area = "-5:-5:5.5:5.5"
+        area = BBox(-5.0, -5.0, 5.5, 5.5)
         result = calc_bbox(area)
 
         # minLon: -5 (integer) -> -5
@@ -744,7 +748,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_negative_decimal_min_positive_max() -> None:
         """Test with negative decimal min and positive integer max."""
-        area = "-5.5:-5.5:5:5"
+        area = BBox(-5.5, -5.5, 5.0, 5.0)
         result = calc_bbox(area)
 
         # minLon: -5.5 (non-int, negative) -> -6
@@ -756,7 +760,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_asymmetric_area() -> None:
         """Test with asymmetric bounding box."""
-        area = "10:20:30:40"
+        area = BBox(10.0, 20.0, 30.0, 40.0)
         result = calc_bbox(area)
 
         assert result == (10, 20, 30, 40)
@@ -764,16 +768,20 @@ class TestCalcBbox:
     @pytest.mark.parametrize(
         ("area", "corrx", "corry", "expected"),
         [
-            ("0:0:1:1", 0, 0, (0, 0, 1, 1)),
-            ("0:0:1:1", 0.5, 0.5, (-1, -1, 1, 1)),
-            ("10:10:20:20", 0, 0, (10, 10, 20, 20)),
-            ("10:10:20:20", 1, 1, (9, 9, 19, 19)),
-            ("-10:-10:0:0", 0, 0, (-10, -10, 0, 0)),
-            ("-10:-10:0:0", 0.5, 0.5, (-11, -11, 0, 0)),
+            (BBox(0.0, 0.0, 1.0, 1.0), 0, 0, (0, 0, 1, 1)),
+            (BBox(0.0, 0.0, 1.0, 1.0), 0.5, 0.5, (-1, -1, 1, 1)),
+            (BBox(10.0, 10.0, 20.0, 20.0), 0, 0, (10, 10, 20, 20)),
+            (BBox(10.0, 10.0, 20.0, 20.0), 1, 1, (9, 9, 19, 19)),
+            (BBox(-10.0, -10.0, 0.0, 0.0), 0, 0, (-10, -10, 0, 0)),
+            (BBox(-10.0, -10.0, 0.0, 0.0), 0.5, 0.5, (-11, -11, 0, 0)),
         ],
     )
     def test_calc_bbox_parametrized(
-        self, area: str, corrx: float, corry: float, expected: tuple[int, int, int, int]
+        self,
+        area: BBox,
+        corrx: float,
+        corry: float,
+        expected: tuple[int, int, int, int],
     ) -> None:
         """Parametrized tests for calcBbox with various inputs."""
         result = calc_bbox(area, corrx, corry)
@@ -782,7 +790,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_equator_crossing() -> None:
         """Test bounding box that crosses the equator."""
-        area = "-2:2:2:8"
+        area = BBox(-2.0, 2.0, 2.0, 8.0)
         result = calc_bbox(area)
 
         assert result == (-2, 2, 2, 8)
@@ -790,7 +798,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_return_type() -> None:
         """Test that calcBbox returns tuple of 4 integers."""
-        area = "5.5:5.5:15.5:15.5"
+        area = BBox(5.5, 5.5, 15.5, 15.5)
         result = calc_bbox(area)
 
         assert isinstance(result, tuple)
@@ -800,7 +808,7 @@ class TestCalcBbox:
     @staticmethod
     def test_calc_bbox_min_max_ordering() -> None:
         """Test that result maintains minLon, minLat, maxLon, maxLat order."""
-        area = "10:5:20:15"
+        area = BBox(10.0, 5.0, 20.0, 15.0)
         lon_min, lat_min, lon_max, lat_max = calc_bbox(area)
 
         # Verify ordering

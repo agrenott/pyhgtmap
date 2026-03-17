@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from pyhgtmap import PolygonsList
+    from pyhgtmap import BBox, PolygonsList
 
 CONFIG_DIR = str(Path.home() / ".pyhgtmap")
 CONFIG_FILENAME = str(Path(CONFIG_DIR, "config.yaml"))
@@ -48,7 +48,7 @@ class Configuration(NestedConfig):
     # providing typing.
     # Sadly some parts have to be duplicated...
 
-    area: str | None = None
+    area: BBox | None = None
     polygon_file: str | None = None
     polygons: PolygonsList | None = None
     downloadOnly: bool = False

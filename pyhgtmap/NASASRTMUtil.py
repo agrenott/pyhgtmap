@@ -12,20 +12,19 @@ from pyhgtmap.sources.pool import Pool
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from pyhgtmap import PolygonsList
+    from pyhgtmap import BBox, PolygonsList
 
 
 IntBBox: TypeAlias = tuple[int, int, int, int]
 
 
-def calc_bbox(area: str, corrx: float = 0.0, corry: float = 0.0) -> IntBBox:
-    """Parse bounding box string and calculates the appropriate bounding box for the needed files"""
-    min_lon, min_lat, max_lon, max_lat = [
-        float(value) - inc
-        for value, inc in zip(
-            area.split(":"), [corrx, corry, corrx, corry], strict=True
-        )
-    ]
+def calc_bbox(area: BBox, corrx: float = 0.0, corry: float = 0.0) -> IntBBox:
+    """Convert a BBox to integer bounding box coordinates for the needed files."""
+    min_lon = area.min_lon - corrx
+    min_lat = area.min_lat - corry
+    max_lon = area.max_lon - corrx
+    max_lat = area.max_lat - corry
+
     if min_lon < 0:
         bbox_min_lon = int(min_lon) if min_lon % 1 == 0 else int(min_lon) - 1
     else:
@@ -235,7 +234,7 @@ class SourcesPool:
 
 
 def get_files(
-    area: str,
+    area: BBox,
     polygons: PolygonsList | None,
     corrx: float,
     corry: float,
@@ -247,14 +246,14 @@ def get_files(
     files: list[tuple[str, bool]] = []
     sources_pool = SourcesPool(configuration)
 
-    for area, check_poly in area_prefixes:
+    for area_prefix, check_poly in area_prefixes:
         for source in sources:
-            print(f"{area:s}: trying {source:s} ...")
-            save_filename = sources_pool.get_file(area, source)
+            print(f"{area_prefix:s}: trying {source:s} ...")
+            save_filename = sources_pool.get_file(area_prefix, source)
             if save_filename:
                 files.append((save_filename, check_poly))
                 break
         else:
-            print(f"{area:s}: no file found on server.")
+            print(f"{area_prefix:s}: no file found on server.")
             continue
     return files

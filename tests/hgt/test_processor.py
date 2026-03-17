@@ -281,7 +281,7 @@ class TestHgtFilesProcessor:
                     (os.path.join(TEST_DATA_PATH, "N43E007.hgt"), False),
                 ]
                 # This is usually done by main() (could be improved)
-                options.area = "6:43:8:44"
+                options.area = BBox(6.0, 43.0, 8.0, 44.0)
                 # Increase step size to speed up test case
                 options.contourStepSize = 500
                 # Instrument method without changing its behavior
@@ -343,7 +343,7 @@ class TestHgtFilesProcessor:
         when make_bounds_tag() accessed bbox.min_lat (XML / o5m output paths).
         """
         default_options.maxNodesPerTile = 0
-        default_options.area = "6:43:8:44"
+        default_options.area = BBox(6.0, 43.0, 8.0, 44.0)
         processor = HgtFilesProcessor(
             1,
             node_start_id=100,

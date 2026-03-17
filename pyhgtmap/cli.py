@@ -6,13 +6,21 @@ from typing import TYPE_CHECKING, cast
 
 from configargparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 
-from pyhgtmap import __version__
+from pyhgtmap import BBox, __version__
 from pyhgtmap.configuration import CONFIG_FILENAME, Configuration, NestedConfig
 from pyhgtmap.hgt.file import parse_polygons_file
 from pyhgtmap.sources.pool import ALL_SUPPORTED_SOURCES, Pool
 
 if TYPE_CHECKING:
     from pyhgtmap.sources import Source
+
+
+def _str_to_bbox(area_str: str) -> BBox:
+    """Convert area string format 'left:bottom:right:top' to BBox."""
+    parts = area_str.split(":")
+    if len(parts) != 4:
+        raise ValueError(f"Invalid area format: {area_str}")
+    return BBox(*[float(x) for x in parts])
 
 
 def build_common_parser() -> ArgumentParser:
@@ -53,6 +61,7 @@ def build_common_parser() -> ArgumentParser:
         metavar="LEFT:BOTTOM:RIGHT:TOP",
         action="store",
         default=default_config.area,
+        type=_str_to_bbox,
     )
     parser.add_argument(
         "--polygon",
@@ -401,8 +410,10 @@ def parse_command_line(sys_args: list[str]) -> tuple[Configuration, list[str]]:
         if not os.path.isfile(opts.polygon_file):
             print(f"Polygon file '{opts.polygon_file:s}' is not a regular file")
             sys.exit(1)
-        opts.area, opts.polygons = parse_polygons_file(opts.polygon_file)
-    elif opts.downloadOnly and not opts.area:
+        area_str, opts.polygons = parse_polygons_file(opts.polygon_file)
+        opts.area = _str_to_bbox(area_str)
+
+    if not opts.area and opts.downloadOnly:
         # no area, no polygon, so nothing to download
         sys.stderr.write(
             "Nothing to download.  Combine the --download-only option with"

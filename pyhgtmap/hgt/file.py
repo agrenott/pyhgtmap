@@ -569,7 +569,7 @@ class HgtFile:
         step = int(opts.contourStepSize) or 20
 
         def truncate_data(
-            area: str | None, inputData: numpy.ma.masked_array
+            area: BBox | None, inputData: numpy.ma.masked_array
         ) -> tuple[BBox, numpy.ma.masked_array]:
             """truncates a numpy array.
             returns (<min lon>, <min lat>, <max lon>, <max lat>) and an array of the
@@ -577,7 +577,10 @@ class HgtFile:
             """
             if area:
                 bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = (
-                    float(bound) for bound in area.split(":")
+                    area.min_lon,
+                    area.min_lat,
+                    area.max_lon,
+                    area.max_lat,
                 )
                 if self.reverseTransform is not None:
                     bboxMinLon, bboxMinLat, bboxMaxLon, bboxMaxLat = transform_lon_lats(

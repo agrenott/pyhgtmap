@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
 
 import numpy
 import pytest
 
-from pyhgtmap import Coordinates, Polygon, PolygonsList, hgt
+from pyhgtmap import BBox, Coordinates, Polygon, PolygonsList, hgt
 from pyhgtmap.configuration import Configuration
 from pyhgtmap.hgt.file import (
     HgtFile,
@@ -18,9 +17,6 @@ from pyhgtmap.hgt.file import (
 )
 from tests import TEST_DATA_PATH
 from tests.hgt import handle_optional_geotiff_support
-
-if TYPE_CHECKING:
-    from pyhgtmap import BBox
 
 HGT_SIZE: int = 1201
 
@@ -98,7 +94,7 @@ class TestHgtFile:
     def test_make_tiles_chopped_with_area() -> None:
         """Tiles chopped due to nodes threshold and area."""
         custom_options = Configuration(
-            area="6.2:43.1:7.1:43.8",
+            area=BBox(6.2, 43.1, 7.1, 43.8),
             maxNodesPerTile=500000,
             contourStepSize=20,
         )
