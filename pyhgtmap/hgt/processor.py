@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 from typing import TYPE_CHECKING, cast
 
+from pyhgtmap import BBox
 from pyhgtmap.hgt.file import HgtFile
 from pyhgtmap.output.factory import get_osm_output
 
@@ -12,7 +13,6 @@ if TYPE_CHECKING:
     from multiprocessing.context import ForkProcess  # type: ignore[attr-defined]
     from multiprocessing.sharedctypes import Synchronized
 
-    from pyhgtmap import BBox
     from pyhgtmap.configuration import Configuration
     from pyhgtmap.hgt.tile import HgtTile
     from pyhgtmap.output import Output
@@ -277,10 +277,7 @@ class HgtFilesProcessor:
                 raise ValueError("self.options.area is not defined")
             self.get_osm_output(
                 [file_tuple[0] for file_tuple in files],
-                cast(
-                    "BBox",
-                    [float(b) for b in self.options.area.split(":")],
-                ),
+                BBox(*[float(b) for b in self.options.area.split(":")]),
             )
 
         # import objgraph

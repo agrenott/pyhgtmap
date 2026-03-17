@@ -332,6 +332,36 @@ class TestHgtFilesProcessor:
             assert output1 is not output2
 
     @staticmethod
+    def test_process_files_single_output_bbox_type(
+        default_options: Configuration,
+    ) -> None:
+        """Regression test: process_files must pass a BBox (not a plain list) to
+        get_osm_output in single output mode.
+
+        Previously, typing.cast() was used instead of BBox(), leaving the area
+        string parsed as a plain list at runtime, which caused AttributeError
+        when make_bounds_tag() accessed bbox.min_lat (XML / o5m output paths).
+        """
+        default_options.maxNodesPerTile = 0
+        default_options.area = "6:43:8:44"
+        processor = HgtFilesProcessor(
+            1,
+            node_start_id=100,
+            way_start_id=200,
+            options=default_options,
+        )
+        with mock.patch("pyhgtmap.hgt.processor.get_osm_output") as get_osm_output_mock:
+            get_osm_output_mock.return_value = Mock()
+            processor.process_files([])  # empty file list — only initializes output
+
+            get_osm_output_mock.assert_called_once()
+            bbox_arg = get_osm_output_mock.call_args[0][2]
+            assert isinstance(bbox_arg, BBox), f"Expected BBox, got {type(bbox_arg)}"
+            assert bbox_arg == BBox(
+                min_lon=6.0, min_lat=43.0, max_lon=8.0, max_lat=44.0
+            )
+
+    @staticmethod
     def test_get_osm_output_single_output(default_options: Configuration) -> None:
         # Enable single output mode
         default_options.maxNodesPerTile = 0
