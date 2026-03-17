@@ -324,3 +324,11 @@ class TestMakeOsmFilename:
 
         assert result1 == result2
         assert result1 == "lon0.00_1.00lat0.00_1.00_local-source.osm.gz"
+
+    @staticmethod
+    def test_make_osm_filename_no_data_sources(sample_bbox, default_config) -> None:
+        """Test that function handles no dataSources with valid input files, matching usual data source patterns."""
+        default_config.dataSources = []
+        input_files = ["hgt/SRTM3/N00E000.hgt"]
+        result = make_osm_filename(sample_bbox, default_config, input_files)
+        assert result == "lon0.00_1.00lat0.00_1.00_local-source.osm"
