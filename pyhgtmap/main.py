@@ -29,12 +29,7 @@ def main_internal(sys_args: list[str]) -> None:
             for arg in args
             if os.path.splitext(arg)[1].lower() in (".hgt", ".tif", ".tiff", ".vrt")
         ]
-        opts.area = ":".join(
-            [
-                str(i)
-                for i in calc_hgt_area(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)
-            ],
-        )
+        opts.area = calc_hgt_area(hgtDataFiles, opts.srtmCorrx, opts.srtmCorry)
         # sources are not used in this case
         opts.dataSources = []
     else:
@@ -53,7 +48,7 @@ def main_internal(sys_args: list[str]) -> None:
             opts,
         )
         if len(hgtDataFiles) == 0:
-            print(f"No files for this area {opts.area:s} from desired source(s).")
+            print(f"No files for this area {opts.area} from desired source(s).")
             sys.exit(0)
         elif opts.downloadOnly:
             sys.exit(0)

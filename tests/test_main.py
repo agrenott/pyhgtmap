@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pyhgtmap import main
+from pyhgtmap import BBox, main
 
 from . import TEST_DATA_PATH
 
@@ -51,9 +51,8 @@ def test_main_download_from_poly(
 
     # Check
     NASASRTMUtil_mock.get_files.assert_called_once()
-    assert (
-        NASASRTMUtil_mock.get_files.call_args[0][0]
-        == "-6.9372070:41.2386600:9.9000000:51.4288000"
+    assert NASASRTMUtil_mock.get_files.call_args[0][0] == BBox(
+        -6.9372070, 41.2386600, 9.9000000, 51.4288000
     )
     assert NASASRTMUtil_mock.get_files.call_args[0][1][0][0:5] == [
         (9.9, 42.43788),
@@ -68,7 +67,7 @@ def test_main_download_from_poly(
 
     HgtFilesProcessor_mock.assert_called_once()
     parsed_options: Configuration = HgtFilesProcessor_mock.call_args.args[3]
-    assert parsed_options.area == "-6.9372070:41.2386600:9.9000000:51.4288000"
+    assert parsed_options.area == BBox(-6.9372070, 41.2386600, 9.9000000, 51.4288000)
 
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
         [("hgt/VIEW1/N45E006.hgt", True), ("hgt/VIEW1/N46E006.hgt", True)],
@@ -99,7 +98,7 @@ def test_main_manual_input_poly(
     HgtFilesProcessor_mock.assert_called_once()
     parsed_options: Configuration = HgtFilesProcessor_mock.call_args.args[3]
     # area must be properly computed from files names
-    assert parsed_options.area == "7.0:45.0:8.0:48.0"
+    assert parsed_options.area == BBox(7.0, 45.0, 8.0, 48.0)
     # Polygon check must be enabled for all files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
         [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)],
@@ -128,7 +127,7 @@ def test_main_manual_input_poly_no_source(
     HgtFilesProcessor_mock.assert_called_once()
     parsed_options: Configuration = HgtFilesProcessor_mock.call_args.args[3]
     # area must be properly computed from files names
-    assert parsed_options.area == "7.0:45.0:8.0:48.0"
+    assert parsed_options.area == BBox(7.0, 45.0, 8.0, 48.0)
     # Polygon check must be enabled for all files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
         [("N45E007.hgt", True), ("N46E007.hgt", True), ("N47E007.hgt", True)],
@@ -157,7 +156,7 @@ def test_main_manual_input_no_poly(
     HgtFilesProcessor_mock.assert_called_once()
     parsed_options: Configuration = HgtFilesProcessor_mock.call_args.args[3]
     # area must be properly computed from files names
-    assert parsed_options.area == "7.0:45.0:8.0:48.0"
+    assert parsed_options.area == BBox(7.0, 45.0, 8.0, 48.0)
     # Polygon check must NOT be enabled for any files
     HgtFilesProcessor_mock.return_value.process_files.assert_called_once_with(
         [("N45E007.hgt", False), ("N46E007.hgt", False), ("N47E007.hgt", False)],

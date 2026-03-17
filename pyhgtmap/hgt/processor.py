@@ -277,10 +277,7 @@ class HgtFilesProcessor:
                 raise ValueError("self.options.area is not defined")
             self.get_osm_output(
                 [file_tuple[0] for file_tuple in files],
-                cast(
-                    "BBox",
-                    [float(b) for b in self.options.area.split(":")],
-                ),
+                self.options.area,
             )
 
         # import objgraph

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pyhgtmap import BBox
 from pyhgtmap.cli import parse_command_line
 
 
@@ -38,7 +39,7 @@ class TestParseCommandLine:
         """Test parsing with --area option."""
         opts, _ = parse_command_line(["--area", "0:0:1:1"])
 
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
         assert isinstance(opts.dataSources, list)
 
     @staticmethod
@@ -46,7 +47,7 @@ class TestParseCommandLine:
         """Test parsing with --area and --pbf options."""
         opts, _ = parse_command_line(["--area", "0:0:1:1", "--pbf"])
 
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
         assert opts.pbf is True
         assert opts.gzip == 0
         assert opts.o5m is False
@@ -56,7 +57,7 @@ class TestParseCommandLine:
         """Test parsing with --area and --gzip options."""
         opts, _ = parse_command_line(["--area", "0:0:1:1", "--gzip", "5"])
 
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
         assert opts.gzip == 5
         assert opts.pbf is False
 
@@ -65,7 +66,7 @@ class TestParseCommandLine:
         """Test parsing with --area and --o5m options."""
         opts, _ = parse_command_line(["--area", "0:0:1:1", "--o5m"])
 
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
         assert opts.o5m is True
         assert opts.pbf is False
         assert opts.gzip == 0
@@ -75,7 +76,7 @@ class TestParseCommandLine:
         """Test parsing with --sources option."""
         opts, _ = parse_command_line(["--area", "0:0:1:1", "--sources", "srtm1,view3"])
 
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
         assert opts.dataSources == ["srtm1", "view3"]
 
     @staticmethod
@@ -126,7 +127,7 @@ class TestParseCommandLine:
         opts, _ = parse_command_line(["--area", "0:0:1:1", "--download-only"])
 
         assert opts.downloadOnly is True
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
 
     @staticmethod
     def test_parse_with_corrx_and_corry() -> None:
@@ -273,7 +274,7 @@ class TestParseCommandLine:
             ]
         )
 
-        assert opts.area == "0:0:10:10"
+        assert opts.area == BBox(0.0, 0.0, 10.0, 10.0)
         assert opts.pbf is True
         assert opts.contourStepSize == "50"
         assert opts.contourFeet is True
@@ -328,7 +329,7 @@ class TestParseCommandLine:
         try:
             opts, _ = parse_command_line(["--polygon", poly_file])
 
-            assert opts.area == "0:0:1:1"
+            assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
             assert opts.polygons == [[0, 0], [1, 0], [1, 1], [0, 1]]
             mock_parse_poly.assert_called_once_with(poly_file)
         finally:
@@ -339,14 +340,14 @@ class TestParseCommandLine:
         """Test parsing with positive area coordinates."""
         opts, _ = parse_command_line(["--area", "0:0:10:10"])
 
-        assert opts.area == "0:0:10:10"
+        assert opts.area == BBox(0.0, 0.0, 10.0, 10.0)
 
     @staticmethod
     def test_parse_with_float_area_coordinates() -> None:
         """Test parsing with float area coordinates."""
         opts, _ = parse_command_line(["--area", "10.5:20.3:30.7:40.1"])
 
-        assert opts.area == "10.5:20.3:30.7:40.1"
+        assert opts.area == BBox(10.5, 20.3, 30.7, 40.1)
 
     @staticmethod
     def test_parse_void_range_max_default() -> None:
@@ -367,7 +368,7 @@ class TestParseCommandLine:
         opts, _ = parse_command_line(["--download-only", "--area", "0:0:1:1"])
 
         assert opts.downloadOnly is True
-        assert opts.area == "0:0:1:1"
+        assert opts.area == BBox(0.0, 0.0, 1.0, 1.0)
 
     @staticmethod
     def test_parse_with_plot_prefix() -> None:
