@@ -31,14 +31,14 @@ def make_osm_filename(
         for srcName in input_files_names
     ]
     for srcNameMiddle in set(srcNameMiddles):
-        if srcNameMiddle.lower()[:5] in ALL_SUPPORTED_SOURCES:
-            continue
-        elif not opts.dataSources:
+        if not opts.dataSources:
             # files from the command line, this could be something custom
             srcTag = ",".join(set(srcNameMiddles))
             # osmName = hgt.makeBBoxString(borders).format(prefix) + "_{0:s}.osm".format(srcTag)
             osmName = hgt.makeBBoxString(borders).format(prefix) + "_local-source.osm"
             break
+        elif srcNameMiddle.lower()[:5] in ALL_SUPPORTED_SOURCES:
+            continue
         else:
             osmName = hgt.makeBBoxString(borders).format(prefix) + ".osm"
             break
